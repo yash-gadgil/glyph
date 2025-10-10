@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/user";
+
+service WatchlistService {
+
+    rpc GetWatchlists(WatchlistsRequest) returns (WatchlistsResponse) {}
+
+    rpc GetWatchlist(WatchlistRequest) returns (Watchlist) {}
+    
+    rpc CreateWatchList(CreateWatchlistRequest) returns (CreateWatchlistResponse) {}
+}
+
+message Watchlist {
+    int64 userID = 1;
+    int64 id = 2;
+    string name = 3;
+    repeated string symbols = 4;
+}
+
+message WatchlistMetadata {
+    int64 id = 1;
+    string name = 2;
+}
+
+message WatchlistsRequest {
+    int64 userID = 1;
+}
+
+message WatchlistsResponse {
+    int64 userID = 1;
+    repeated WatchlistMetadata w_metadata = 2;
+    Watchlist first = 3;
+}
+
+message WatchlistRequest {
+    int64 userID = 1;
+    int64 id = 2;
+}
+
+message CreateWatchlistRequest {
+    int64 userID = 1;
+    optional string name = 2;
+}
+
+message CreateWatchlistResponse {
+    int64 userID = 1;
+    string status = 2;
+}
