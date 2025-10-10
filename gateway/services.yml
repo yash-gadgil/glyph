@@ -1,0 +1,4 @@
+services:
+  market_data:
+    host: localhost
+    port: 50051
