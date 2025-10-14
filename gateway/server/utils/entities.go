@@ -21,3 +21,13 @@ type OrderList struct {
 	Status string  `json:"status"`
 	Orders []Order `json:"orders"`
 }
+
+type AuthReq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type AuthResp struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+}

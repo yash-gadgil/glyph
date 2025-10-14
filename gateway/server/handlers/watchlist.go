@@ -1,20 +1,40 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yash-gadgil/glyph/gateway/server/utils"
+	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 )
 
-func GetWatchlists(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) GetWatchlists(w http.ResponseWriter, r *http.Request) {
 
-	w.Write([]byte("your watchlists"))
+	serverAddr := cfg.UserServiceAddr
+	conn := utils.GetGrpcClient(serverAddr)
+	defer conn.Close()
+
+	c := userpb.NewWatchlistServiceClient(conn)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
+	defer cancel()
+
+	res, err := c.GetWatchlists(ctx, &userpb.WatchlistsRequest{
+		UserID: 253,
+	})
+	if err != nil {
+		fmt.Println("Error in Server Response:", err)
+	}
+
+	//w.Write([]byte("your watchlists"))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(res)
 }
 
-func ConnectToWatchlist(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) ConnectToWatchlist(w http.ResponseWriter, r *http.Request) {
 	watchlistID := chi.URLParam(r, "id")
 	symbol := r.URL.Query().Get("symbol")
 
@@ -25,16 +45,11 @@ func ConnectToWatchlist(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateWatchlist(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) CreateWatchlist(w http.ResponseWriter, r *http.Request) {
 	var nw utils.Watchlist
 
 	if err := json.NewDecoder(r.Body).Decode(&nw); err != nil {
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "invalid watchlist parameter",
-		})
+		utils.ReturnErrorJSON(w, "Invalid watchlist parameter", http.StatusBadRequest)
 		return
 	}
 
@@ -43,19 +58,19 @@ func CreateWatchlist(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("New watchlist made"))
 }
 
-func ModifyWatchlist(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) ModifyWatchlist(w http.ResponseWriter, r *http.Request) {
 	watchlistID := chi.URLParam(r, "id")
 
 	w.Write([]byte("edited watchlist no. " + watchlistID))
 }
 
-func DeleteWatchlist(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) DeleteWatchlist(w http.ResponseWriter, r *http.Request) {
 	watchlistID := chi.URLParam(r, "id")
 
 	w.Write([]byte("delete watchlist no. " + watchlistID))
 }
 
-func DeleteSymbolFromWatchlist(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) DeleteSymbolFromWatchlist(w http.ResponseWriter, r *http.Request) {
 	watchlistID := chi.URLParam(r, "id")
 	symbol := r.URL.Query().Get("symbol")
 

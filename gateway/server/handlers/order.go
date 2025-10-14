@@ -8,7 +8,7 @@ import (
 	"github.com/yash-gadgil/glyph/gateway/server/utils"
 )
 
-func GetOrders(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) GetOrders(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 
 	if status == "" || !utils.Contains(utils.ValidOrderStatuses, status) {
@@ -24,7 +24,7 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("your " + status + " orders"))
 }
 
-func CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var no utils.Order
 	if err := json.NewDecoder(r.Body).Decode(&no); err != nil {
 
@@ -39,7 +39,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("New order made"))
 }
 
-func DeleteOrder(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	orderID := chi.URLParam(r, "id")
 
 	w.Write([]byte("Order " + orderID + " to be Deleted"))

@@ -2,7 +2,7 @@ package handlers
 
 import "net/http"
 
-func GetPortfolio(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) GetPortfolio(w http.ResponseWriter, r *http.Request) {
 
 	/* serverAddr := "http://localhost:3001"
 	conn, err := grpc.NewClient(serverAddr)
@@ -14,10 +14,10 @@ func GetPortfolio(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("your portfolio"))
 }
 
-func GetHoldings(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) GetHoldings(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("your holdings"))
 }
 
-func GetPositions(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) GetPositions(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("your positions"))
 }
