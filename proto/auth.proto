@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option go_package = "github.com/yash-gadgil/glyph/protogen/golang/auth";
+
+service AuthService {
+
+    rpc Register(RegisterRequest) returns (RegisterResponse) {}
+    rpc Login(LoginRequest) returns (LoginResponse) {}
+    rpc OAuthURL(OAuthURLRequest) returns (OAuthURLResponse) {}
+    rpc OAuthCallback(OAuthCallbackRequest) returns (OAuthCallbackResponse) {}
+    rpc VerifyEmail(EmailVerificationRequest) returns (EmailVerificationResponse) {}
+}
+
+message RegisterRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message RegisterResponse {
+    string status = 1;
+}
+
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    string status = 1;
+}
+
+message OAuthURLRequest {
+    string provider = 1;
+    string status = 2;
+}
+
+message OAuthURLResponse {
+    string url = 1;
+}
+
+message OAuthCallbackRequest {
+    string provider = 1;
+    string status = 2;
+    string code = 3;
+}
+
+message OAuthCallbackResponse {
+    string token = 1;
+}
+
+message EmailVerificationRequest {
+
+}
+
+message EmailVerificationResponse {
+
+}
