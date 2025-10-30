@@ -16,6 +16,8 @@ type AuthService interface {
 	OAuthCallback(ctx context.Context, req *authpb.OAuthCallbackRequest) (*authpb.OAuthCallbackResponse, error)
 
 	VerifyEmail(ctx context.Context, req *authpb.EmailVerificationRequest) (*authpb.EmailVerificationResponse, error)
+
+	VerifyToken(ctx context.Context, req *authpb.VerificationRequest) (*authpb.VerificationResponse, error)
 }
 
 type GoAuth struct {
@@ -23,10 +25,6 @@ type GoAuth struct {
 	Email         string `json:"email"`
 	VerifiedEmail bool   `json:"verified_email"`
 	Name          string `json:"name"`
-	GivenName     string `json:"given_name"`
-	FamilyName    string `json:"family_name"`
-	Picture       string `json:"picture"`
-	Locale        string `json:"locale"`
 }
 
 type AddrConfig struct {

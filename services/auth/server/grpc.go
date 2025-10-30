@@ -1,12 +1,13 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"os"
 
-	"github.com/joho/godotenv"
+	"github.com/yash-gadgil/glyph/services/auth/db"
 	"github.com/yash-gadgil/glyph/services/auth/handlers"
 	"github.com/yash-gadgil/glyph/services/auth/service"
 	"github.com/yash-gadgil/glyph/services/auth/types"
@@ -20,22 +21,12 @@ type grpcServer struct {
 }
 
 func NewGrpcServer(addr string) *grpcServer {
-	return &grpcServer{addr: addr}
+	return &grpcServer{
+		addr: addr,
+	}
 }
 
 func (s *grpcServer) Run() error {
-
-	// Try common .env locations; don't exit fatally if not found.
-	// Order: current dir, parent dir, filesystem root.
-	// TECH DEBT
-	if err := godotenv.Load(".env"); err != nil {
-		if err := godotenv.Load("../.env"); err != nil {
-			if err := godotenv.Load("/.env"); err != nil {
-				log.Println("Warning: .env not found at .env, ../.env, or /.env; relying on existing environment")
-			}
-		}
-	}
-
 	lis, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -52,13 +43,18 @@ func (s *grpcServer) Run() error {
 	}
 
 	addConf := &types.AddrConfig{
-		UserSvcAddr: os.Getenv("USER_SVC_PORT"),
+		UserSvcAddr: os.Getenv("USER_SERVICE_ADDR"),
 	}
+
+	ctx := context.Background()
+	cache := db.InitCache(ctx)
 
 	authService := service.NewAuthService(
 		googleConf,
 		addConf,
+		cache,
 	)
+	defer authService.Close()
 
 	handlers.NewGrpcAuthService(
 		grpcServer,

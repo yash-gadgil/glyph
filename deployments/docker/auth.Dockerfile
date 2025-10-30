@@ -5,14 +5,13 @@ WORKDIR /build
 COPY services/auth .
 COPY services/gen/golang /gen/golang
 
-RUN go mod download
+#RUN go mod download
 
-RUN go build -o ./auth
+RUN go build -mod=vendor -o ./auth
 
 FROM alpine:3.18 AS runtime
 
 WORKDIR /app
 COPY --from=builder /build/auth /app/auth
-COPY .env /app/.env
 
 CMD ["/app/auth"]

@@ -9,6 +9,7 @@ service AuthService {
     rpc OAuthURL(OAuthURLRequest) returns (OAuthURLResponse) {}
     rpc OAuthCallback(OAuthCallbackRequest) returns (OAuthCallbackResponse) {}
     rpc VerifyEmail(EmailVerificationRequest) returns (EmailVerificationResponse) {}
+    rpc VerifyToken(VerificationRequest) returns (VerificationResponse) {}
 }
 
 message RegisterRequest {
@@ -17,7 +18,7 @@ message RegisterRequest {
 }
 
 message RegisterResponse {
-    string status = 1;
+    string userID = 1;
 }
 
 message LoginRequest {
@@ -26,12 +27,13 @@ message LoginRequest {
 }
 
 message LoginResponse {
-    string status = 1;
+    string accessToken = 1;
+    string refreshToken = 2;
 }
 
 message OAuthURLRequest {
     string provider = 1;
-    string status = 2;
+    string state = 2;
 }
 
 message OAuthURLResponse {
@@ -40,18 +42,29 @@ message OAuthURLResponse {
 
 message OAuthCallbackRequest {
     string provider = 1;
-    string status = 2;
-    string code = 3;
+    string code = 2;
+    string state = 3;
 }
 
 message OAuthCallbackResponse {
-    string token = 1;
+    string accessToken = 1;
+    string refreshToken = 2;
 }
 
 message EmailVerificationRequest {
-
+    string token = 1;
 }
 
 message EmailVerificationResponse {
-
+    string accessToken = 1;
+    string refreshToken = 2;
 }
+
+message VerificationRequest {
+    string token = 1;
+}
+
+message VerificationResponse {
+    string userID = 1;
+}
+

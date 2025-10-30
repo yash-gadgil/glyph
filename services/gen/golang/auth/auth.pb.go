@@ -75,7 +75,7 @@ func (x *RegisterRequest) GetPassword() string {
 
 type RegisterResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	UserID        string                 `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,9 +110,9 @@ func (*RegisterResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RegisterResponse) GetStatus() string {
+func (x *RegisterResponse) GetUserID() string {
 	if x != nil {
-		return x.Status
+		return x.UserID
 	}
 	return ""
 }
@@ -171,7 +171,8 @@ func (x *LoginRequest) GetPassword() string {
 
 type LoginResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refreshToken,proto3" json:"refreshToken,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -206,9 +207,16 @@ func (*LoginResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *LoginResponse) GetStatus() string {
+func (x *LoginResponse) GetAccessToken() string {
 	if x != nil {
-		return x.Status
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *LoginResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
 	}
 	return ""
 }
@@ -216,7 +224,7 @@ func (x *LoginResponse) GetStatus() string {
 type OAuthURLRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -258,9 +266,9 @@ func (x *OAuthURLRequest) GetProvider() string {
 	return ""
 }
 
-func (x *OAuthURLRequest) GetStatus() string {
+func (x *OAuthURLRequest) GetState() string {
 	if x != nil {
-		return x.Status
+		return x.State
 	}
 	return ""
 }
@@ -312,8 +320,8 @@ func (x *OAuthURLResponse) GetUrl() string {
 type OAuthCallbackRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	Code          string                 `protobuf:"bytes,3,opt,name=code,proto3" json:"code,omitempty"`
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	State         string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -355,13 +363,6 @@ func (x *OAuthCallbackRequest) GetProvider() string {
 	return ""
 }
 
-func (x *OAuthCallbackRequest) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
 func (x *OAuthCallbackRequest) GetCode() string {
 	if x != nil {
 		return x.Code
@@ -369,9 +370,17 @@ func (x *OAuthCallbackRequest) GetCode() string {
 	return ""
 }
 
+func (x *OAuthCallbackRequest) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
 type OAuthCallbackResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refreshToken,proto3" json:"refreshToken,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -406,15 +415,23 @@ func (*OAuthCallbackResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *OAuthCallbackResponse) GetToken() string {
+func (x *OAuthCallbackResponse) GetAccessToken() string {
 	if x != nil {
-		return x.Token
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *OAuthCallbackResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
 	}
 	return ""
 }
 
 type EmailVerificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -449,8 +466,17 @@ func (*EmailVerificationRequest) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{8}
 }
 
+func (x *EmailVerificationRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 type EmailVerificationResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refreshToken,proto3" json:"refreshToken,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -485,6 +511,108 @@ func (*EmailVerificationResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{9}
 }
 
+func (x *EmailVerificationResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *EmailVerificationResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+type VerificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VerificationRequest) Reset() {
+	*x = VerificationRequest{}
+	mi := &file_auth_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VerificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerificationRequest) ProtoMessage() {}
+
+func (x *VerificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerificationRequest.ProtoReflect.Descriptor instead.
+func (*VerificationRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *VerificationRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type VerificationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserID        string                 `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VerificationResponse) Reset() {
+	*x = VerificationResponse{}
+	mi := &file_auth_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VerificationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerificationResponse) ProtoMessage() {}
+
+func (x *VerificationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerificationResponse.ProtoReflect.Descriptor instead.
+func (*VerificationResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *VerificationResponse) GetUserID() string {
+	if x != nil {
+		return x.UserID
+	}
+	return ""
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -495,31 +623,41 @@ const file_auth_proto_rawDesc = "" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"*\n" +
 	"\x10RegisterResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\"@\n" +
+	"\x06userID\x18\x01 \x01(\tR\x06userID\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"'\n" +
-	"\rLoginResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\"E\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"U\n" +
+	"\rLoginResponse\x12 \n" +
+	"\vaccessToken\x18\x01 \x01(\tR\vaccessToken\x12\"\n" +
+	"\frefreshToken\x18\x02 \x01(\tR\frefreshToken\"C\n" +
 	"\x0fOAuthURLRequest\x12\x1a\n" +
-	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"$\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\"$\n" +
 	"\x10OAuthURLResponse\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\"^\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\"\\\n" +
 	"\x14OAuthCallbackRequest\x12\x1a\n" +
-	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12\x12\n" +
-	"\x04code\x18\x03 \x01(\tR\x04code\"-\n" +
-	"\x15OAuthCallbackResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\x1a\n" +
-	"\x18EmailVerificationRequest\"\x1b\n" +
-	"\x19EmailVerificationResponse2\xa7\x02\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x14\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\"]\n" +
+	"\x15OAuthCallbackResponse\x12 \n" +
+	"\vaccessToken\x18\x01 \x01(\tR\vaccessToken\x12\"\n" +
+	"\frefreshToken\x18\x02 \x01(\tR\frefreshToken\"0\n" +
+	"\x18EmailVerificationRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"a\n" +
+	"\x19EmailVerificationResponse\x12 \n" +
+	"\vaccessToken\x18\x01 \x01(\tR\vaccessToken\x12\"\n" +
+	"\frefreshToken\x18\x02 \x01(\tR\frefreshToken\"+\n" +
+	"\x13VerificationRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\".\n" +
+	"\x14VerificationResponse\x12\x16\n" +
+	"\x06userID\x18\x01 \x01(\tR\x06userID2\xe5\x02\n" +
 	"\vAuthService\x121\n" +
 	"\bRegister\x12\x10.RegisterRequest\x1a\x11.RegisterResponse\"\x00\x12(\n" +
 	"\x05Login\x12\r.LoginRequest\x1a\x0e.LoginResponse\"\x00\x121\n" +
 	"\bOAuthURL\x12\x10.OAuthURLRequest\x1a\x11.OAuthURLResponse\"\x00\x12@\n" +
 	"\rOAuthCallback\x12\x15.OAuthCallbackRequest\x1a\x16.OAuthCallbackResponse\"\x00\x12F\n" +
-	"\vVerifyEmail\x12\x19.EmailVerificationRequest\x1a\x1a.EmailVerificationResponse\"\x00B3Z1github.com/yash-gadgil/glyph/protogen/golang/authb\x06proto3"
+	"\vVerifyEmail\x12\x19.EmailVerificationRequest\x1a\x1a.EmailVerificationResponse\"\x00\x12<\n" +
+	"\vVerifyToken\x12\x14.VerificationRequest\x1a\x15.VerificationResponse\"\x00B3Z1github.com/yash-gadgil/glyph/protogen/golang/authb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -533,7 +671,7 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_auth_proto_goTypes = []any{
 	(*RegisterRequest)(nil),           // 0: RegisterRequest
 	(*RegisterResponse)(nil),          // 1: RegisterResponse
@@ -545,23 +683,27 @@ var file_auth_proto_goTypes = []any{
 	(*OAuthCallbackResponse)(nil),     // 7: OAuthCallbackResponse
 	(*EmailVerificationRequest)(nil),  // 8: EmailVerificationRequest
 	(*EmailVerificationResponse)(nil), // 9: EmailVerificationResponse
+	(*VerificationRequest)(nil),       // 10: VerificationRequest
+	(*VerificationResponse)(nil),      // 11: VerificationResponse
 }
 var file_auth_proto_depIdxs = []int32{
-	0, // 0: AuthService.Register:input_type -> RegisterRequest
-	2, // 1: AuthService.Login:input_type -> LoginRequest
-	4, // 2: AuthService.OAuthURL:input_type -> OAuthURLRequest
-	6, // 3: AuthService.OAuthCallback:input_type -> OAuthCallbackRequest
-	8, // 4: AuthService.VerifyEmail:input_type -> EmailVerificationRequest
-	1, // 5: AuthService.Register:output_type -> RegisterResponse
-	3, // 6: AuthService.Login:output_type -> LoginResponse
-	5, // 7: AuthService.OAuthURL:output_type -> OAuthURLResponse
-	7, // 8: AuthService.OAuthCallback:output_type -> OAuthCallbackResponse
-	9, // 9: AuthService.VerifyEmail:output_type -> EmailVerificationResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: AuthService.Register:input_type -> RegisterRequest
+	2,  // 1: AuthService.Login:input_type -> LoginRequest
+	4,  // 2: AuthService.OAuthURL:input_type -> OAuthURLRequest
+	6,  // 3: AuthService.OAuthCallback:input_type -> OAuthCallbackRequest
+	8,  // 4: AuthService.VerifyEmail:input_type -> EmailVerificationRequest
+	10, // 5: AuthService.VerifyToken:input_type -> VerificationRequest
+	1,  // 6: AuthService.Register:output_type -> RegisterResponse
+	3,  // 7: AuthService.Login:output_type -> LoginResponse
+	5,  // 8: AuthService.OAuthURL:output_type -> OAuthURLResponse
+	7,  // 9: AuthService.OAuthCallback:output_type -> OAuthCallbackResponse
+	9,  // 10: AuthService.VerifyEmail:output_type -> EmailVerificationResponse
+	11, // 11: AuthService.VerifyToken:output_type -> VerificationResponse
+	6,  // [6:12] is the sub-list for method output_type
+	0,  // [0:6] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_auth_proto_init() }
@@ -575,7 +717,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

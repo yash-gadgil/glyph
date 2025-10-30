@@ -24,6 +24,7 @@ const (
 	AuthService_OAuthURL_FullMethodName      = "/AuthService/OAuthURL"
 	AuthService_OAuthCallback_FullMethodName = "/AuthService/OAuthCallback"
 	AuthService_VerifyEmail_FullMethodName   = "/AuthService/VerifyEmail"
+	AuthService_VerifyToken_FullMethodName   = "/AuthService/VerifyToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -35,6 +36,7 @@ type AuthServiceClient interface {
 	OAuthURL(ctx context.Context, in *OAuthURLRequest, opts ...grpc.CallOption) (*OAuthURLResponse, error)
 	OAuthCallback(ctx context.Context, in *OAuthCallbackRequest, opts ...grpc.CallOption) (*OAuthCallbackResponse, error)
 	VerifyEmail(ctx context.Context, in *EmailVerificationRequest, opts ...grpc.CallOption) (*EmailVerificationResponse, error)
+	VerifyToken(ctx context.Context, in *VerificationRequest, opts ...grpc.CallOption) (*VerificationResponse, error)
 }
 
 type authServiceClient struct {
@@ -95,6 +97,16 @@ func (c *authServiceClient) VerifyEmail(ctx context.Context, in *EmailVerificati
 	return out, nil
 }
 
+func (c *authServiceClient) VerifyToken(ctx context.Context, in *VerificationRequest, opts ...grpc.CallOption) (*VerificationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerificationResponse)
+	err := c.cc.Invoke(ctx, AuthService_VerifyToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type AuthServiceServer interface {
 	OAuthURL(context.Context, *OAuthURLRequest) (*OAuthURLResponse, error)
 	OAuthCallback(context.Context, *OAuthCallbackRequest) (*OAuthCallbackResponse, error)
 	VerifyEmail(context.Context, *EmailVerificationRequest) (*EmailVerificationResponse, error)
+	VerifyToken(context.Context, *VerificationRequest) (*VerificationResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedAuthServiceServer) OAuthCallback(context.Context, *OAuthCallb
 }
 func (UnimplementedAuthServiceServer) VerifyEmail(context.Context, *EmailVerificationRequest) (*EmailVerificationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyEmail not implemented")
+}
+func (UnimplementedAuthServiceServer) VerifyToken(context.Context, *VerificationRequest) (*VerificationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerifyToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -240,6 +256,24 @@ func _AuthService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_VerifyToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).VerifyToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_VerifyToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).VerifyToken(ctx, req.(*VerificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyEmail",
 			Handler:    _AuthService_VerifyEmail_Handler,
+		},
+		{
+			MethodName: "VerifyToken",
+			Handler:    _AuthService_VerifyToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
