@@ -1,12 +1,5 @@
 all: proto
 
-proto_u:
-	protoc -I proto \
-		--go_out=paths=source_relative:./services/gen/golang/user \
-		--go-grpc_out=paths=source_relative:./services/gen/golang/user \
-		proto/user.proto
-#go -C ./services/user mod tidy
-
 genUser:
 	@protoc -I proto \
 	--proto_path=proto "proto/user.proto" \
@@ -18,3 +11,9 @@ genAuth:
 	--proto_path=proto "proto/auth.proto" \
 	--go_out=services/gen/golang/auth --go_opt=paths=source_relative \
 	--go-grpc_out=services/gen/golang/auth --go-grpc_opt=paths=source_relative
+
+genMrkt:
+	@protoc -I proto \
+	--proto_path=proto "proto/mrktdata.proto" \
+	--go_out=services/gen/golang/mrktdata --go_opt=paths=source_relative \
+	--go-grpc_out=services/gen/golang/mrktdata --go-grpc_opt=paths=source_relative
