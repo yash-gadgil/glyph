@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc, thread};
 
 use crate::{
     orderbook::{book::Orderbook, order::Order},
-    server::commands::{AddOrderResult, Command},
+    server::commands::{AddOrderResult, CancelOrderResult, Command},
 };
 
 pub fn spawn_worker_for_symbol(symbol: String) -> Sender<Command> {
@@ -37,6 +37,14 @@ fn worker_loop(_symbol: &str, book: &mut Orderbook, rx: Receiver<Command>) {
                     trades: outcome.trades,
                     accepted: outcome.accepted,
                     done: outcome.done,
+                });
+            }
+
+            Command::CancelOrder { order_id, resp } => {
+                let done = book.cancel_order(&order_id);
+                let _ = resp.send(CancelOrderResult {
+                    cancelled: done.is_some(),
+                    done,
                 });
             }
         }

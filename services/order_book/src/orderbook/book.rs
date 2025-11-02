@@ -1,10 +1,11 @@
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashMap};
+use std::rc::Rc;
 
 use crate::orderbook::trade::Trade;
 use crate::{
-    DoneInfo, DoneReason, LevelInfo, MatchOutcome, OrderEntry, OrderId, OrderPointer, OrderPointers,
-    OrderType, OrderbookLevelInfos, Price, Side, TradeInfo,
+    DoneInfo, DoneReason, LevelInfo, MatchOutcome, OrderEntry, OrderId, OrderModify, OrderPointer,
+    OrderPointers, OrderType, OrderbookLevelInfos, Price, Side, TradeInfo,
 };
 
 pub const MARKET_COUNTERPARTY: &str = "market";
@@ -200,6 +201,75 @@ impl Orderbook {
         }
 
         outcome
+    }
+
+    pub fn cancel_order(&mut self, order_id: &OrderId) -> Option<DoneInfo> {
+        if let Some(idx) = self
+            .pending_markets
+            .iter()
+            .position(|o| o.borrow().get_order_id() == order_id)
+        {
+            let order = self.pending_markets.remove(idx);
+            let o = order.borrow();
+            return Some(DoneInfo {
+                order_id: o.get_order_id().clone(),
+                user_id: o.get_user_id().clone(),
+                reason: DoneReason::Cancelled,
+                unfilled_qty: o.get_remaining_quantity(),
+            });
+        }
+
+        let entry = self.orders.remove(order_id)?;
+        let order_ptr = entry.order;
+
+        let side = *order_ptr.borrow().get_side();
+        let price = order_ptr.borrow().get_price();
+        let remaining = order_ptr.borrow().get_remaining_quantity();
+        let user_id = order_ptr.borrow().get_user_id().clone();
+
+        match side {
+            Side::Sell => {
+                if let Some(price_entry) = self.asks.get_mut(&price) {
+                    if let Some(idx) = price_entry.iter().position(|o| Rc::ptr_eq(o, &order_ptr)) {
+                        price_entry.remove(idx);
+                    }
+                    if price_entry.is_empty() {
+                        self.asks.remove(&price);
+                    }
+                }
+            }
+            Side::Buy => {
+                let rev = Reverse(price);
+                if let Some(price_entry) = self.bids.get_mut(&rev) {
+                    if let Some(idx) = price_entry.iter().position(|o| Rc::ptr_eq(o, &order_ptr)) {
+                        price_entry.remove(idx);
+                    }
+                    if price_entry.is_empty() {
+                        self.bids.remove(&rev);
+                    }
+                }
+            }
+        }
+
+        Some(DoneInfo {
+            order_id: order_id.clone(),
+            user_id,
+            reason: DoneReason::Cancelled,
+            unfilled_qty: remaining,
+        })
+    }
+
+    pub fn modify_order(&mut self, order: OrderModify) -> MatchOutcome {
+        let order_type = {
+            let existing_entry = match self.orders.get(order.get_order_id()) {
+                Some(entry) => entry,
+                None => return MatchOutcome::rejected(),
+            };
+            *existing_entry.order.borrow().get_order_type()
+        };
+
+        self.cancel_order(order.get_order_id());
+        self.add_order(order.to_order_pointer(order_type))
     }
 
     pub fn get_order_infos(&self) -> OrderbookLevelInfos {
@@ -470,6 +540,71 @@ mod tests {
         let total: i64 = outcome.trades.iter().map(|t| t.bid_trade.quantity).sum();
         assert_eq!(total, 10);
         assert_eq!(done_reasons(&outcome), vec![("f1", "filled")]);
+    }
+
+    #[test]
+    fn cancel_resting_order_reports_remaining_qty() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+        book.add_order(gtc("b1", Side::Buy, 9_000, 10));
+
+        let done = book.cancel_order(&"b1".to_string()).unwrap();
+        assert_eq!(done.reason, DoneReason::Cancelled);
+        assert_eq!(done.unfilled_qty, 10);
+        assert_eq!(done.user_id, "user-b1");
+        assert_eq!(levels(&book), (vec![], vec![]));
+
+        assert!(book.cancel_order(&"b1".to_string()).is_none());
+    }
+
+    #[test]
+    fn cancel_pending_market_order() {
+        let mut book = Orderbook::new();
+        book.add_order(market("m1", Side::Buy, 7));
+
+        let done = book.cancel_order(&"m1".to_string()).unwrap();
+        assert_eq!(done.reason, DoneReason::Cancelled);
+        assert_eq!(done.unfilled_qty, 7);
+
+        let outcome = book.inject_price(10_000);
+        assert!(outcome.trades.is_empty());
+    }
+
+    #[test]
+    fn cancel_unknown_order_returns_none() {
+        let mut book = Orderbook::new();
+        assert!(book.cancel_order(&"ghost".to_string()).is_none());
+    }
+
+    #[test]
+    fn modify_order_moves_price_and_can_fill() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+        book.add_order(gtc("b1", Side::Buy, 9_000, 5));
+
+        let outcome = book.modify_order(OrderModify::new(
+            "b1".to_string(),
+            "user-b1".to_string(),
+            Side::Buy,
+            10_100,
+            5,
+        ));
+        assert_eq!(outcome.trades.len(), 1);
+        assert_eq!(outcome.trades[0].bid_trade.price, 10_000);
+        assert_eq!(levels(&book), (vec![], vec![]));
+    }
+
+    #[test]
+    fn modify_unknown_order_is_rejected() {
+        let mut book = Orderbook::new();
+        let outcome = book.modify_order(OrderModify::new(
+            "nope".to_string(),
+            "u".to_string(),
+            Side::Buy,
+            105,
+            5,
+        ));
+        assert!(!outcome.accepted);
     }
 
     #[test]

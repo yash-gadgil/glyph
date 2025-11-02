@@ -8,6 +8,10 @@ pub enum Command {
         order: OrderData,
         resp: oneshot::Sender<AddOrderResult>,
     },
+    CancelOrder {
+        order_id: String,
+        resp: oneshot::Sender<CancelOrderResult>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -26,4 +30,10 @@ pub struct AddOrderResult {
     pub trades: Vec<Trade>,
     pub accepted: bool,
     pub done: Vec<DoneInfo>,
+}
+
+#[derive(Debug)]
+pub struct CancelOrderResult {
+    pub cancelled: bool,
+    pub done: Option<DoneInfo>,
 }

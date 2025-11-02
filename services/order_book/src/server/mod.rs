@@ -273,9 +273,48 @@ impl OrderbookService for OrderBookServer {
 
     async fn cancel_order(
         &self,
-        _request: Request<CancelOrderRequest>,
+        request: Request<CancelOrderRequest>,
     ) -> Result<Response<CancelOrderResponse>, Status> {
-        Err(Status::unimplemented("cancel_order"))
+        let req = request.into_inner();
+        let symbol = req.symbol.clone();
+
+        let tx = {
+            let workers = self.workers.lock().unwrap();
+            match workers.get(&symbol) {
+                Some(tx) => tx.clone(),
+                None => {
+                    return Ok(Response::new(CancelOrderResponse { cancelled: false }));
+                }
+            }
+        };
+
+        let order_id = req.order_id;
+        let (resp_tx, resp_rx) = oneshot::channel();
+
+        let send_result = tokio::task::spawn_blocking(move || {
+            tx.send(Command::CancelOrder {
+                order_id,
+                resp: resp_tx,
+            })
+        })
+        .await;
+
+        if send_result.is_err() || send_result.unwrap().is_err() {
+            return Err(Status::internal("failed to dispatch cancel to worker"));
+        }
+
+        let result = resp_rx
+            .await
+            .map_err(|_| Status::internal("worker did not respond"))?;
+
+        if let Some(done) = &result.done {
+            self.publish_events(&symbol, &[], std::slice::from_ref(done))
+                .await;
+        }
+
+        Ok(Response::new(CancelOrderResponse {
+            cancelled: result.cancelled,
+        }))
     }
 
     async fn inject_price(
