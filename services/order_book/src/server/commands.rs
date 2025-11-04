@@ -12,6 +12,10 @@ pub enum Command {
         order_id: String,
         resp: oneshot::Sender<CancelOrderResult>,
     },
+    InjectPrice {
+        price: Price,
+        resp: oneshot::Sender<AddOrderResult>,
+    },
 }
 
 #[derive(Debug, Clone)]

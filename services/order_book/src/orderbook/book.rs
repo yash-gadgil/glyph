@@ -1,11 +1,13 @@
+use std::cell::RefCell;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
+use crate::orderbook::order::Order;
 use crate::orderbook::trade::Trade;
 use crate::{
     DoneInfo, DoneReason, LevelInfo, MatchOutcome, OrderEntry, OrderId, OrderModify, OrderPointer,
-    OrderPointers, OrderType, OrderbookLevelInfos, Price, Side, TradeInfo,
+    OrderPointers, OrderType, OrderbookLevelInfos, Price, Side, StopOrder, TradeInfo,
 };
 
 pub const MARKET_COUNTERPARTY: &str = "market";
@@ -16,6 +18,7 @@ pub struct Orderbook {
     pub asks: BTreeMap<Price, OrderPointers>,
     pub orders: HashMap<OrderId, OrderEntry>,
     pub pending_markets: Vec<OrderPointer>,
+    pub stops: Vec<StopOrder>,
     pub last_trade_price: Option<Price>,
 }
 
@@ -37,6 +40,7 @@ impl Orderbook {
                 .pending_markets
                 .iter()
                 .any(|o| o.borrow().get_order_id() == id)
+            || self.stops.iter().any(|s| &s.order_id == id)
     }
 
     fn fill_against_market(
@@ -200,10 +204,79 @@ impl Orderbook {
             }
         }
 
+        outcome.merge(self.sweep_stops());
         outcome
     }
 
+    pub fn add_stop_order(&mut self, stop: StopOrder) -> MatchOutcome {
+        if self.knows_order(&stop.order_id) {
+            return MatchOutcome::rejected();
+        }
+
+        if let Some(last) = self.last_trade_price {
+            if stop_triggered(&stop, last) {
+                let mut outcome = self.release_stop(stop);
+                outcome.accepted = true;
+                return outcome;
+            }
+        }
+
+        self.stops.push(stop);
+        MatchOutcome {
+            accepted: true,
+            ..Default::default()
+        }
+    }
+
+    fn sweep_stops(&mut self) -> MatchOutcome {
+        let mut outcome = MatchOutcome {
+            accepted: true,
+            ..Default::default()
+        };
+
+        loop {
+            let Some(last) = self.last_trade_price else {
+                break;
+            };
+            let Some(idx) = self.stops.iter().position(|s| stop_triggered(s, last)) else {
+                break;
+            };
+            let stop = self.stops.remove(idx);
+            outcome.merge(self.release_stop(stop));
+        }
+
+        outcome
+    }
+
+    fn release_stop(&mut self, stop: StopOrder) -> MatchOutcome {
+        let (order_type, price) = match stop.limit_price {
+            Some(limit) => (OrderType::GoodTillCancel, limit),
+            None => (OrderType::Market, 0),
+        };
+
+        let order = Rc::new(RefCell::new(Order::new(
+            order_type,
+            stop.order_id,
+            stop.user_id,
+            stop.side,
+            price,
+            stop.qty,
+        )));
+
+        self.add_order(order)
+    }
+
     pub fn cancel_order(&mut self, order_id: &OrderId) -> Option<DoneInfo> {
+        if let Some(idx) = self.stops.iter().position(|s| &s.order_id == order_id) {
+            let stop = self.stops.remove(idx);
+            return Some(DoneInfo {
+                order_id: stop.order_id,
+                user_id: stop.user_id,
+                reason: DoneReason::Cancelled,
+                unfilled_qty: stop.qty,
+            });
+        }
+
         if let Some(idx) = self
             .pending_markets
             .iter()
@@ -293,6 +366,13 @@ impl Orderbook {
         }
 
         OrderbookLevelInfos::new(bid_infos, ask_infos)
+    }
+}
+
+fn stop_triggered(stop: &StopOrder, last_trade: Price) -> bool {
+    match stop.side {
+        Side::Buy => last_trade >= stop.trigger,
+        Side::Sell => last_trade <= stop.trigger,
     }
 }
 
@@ -620,6 +700,142 @@ mod tests {
         let (bids, asks) = levels(&book);
         assert_eq!(bids, vec![(101, 10), (99, 5)]);
         assert_eq!(asks, vec![(108, 4), (110, 6)]);
+    }
+
+    fn stop(id: &str, side: Side, trigger: Price, qty: i64, limit: Option<Price>) -> StopOrder {
+        StopOrder {
+            order_id: id.to_string(),
+            user_id: format!("user-{}", id),
+            side,
+            trigger,
+            qty,
+            limit_price: limit,
+        }
+    }
+
+    #[test]
+    fn stop_rests_untriggered_and_fires_on_a_crossing_tick() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+
+        let outcome = book.add_stop_order(stop("st1", Side::Sell, 9_500, 5, None));
+        assert!(outcome.accepted);
+        assert!(outcome.trades.is_empty());
+        assert_eq!(book.stops.len(), 1);
+
+        let outcome = book.inject_price(9_500);
+        let stop_trades: Vec<_> = outcome
+            .trades
+            .iter()
+            .filter(|t| t.ask_trade.order_id == "st1")
+            .collect();
+        assert_eq!(stop_trades.len(), 1);
+        assert_eq!(stop_trades[0].ask_trade.quantity, 5);
+        assert_eq!(stop_trades[0].ask_trade.price, 9_500);
+        assert!(book.stops.is_empty());
+    }
+
+    #[test]
+    fn buy_stop_triggers_on_a_rise() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+
+        book.add_stop_order(stop("st1", Side::Buy, 10_500, 3, None));
+        let outcome = book.inject_price(10_500);
+
+        let stop_trades: Vec<_> = outcome
+            .trades
+            .iter()
+            .filter(|t| t.bid_trade.order_id == "st1")
+            .collect();
+        assert_eq!(stop_trades.len(), 1);
+        assert_eq!(stop_trades[0].bid_trade.price, 10_500);
+    }
+
+    #[test]
+    fn stop_limit_releases_as_a_resting_limit_when_not_marketable() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+
+        book.add_stop_order(stop("st1", Side::Sell, 9_500, 5, Some(9_300)));
+        let outcome = book.inject_price(9_400);
+        let fills: Vec<_> = outcome
+            .trades
+            .iter()
+            .filter(|t| t.ask_trade.order_id == "st1")
+            .collect();
+        assert_eq!(fills.len(), 1);
+        assert_eq!(fills[0].ask_trade.price, 9_400);
+
+        book.add_stop_order(stop("st2", Side::Sell, 9_300, 5, Some(9_900)));
+        let outcome = book.inject_price(9_200);
+        assert!(outcome.trades.iter().all(|t| t.ask_trade.order_id != "st2"));
+        let (_, asks) = levels(&book);
+        assert!(asks.contains(&(9_900, 5)), "asks: {:?}", asks);
+    }
+
+    #[test]
+    fn stop_already_beyond_trigger_releases_immediately() {
+        let mut book = Orderbook::new();
+        book.inject_price(9_000);
+
+        let outcome = book.add_stop_order(stop("st1", Side::Sell, 9_500, 5, None));
+        assert_eq!(outcome.trades.len(), 1);
+        assert_eq!(outcome.trades[0].ask_trade.order_id, "st1");
+        assert_eq!(outcome.trades[0].ask_trade.price, 9_000);
+        assert!(book.stops.is_empty());
+    }
+
+    #[test]
+    fn cancel_removes_a_parked_stop() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+        book.add_stop_order(stop("st1", Side::Sell, 9_500, 5, None));
+
+        let done = book.cancel_order(&"st1".to_string()).unwrap();
+        assert_eq!(done.reason, DoneReason::Cancelled);
+        assert_eq!(done.unfilled_qty, 5);
+        assert!(book.stops.is_empty());
+    }
+
+    #[test]
+    fn duplicate_stop_id_is_rejected() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+        assert!(
+            book.add_stop_order(stop("st1", Side::Sell, 9_500, 5, None))
+                .accepted
+        );
+        assert!(
+            !book
+                .add_stop_order(stop("st1", Side::Sell, 9_000, 5, None))
+                .accepted
+        );
+    }
+
+    #[test]
+    fn one_tick_fills_everything_it_crosses() {
+        let mut book = Orderbook::new();
+        book.inject_price(10_000);
+
+        book.add_order(gtc("b1", Side::Buy, 9_500, 2));
+        book.add_stop_order(stop("st1", Side::Sell, 9_600, 3, None));
+
+        let outcome = book.inject_price(9_500);
+
+        let ids: Vec<&str> = outcome
+            .trades
+            .iter()
+            .flat_map(|t| [t.bid_trade.order_id.as_str(), t.ask_trade.order_id.as_str()])
+            .filter(|id| *id != MARKET_COUNTERPARTY)
+            .collect();
+        assert!(ids.contains(&"b1"), "trades: {:?}", ids);
+        assert!(ids.contains(&"st1"), "trades: {:?}", ids);
+        assert_all_market_fills(&outcome);
+
+        let reasons = done_reasons(&outcome);
+        assert!(reasons.contains(&("b1", "filled")));
+        assert!(reasons.contains(&("st1", "filled")));
     }
 
     #[test]
