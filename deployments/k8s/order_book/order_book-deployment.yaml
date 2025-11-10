@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-book
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-book
+  template:
+    metadata:
+      labels:
+        app: order-book
+    spec:
+      containers:
+        - name: order-book
+          image: glyph/order_book:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: order-book-config
+          ports:
+            - containerPort: 50056
+              name: grpc
+          readinessProbe:
+            tcpSocket:
+              port: 50056
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 50056
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
