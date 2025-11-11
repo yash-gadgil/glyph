@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package order_book_service;
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/order_book";
+
+service OrderbookService {
+    rpc AddOrder(AddOrderRequest) returns (AddOrderResponse) {}
+    rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {}
+    rpc InjectPrice(InjectPriceRequest) returns (InjectPriceResponse) {}
+}
+
+enum OrderType {
+    MARKET = 0;
+    LIMIT = 1;
+    STOP = 2;
+    STOP_LIMIT = 3;
+}
+
+enum Side {
+    BUY = 0;
+    SELL = 1;
+}
+
+enum TimeInForce {
+    DAY = 0;
+    GTC = 1;
+    IOC = 2;
+    FOK = 3;
+}
+
+message AddOrderRequest {
+    string id = 1;
+    string user_id = 2;
+    string symbol = 3;
+    Side side = 4;
+    OrderType order_type = 5;
+    TimeInForce time_in_force = 6;
+    int64 qty = 7;
+    int64 price = 8;
+    int64 stop_price = 9;
+}
+
+message TradeInfo {
+    string order_id = 1;
+    int64 price = 2;
+    int64 quantity = 3;
+}
+
+message Trade {
+    TradeInfo bid_trade = 1;
+    TradeInfo ask_trade = 2;
+}
+
+message AddOrderResponse {
+    bool accepted = 1;
+    repeated Trade trades = 2;
+}
+
+message CancelOrderRequest {
+    string order_id = 1;
+    string symbol = 2;
+}
+
+message CancelOrderResponse {
+    bool cancelled = 1;
+}
+
+message InjectPriceRequest {
+    string symbol = 1;
+    int64 price_cents = 2;
+}
+
+message InjectPriceResponse {
+    int64 fills = 1;
+}
