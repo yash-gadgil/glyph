@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -76,4 +78,73 @@ func TestSignupUserFailsWhenAccountInsertFails(t *testing.T) {
 		Password: strPtr("hashed"),
 	})
 	assert.Equal(t, codes.Internal, status.Code(err))
+}
+
+func TestSigninUserAcceptsValidPassword(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+	hash, err := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+	stored := string(hash)
+
+	mock.ExpectQuery(`SELECT id, password_hash`).
+		WithArgs("user@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "password_hash"}).AddRow(userID, stored))
+	mock.ExpectExec(`INSERT INTO accounts`).
+		WithArgs(userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	resp, err := h.SigninUser(context.Background(), &userpb.SigninUserInfo{
+		Email:    "user@example.com",
+		Password: strPtr("secret"),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, userID.String(), resp.UserId)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSigninUserRejectsWrongPassword(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+	hash, _ := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
+	stored := string(hash)
+
+	mock.ExpectQuery(`SELECT id, password_hash`).
+		WithArgs("user@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "password_hash"}).AddRow(userID, stored))
+
+	_, err := h.SigninUser(context.Background(), &userpb.SigninUserInfo{
+		Email:    "user@example.com",
+		Password: strPtr("wrong"),
+	})
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestSigninUserRejectsPasswordOnOAuthAccount(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectQuery(`SELECT id, password_hash`).
+		WithArgs("user@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "password_hash"}).AddRow(userID, nil))
+
+	_, err := h.SigninUser(context.Background(), &userpb.SigninUserInfo{
+		Email:    "user@example.com",
+		Password: strPtr("secret"),
+	})
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestSigninUserUnknownEmail(t *testing.T) {
+	h, mock := newAccountHandler(t)
+
+	mock.ExpectQuery(`SELECT id, password_hash`).
+		WithArgs("missing@example.com").
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := h.SigninUser(context.Background(), &userpb.SigninUserInfo{
+		Email:    "missing@example.com",
+		Password: strPtr("secret"),
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
 }

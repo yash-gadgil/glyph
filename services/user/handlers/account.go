@@ -8,6 +8,7 @@ import (
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	db "github.com/yash-gadgil/glyph/services/user/db/gen"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -44,4 +45,31 @@ func (s *AccountHandler) SignupUser(ctx context.Context, req *userpb.SignupUserI
 	log.Info("user_registered", logger.KV("user_id", id.String()))
 
 	return &userpb.UserSpecifier{UserId: id.String()}, nil
+}
+
+func (s *AccountHandler) SigninUser(ctx context.Context, req *userpb.SigninUserInfo) (*userpb.UserSpecifier, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("signin_user"))
+
+	res, err := s.q.GetUserPassword(ctx, req.Email)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "user not found")
+	}
+
+	if res.PasswordHash != nil && req.Password != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(*res.PasswordHash), []byte(*req.Password)); err != nil {
+			return nil, status.Errorf(codes.PermissionDenied, "incorrect password")
+		}
+	}
+
+	if res.PasswordHash == nil && req.Password != nil {
+		return nil, status.Errorf(codes.PermissionDenied, "this account uses Google sign-in")
+	}
+
+	if err := s.q.EnsureAccount(ctx, res.ID); err != nil {
+		log.Error("ensure_account_failed", zap.Error(err))
+	}
+
+	log.Info("user_signed_in", logger.KV("user_id", res.ID.String()))
+
+	return &userpb.UserSpecifier{UserId: res.ID.String()}, nil
 }
