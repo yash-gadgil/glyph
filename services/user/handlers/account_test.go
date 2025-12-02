@@ -148,3 +148,32 @@ func TestSigninUserUnknownEmail(t *testing.T) {
 	})
 	assert.Equal(t, codes.NotFound, status.Code(err))
 }
+
+func TestCheckEmailAvailabilityFreeEmail(t *testing.T) {
+	h, mock := newAccountHandler(t)
+
+	mock.ExpectQuery(`SELECT EXISTS`).
+		WithArgs("free@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+
+	resp, err := h.CheckEmailAvailability(context.Background(), &userpb.CheckEmailRequest{
+		Email: "free@example.com",
+	})
+	require.NoError(t, err)
+	assert.True(t, resp.Available)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCheckEmailAvailabilityTakenEmail(t *testing.T) {
+	h, mock := newAccountHandler(t)
+
+	mock.ExpectQuery(`SELECT EXISTS`).
+		WithArgs("taken@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+
+	resp, err := h.CheckEmailAvailability(context.Background(), &userpb.CheckEmailRequest{
+		Email: "taken@example.com",
+	})
+	require.NoError(t, err)
+	assert.False(t, resp.Available)
+}

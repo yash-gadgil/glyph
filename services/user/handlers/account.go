@@ -73,3 +73,12 @@ func (s *AccountHandler) SigninUser(ctx context.Context, req *userpb.SigninUserI
 
 	return &userpb.UserSpecifier{UserId: res.ID.String()}, nil
 }
+
+func (s *AccountHandler) CheckEmailAvailability(ctx context.Context, req *userpb.CheckEmailRequest) (*userpb.CheckEmailResponse, error) {
+	present, err := s.q.CheckEmailAvailability(ctx, req.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return &userpb.CheckEmailResponse{Available: !present}, nil
+}
