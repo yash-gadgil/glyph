@@ -177,3 +177,31 @@ func TestCheckEmailAvailabilityTakenEmail(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, resp.Available)
 }
+
+func TestUpdatePasswordByEmail(t *testing.T) {
+	h, mock := newAccountHandler(t)
+
+	mock.ExpectExec(`UPDATE users SET password_hash`).
+		WithArgs("newhash", "user@example.com").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	_, err := h.UpdatePasswordByEmail(context.Background(), &userpb.UpdatePasswordRequest{
+		Email:        "user@example.com",
+		PasswordHash: "newhash",
+	})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdatePasswordByEmailFails(t *testing.T) {
+	h, mock := newAccountHandler(t)
+
+	mock.ExpectExec(`UPDATE users SET password_hash`).
+		WillReturnError(fmt.Errorf("db down"))
+
+	_, err := h.UpdatePasswordByEmail(context.Background(), &userpb.UpdatePasswordRequest{
+		Email:        "user@example.com",
+		PasswordHash: "newhash",
+	})
+	assert.Equal(t, codes.Internal, status.Code(err))
+}

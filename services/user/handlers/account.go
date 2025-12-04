@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type AccountHandler struct {
@@ -81,4 +82,16 @@ func (s *AccountHandler) CheckEmailAvailability(ctx context.Context, req *userpb
 	}
 
 	return &userpb.CheckEmailResponse{Available: !present}, nil
+}
+
+func (s *AccountHandler) UpdatePasswordByEmail(ctx context.Context, req *userpb.UpdatePasswordRequest) (*emptypb.Empty, error) {
+	if err := s.q.UpdateUserPasswordByEmail(ctx, db.UpdateUserPasswordByEmailParams{
+		PasswordHash: &req.PasswordHash,
+		Email:        req.Email,
+	}); err != nil {
+		s.log.Error("password_update_failed", logger.Action("update_password"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to update password")
+	}
+
+	return &emptypb.Empty{}, nil
 }
