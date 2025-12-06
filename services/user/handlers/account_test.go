@@ -205,3 +205,38 @@ func TestUpdatePasswordByEmailFails(t *testing.T) {
 	})
 	assert.Equal(t, codes.Internal, status.Code(err))
 }
+
+func TestGetProfile(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectQuery(`SELECT id, email, user_name FROM users`).
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email", "user_name"}).
+			AddRow(userID, "user@example.com", "Yash"))
+
+	resp, err := h.GetProfile(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	assert.Equal(t, "user@example.com", resp.Email)
+	assert.Equal(t, "Yash", resp.UserName)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetProfileInvalidID(t *testing.T) {
+	h, _ := newAccountHandler(t)
+
+	_, err := h.GetProfile(context.Background(), &userpb.UserSpecifier{UserId: "not-a-uuid"})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGetProfileNotFound(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectQuery(`SELECT id, email, user_name FROM users`).
+		WithArgs(userID).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := h.GetProfile(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}

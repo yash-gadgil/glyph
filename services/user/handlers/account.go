@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/google/uuid"
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	db "github.com/yash-gadgil/glyph/services/user/db/gen"
@@ -94,4 +95,22 @@ func (s *AccountHandler) UpdatePasswordByEmail(ctx context.Context, req *userpb.
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (s *AccountHandler) GetProfile(ctx context.Context, req *userpb.UserSpecifier) (*userpb.Profile, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	row, err := s.q.GetUserById(ctx, userUUID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "user not found")
+	}
+
+	return &userpb.Profile{
+		UserId:   row.ID.String(),
+		Email:    row.Email,
+		UserName: row.UserName,
+	}, nil
 }
