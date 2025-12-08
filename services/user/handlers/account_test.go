@@ -240,3 +240,13 @@ func TestGetProfileNotFound(t *testing.T) {
 	_, err := h.GetProfile(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
 	assert.Equal(t, codes.NotFound, status.Code(err))
 }
+
+func TestAddFundsIsRetired(t *testing.T) {
+	h, _ := newAccountHandler(t)
+
+	_, err := h.AddFunds(context.Background(), &userpb.AddFundsRequest{
+		UserId:      uuid.New().String(),
+		AmountCents: 5000,
+	})
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+}

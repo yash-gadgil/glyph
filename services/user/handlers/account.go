@@ -114,3 +114,7 @@ func (s *AccountHandler) GetProfile(ctx context.Context, req *userpb.UserSpecifi
 		UserName: row.UserName,
 	}, nil
 }
+
+func (s *AccountHandler) AddFunds(ctx context.Context, req *userpb.AddFundsRequest) (*userpb.AddFundsResponse, error) {
+	return nil, status.Errorf(codes.PermissionDenied, "paper accounts have a fixed starting balance, reset the account instead")
+}
