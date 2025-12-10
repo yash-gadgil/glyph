@@ -118,3 +118,38 @@ func (s *AccountHandler) GetProfile(ctx context.Context, req *userpb.UserSpecifi
 func (s *AccountHandler) AddFunds(ctx context.Context, req *userpb.AddFundsRequest) (*userpb.AddFundsResponse, error) {
 	return nil, status.Errorf(codes.PermissionDenied, "paper accounts have a fixed starting balance, reset the account instead")
 }
+
+func (s *AccountHandler) ResetAccount(ctx context.Context, req *userpb.UserSpecifier) (*emptypb.Empty, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("reset_account"))
+
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to reset account")
+	}
+	defer tx.Rollback()
+
+	qtx := s.q.WithTx(tx)
+	if err := qtx.EnsureAccount(ctx, userUUID); err != nil {
+		log.Error("reset_ensure_account_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to reset account")
+	}
+	if err := qtx.ResetAccountBalances(ctx, userUUID); err != nil {
+		log.Error("reset_balances_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to reset account")
+	}
+	if err := qtx.DeletePositionsForUser(ctx, userUUID); err != nil {
+		log.Error("reset_positions_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to reset account")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to reset account")
+	}
+
+	log.Info("account_reset", logger.KV("user_id", req.UserId))
+	return &emptypb.Empty{}, nil
+}

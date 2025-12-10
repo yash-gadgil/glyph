@@ -250,3 +250,38 @@ func TestAddFundsIsRetired(t *testing.T) {
 	})
 	assert.Equal(t, codes.PermissionDenied, status.Code(err))
 }
+
+func TestResetAccount(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`INSERT INTO accounts`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE accounts`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM positions`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectCommit()
+
+	_, err := h.ResetAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestResetAccountInvalidID(t *testing.T) {
+	h, _ := newAccountHandler(t)
+
+	_, err := h.ResetAccount(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestResetAccountRollsBackOnError(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`INSERT INTO accounts`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE accounts`).WithArgs(userID).WillReturnError(fmt.Errorf("db down"))
+	mock.ExpectRollback()
+
+	_, err := h.ResetAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	assert.Equal(t, codes.Internal, status.Code(err))
+}
