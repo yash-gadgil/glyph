@@ -21,6 +21,17 @@ type Account struct {
 	CreatedAt    time.Time
 }
 
+type OrderReservation struct {
+	OrderID       uuid.UUID
+	UserID        uuid.UUID
+	Symbol        string
+	Side          int16
+	Qty           int64
+	RemainingQty  int64
+	CentsPerShare int64
+	CreatedAt     time.Time
+}
+
 type Position struct {
 	UserID      uuid.UUID
 	Symbol      string
@@ -29,6 +40,19 @@ type Position struct {
 	CostBasis   int64
 	ReservedQty int64
 	UpdatedAt   time.Time
+}
+
+type Settlement struct {
+	TradeID          uuid.UUID
+	OrderID          uuid.UUID
+	UserID           uuid.UUID
+	Symbol           string
+	Side             int16
+	Qty              int64
+	PriceCents       int64
+	CashDeltaCents   int64
+	RealizedPnlCents int64
+	AppliedAt        time.Time
 }
 
 type User struct {

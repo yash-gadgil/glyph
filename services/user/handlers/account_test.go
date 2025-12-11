@@ -259,6 +259,8 @@ func TestResetAccount(t *testing.T) {
 	mock.ExpectExec(`INSERT INTO accounts`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE accounts`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`DELETE FROM positions`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectExec(`DELETE FROM order_reservations`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM settlements`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 3))
 	mock.ExpectCommit()
 
 	_, err := h.ResetAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})

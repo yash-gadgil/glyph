@@ -146,6 +146,14 @@ func (s *AccountHandler) ResetAccount(ctx context.Context, req *userpb.UserSpeci
 		log.Error("reset_positions_failed", zap.Error(err))
 		return nil, status.Errorf(codes.Internal, "failed to reset account")
 	}
+	if err := qtx.DeleteReservationsForUser(ctx, userUUID); err != nil {
+		log.Error("reset_reservations_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to reset account")
+	}
+	if err := qtx.DeleteSettlementsForUser(ctx, userUUID); err != nil {
+		log.Error("reset_settlements_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to reset account")
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to reset account")
 	}
