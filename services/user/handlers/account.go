@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/yash-gadgil/glyph/pkg/logger"
@@ -13,6 +14,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+)
+
+const (
+	SideBuy  int16 = 0
+	SideSell int16 = 1
 )
 
 type AccountHandler struct {
@@ -159,5 +165,77 @@ func (s *AccountHandler) ResetAccount(ctx context.Context, req *userpb.UserSpeci
 	}
 
 	log.Info("account_reset", logger.KV("user_id", req.UserId))
+	return &emptypb.Empty{}, nil
+}
+
+func (s *AccountHandler) ReserveForOrder(ctx context.Context, req *userpb.ReserveForOrderRequest) (*emptypb.Empty, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("reserve_for_order"))
+
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+	orderUUID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid order ID")
+	}
+	if req.Qty <= 0 || req.CentsPerShare <= 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "qty and cents_per_share must be positive")
+	}
+	if side := int16(req.Side); side != SideBuy && side != SideSell {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid side %d", req.Side)
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to reserve")
+	}
+	defer tx.Rollback()
+
+	qtx := s.q.WithTx(tx)
+
+	switch int16(req.Side) {
+	case SideBuy:
+		hold := req.Qty * req.CentsPerShare
+		if _, err := qtx.ReserveCash(ctx, db.ReserveCashParams{
+			UserID:       userUUID,
+			ReservedCash: hold,
+		}); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, status.Errorf(codes.FailedPrecondition, "insufficient buying power")
+			}
+			log.Error("reserve_cash_failed", zap.Error(err))
+			return nil, status.Errorf(codes.Internal, "failed to reserve")
+		}
+	case SideSell:
+		if _, err := qtx.ReserveShares(ctx, db.ReserveSharesParams{
+			UserID:      userUUID,
+			Symbol:      req.Symbol,
+			ReservedQty: req.Qty,
+		}); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, status.Errorf(codes.FailedPrecondition, "insufficient shares to sell")
+			}
+			log.Error("reserve_shares_failed", zap.Error(err))
+			return nil, status.Errorf(codes.Internal, "failed to reserve")
+		}
+	}
+
+	if err := qtx.CreateReservation(ctx, db.CreateReservationParams{
+		OrderID:       orderUUID,
+		UserID:        userUUID,
+		Symbol:        req.Symbol,
+		Side:          int16(req.Side),
+		Qty:           req.Qty,
+		CentsPerShare: req.CentsPerShare,
+	}); err != nil {
+		log.Error("create_reservation_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to reserve")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to reserve")
+	}
+
 	return &emptypb.Empty{}, nil
 }

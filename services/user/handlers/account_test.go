@@ -287,3 +287,85 @@ func TestResetAccountRollsBackOnError(t *testing.T) {
 	_, err := h.ResetAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
 	assert.Equal(t, codes.Internal, status.Code(err))
 }
+
+func TestReserveForOrderBuyHoldsCash(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+	orderID := uuid.New()
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`UPDATE accounts`).
+		WithArgs(userID, int64(5000)).
+		WillReturnRows(sqlmock.NewRows([]string{"reserved_cash"}).AddRow(int64(5000)))
+	mock.ExpectExec(`INSERT INTO order_reservations`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	_, err := h.ReserveForOrder(context.Background(), &userpb.ReserveForOrderRequest{
+		OrderId:       orderID.String(),
+		UserId:        userID.String(),
+		Symbol:        "AAPL",
+		Side:          0,
+		Qty:           10,
+		CentsPerShare: 500,
+	})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestReserveForOrderSellHoldsShares(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+	orderID := uuid.New()
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`UPDATE positions`).
+		WithArgs(userID, "AAPL", int64(10)).
+		WillReturnRows(sqlmock.NewRows([]string{"reserved_qty"}).AddRow(int64(10)))
+	mock.ExpectExec(`INSERT INTO order_reservations`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	_, err := h.ReserveForOrder(context.Background(), &userpb.ReserveForOrderRequest{
+		OrderId:       orderID.String(),
+		UserId:        userID.String(),
+		Symbol:        "AAPL",
+		Side:          1,
+		Qty:           10,
+		CentsPerShare: 500,
+	})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestReserveForOrderInsufficientBuyingPower(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	userID := uuid.New()
+	orderID := uuid.New()
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`UPDATE accounts`).WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
+
+	_, err := h.ReserveForOrder(context.Background(), &userpb.ReserveForOrderRequest{
+		OrderId:       orderID.String(),
+		UserId:        userID.String(),
+		Symbol:        "AAPL",
+		Side:          0,
+		Qty:           10,
+		CentsPerShare: 500,
+	})
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+}
+
+func TestReserveForOrderInvalidSide(t *testing.T) {
+	h, _ := newAccountHandler(t)
+
+	_, err := h.ReserveForOrder(context.Background(), &userpb.ReserveForOrderRequest{
+		OrderId:       uuid.New().String(),
+		UserId:        uuid.New().String(),
+		Symbol:        "AAPL",
+		Side:          7,
+		Qty:           10,
+		CentsPerShare: 500,
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
