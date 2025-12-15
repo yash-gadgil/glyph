@@ -239,3 +239,62 @@ func (s *AccountHandler) ReserveForOrder(ctx context.Context, req *userpb.Reserv
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *AccountHandler) ReleaseForOrder(ctx context.Context, req *userpb.ReleaseForOrderRequest) (*emptypb.Empty, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("release_for_order"))
+
+	orderUUID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid order ID")
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to release")
+	}
+	defer tx.Rollback()
+
+	qtx := s.q.WithTx(tx)
+
+	res, err := qtx.GetReservationForUpdate(ctx, orderUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return &emptypb.Empty{}, nil
+		}
+		log.Error("get_reservation_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to release")
+	}
+
+	if res.RemainingQty > 0 {
+		switch res.Side {
+		case SideBuy:
+			if err := qtx.ReleaseCash(ctx, db.ReleaseCashParams{
+				UserID:       res.UserID,
+				ReservedCash: res.RemainingQty * res.CentsPerShare,
+			}); err != nil {
+				log.Error("release_cash_failed", zap.Error(err))
+				return nil, status.Errorf(codes.Internal, "failed to release")
+			}
+		case SideSell:
+			if err := qtx.ReleaseShares(ctx, db.ReleaseSharesParams{
+				UserID:      res.UserID,
+				Symbol:      res.Symbol,
+				ReservedQty: res.RemainingQty,
+			}); err != nil {
+				log.Error("release_shares_failed", zap.Error(err))
+				return nil, status.Errorf(codes.Internal, "failed to release")
+			}
+		}
+	}
+
+	if err := qtx.DeleteReservation(ctx, orderUUID); err != nil {
+		log.Error("delete_reservation_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to release")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to release")
+	}
+
+	return &emptypb.Empty{}, nil
+}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -367,5 +368,49 @@ func TestReserveForOrderInvalidSide(t *testing.T) {
 		Qty:           10,
 		CentsPerShare: 500,
 	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func reservationRows(orderID, userID uuid.UUID, side int16, remaining, cps int64) *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"order_id", "user_id", "symbol", "side", "qty", "remaining_qty", "cents_per_share", "created_at",
+	}).AddRow(orderID, userID, "AAPL", side, int64(10), remaining, cps, time.Now())
+}
+
+func TestReleaseForOrderReleasesCash(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	orderID := uuid.New()
+	userID := uuid.New()
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT .* FROM order_reservations`).
+		WithArgs(orderID).
+		WillReturnRows(reservationRows(orderID, userID, SideBuy, 4, 500))
+	mock.ExpectExec(`UPDATE accounts`).WithArgs(userID, int64(2000)).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`DELETE FROM order_reservations`).WithArgs(orderID).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	_, err := h.ReleaseForOrder(context.Background(), &userpb.ReleaseForOrderRequest{OrderId: orderID.String()})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestReleaseForOrderUnknownIsNoOp(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	orderID := uuid.New()
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT .* FROM order_reservations`).
+		WithArgs(orderID).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := h.ReleaseForOrder(context.Background(), &userpb.ReleaseForOrderRequest{OrderId: orderID.String()})
+	require.NoError(t, err)
+}
+
+func TestReleaseForOrderInvalidID(t *testing.T) {
+	h, _ := newAccountHandler(t)
+
+	_, err := h.ReleaseForOrder(context.Background(), &userpb.ReleaseForOrderRequest{OrderId: "bad"})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
