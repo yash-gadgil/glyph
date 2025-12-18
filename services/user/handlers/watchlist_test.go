@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -62,5 +63,51 @@ func TestGetWatchlistsInvalidUser(t *testing.T) {
 	h, _ := newWatchlistHandler(t)
 
 	_, err := h.GetWatchlists(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGetWatchlistReturnsSymbols(t *testing.T) {
+	h, mock := newWatchlistHandler(t)
+	userID := uuid.New()
+	listID := uuid.New()
+
+	mock.ExpectQuery(`FROM watchlists w`).
+		WithArgs(listID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id", "w_name", "symbols"}).
+			AddRow(userID, "Tech", []byte("{AAPL}")))
+
+	resp, err := h.GetWatchlist(context.Background(), &userpb.WatchlistSpecifier{
+		Id:     listID.String(),
+		UserId: userID.String(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "Tech", resp.Name)
+	assert.Equal(t, []string{"AAPL"}, resp.Symbols)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetWatchlistNotFound(t *testing.T) {
+	h, mock := newWatchlistHandler(t)
+	userID := uuid.New()
+	listID := uuid.New()
+
+	mock.ExpectQuery(`FROM watchlists w`).
+		WithArgs(listID, userID).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := h.GetWatchlist(context.Background(), &userpb.WatchlistSpecifier{
+		Id:     listID.String(),
+		UserId: userID.String(),
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestGetWatchlistInvalidID(t *testing.T) {
+	h, _ := newWatchlistHandler(t)
+
+	_, err := h.GetWatchlist(context.Background(), &userpb.WatchlistSpecifier{
+		Id:     "bad",
+		UserId: uuid.New().String(),
+	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
