@@ -118,3 +118,31 @@ func (s *WatchlistHandler) GetWatchlist(ctx context.Context, req *userpb.Watchli
 		Symbols: parseSymbolArray(row.Symbols),
 	}, nil
 }
+
+func (s *WatchlistHandler) CreateWatchlist(ctx context.Context, req *userpb.CreateWatchlistRequest) (*userpb.WatchlistSpecifier, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+	if req.Name == nil || strings.TrimSpace(*req.Name) == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "watchlist name is required")
+	}
+
+	name := strings.TrimSpace(*req.Name)
+	watchlistID, err := s.q.CreateWatchlist(ctx, db.CreateWatchlistParams{
+		WName:  name,
+		UserID: userUUID,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint") {
+			return nil, status.Errorf(codes.AlreadyExists, "a watchlist named %q already exists", name)
+		}
+		s.log.Error("create_watchlist_failed", logger.Action("create_watchlist"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to create watchlist")
+	}
+
+	return &userpb.WatchlistSpecifier{
+		Id:     watchlistID.String(),
+		UserId: req.UserId,
+	}, nil
+}

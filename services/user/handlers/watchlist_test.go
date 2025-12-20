@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -108,6 +109,51 @@ func TestGetWatchlistInvalidID(t *testing.T) {
 	_, err := h.GetWatchlist(context.Background(), &userpb.WatchlistSpecifier{
 		Id:     "bad",
 		UserId: uuid.New().String(),
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestCreateWatchlist(t *testing.T) {
+	h, mock := newWatchlistHandler(t)
+	userID := uuid.New()
+	listID := uuid.New()
+	name := "Tech"
+
+	mock.ExpectQuery(`INSERT INTO watchlists`).
+		WithArgs(name, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(listID))
+
+	resp, err := h.CreateWatchlist(context.Background(), &userpb.CreateWatchlistRequest{
+		UserId: userID.String(),
+		Name:   &name,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, listID.String(), resp.Id)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateWatchlistDuplicate(t *testing.T) {
+	h, mock := newWatchlistHandler(t)
+	userID := uuid.New()
+	name := "Tech"
+
+	mock.ExpectQuery(`INSERT INTO watchlists`).
+		WillReturnError(fmt.Errorf("pq: duplicate key value violates unique constraint"))
+
+	_, err := h.CreateWatchlist(context.Background(), &userpb.CreateWatchlistRequest{
+		UserId: userID.String(),
+		Name:   &name,
+	})
+	assert.Equal(t, codes.AlreadyExists, status.Code(err))
+}
+
+func TestCreateWatchlistEmptyName(t *testing.T) {
+	h, _ := newWatchlistHandler(t)
+	name := "   "
+
+	_, err := h.CreateWatchlist(context.Background(), &userpb.CreateWatchlistRequest{
+		UserId: uuid.New().String(),
+		Name:   &name,
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
