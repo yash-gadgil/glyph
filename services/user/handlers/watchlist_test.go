@@ -157,3 +157,51 @@ func TestCreateWatchlistEmptyName(t *testing.T) {
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestModifyWatchlistSubscribe(t *testing.T) {
+	h, mock := newWatchlistHandler(t)
+	userID := uuid.New()
+	listID := uuid.New()
+
+	mock.ExpectQuery(`INSERT INTO watchlist_symbols`).
+		WillReturnRows(sqlmock.NewRows([]string{"watchlist_id", "symbol"}).AddRow(listID, "AAPL"))
+
+	_, err := h.ModifyWatchlist(context.Background(), &userpb.ModifyWatchlistRequest{
+		Id:      listID.String(),
+		UserId:  userID.String(),
+		Action:  userpb.ModifyWatchlistRequest_SUBSCRIBE,
+		Symbols: []string{"aapl"},
+	})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestModifyWatchlistUnsubscribe(t *testing.T) {
+	h, mock := newWatchlistHandler(t)
+	userID := uuid.New()
+	listID := uuid.New()
+
+	mock.ExpectQuery(`DELETE FROM watchlist_symbols`).
+		WillReturnRows(sqlmock.NewRows([]string{"watchlist_id", "symbol"}).AddRow(listID, "AAPL"))
+
+	_, err := h.ModifyWatchlist(context.Background(), &userpb.ModifyWatchlistRequest{
+		Id:      listID.String(),
+		UserId:  userID.String(),
+		Action:  userpb.ModifyWatchlistRequest_UNSUBSCRIBE,
+		Symbols: []string{"AAPL"},
+	})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestModifyWatchlistNoSymbols(t *testing.T) {
+	h, _ := newWatchlistHandler(t)
+
+	_, err := h.ModifyWatchlist(context.Background(), &userpb.ModifyWatchlistRequest{
+		Id:      uuid.New().String(),
+		UserId:  uuid.New().String(),
+		Action:  userpb.ModifyWatchlistRequest_SUBSCRIBE,
+		Symbols: []string{},
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
