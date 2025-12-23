@@ -205,3 +205,30 @@ func TestModifyWatchlistNoSymbols(t *testing.T) {
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestDeleteWatchlist(t *testing.T) {
+	h, mock := newWatchlistHandler(t)
+	userID := uuid.New()
+	listID := uuid.New()
+
+	mock.ExpectExec(`DELETE FROM watchlists`).
+		WithArgs(listID, userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	_, err := h.DeleteWatchlist(context.Background(), &userpb.WatchlistSpecifier{
+		Id:     listID.String(),
+		UserId: userID.String(),
+	})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteWatchlistInvalidID(t *testing.T) {
+	h, _ := newWatchlistHandler(t)
+
+	_, err := h.DeleteWatchlist(context.Background(), &userpb.WatchlistSpecifier{
+		Id:     "bad",
+		UserId: uuid.New().String(),
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}

@@ -195,3 +195,24 @@ func (s *WatchlistHandler) ModifyWatchlist(ctx context.Context, req *userpb.Modi
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *WatchlistHandler) DeleteWatchlist(ctx context.Context, req *userpb.WatchlistSpecifier) (*emptypb.Empty, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+	watchlistUUID, err := uuid.Parse(req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid watchlist ID")
+	}
+
+	if err := s.q.DeleteWatchlist(ctx, db.DeleteWatchlistParams{
+		ID:     watchlistUUID,
+		UserID: userUUID,
+	}); err != nil {
+		s.log.Error("delete_watchlist_failed", logger.Action("delete_watchlist"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to delete watchlist")
+	}
+
+	return &emptypb.Empty{}, nil
+}
