@@ -69,6 +69,25 @@ func (q *Queries) CreateWatchlist(ctx context.Context, arg CreateWatchlistParams
 	return id, err
 }
 
+const deleteSymbol = `-- name: DeleteSymbol :exec
+DELETE FROM watchlist_symbols ws
+USING watchlists w
+WHERE ws.watchlist_id = w.id
+    AND w.id = $1 AND w.user_id = $2
+    AND ws.symbol = $3
+`
+
+type DeleteSymbolParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+	Symbol string
+}
+
+func (q *Queries) DeleteSymbol(ctx context.Context, arg DeleteSymbolParams) error {
+	_, err := q.db.ExecContext(ctx, deleteSymbol, arg.ID, arg.UserID, arg.Symbol)
+	return err
+}
+
 const deleteWatchlist = `-- name: DeleteWatchlist :exec
 DELETE FROM watchlists
 WHERE id = $1 AND user_id = $2

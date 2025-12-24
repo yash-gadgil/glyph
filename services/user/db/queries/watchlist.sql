@@ -38,3 +38,10 @@ RETURNING ws.watchlist_id, ws.symbol;
 -- name: DeleteWatchlist :exec
 DELETE FROM watchlists
 WHERE id = $1 AND user_id = $2;
+
+-- name: DeleteSymbol :exec
+DELETE FROM watchlist_symbols ws
+USING watchlists w
+WHERE ws.watchlist_id = w.id
+    AND w.id = $1 AND w.user_id = $2
+    AND ws.symbol = $3;
