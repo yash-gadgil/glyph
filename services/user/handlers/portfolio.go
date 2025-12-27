@@ -46,3 +46,47 @@ func (s *PortfolioHandler) GetPortfolio(ctx context.Context, req *userpb.UserSpe
 		MarginUsedCents:   res.MarginUsed,
 	}, nil
 }
+
+func (s *PortfolioHandler) GetHoldings(ctx context.Context, req *userpb.UserSpecifier) (*userpb.HoldingsResponse, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("get_holdings"))
+
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	positions, err := s.q.GetPositionsForUser(ctx, userUUID)
+	if err != nil {
+		log.Error("get_holdings_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to load positions")
+	}
+
+	resp := &userpb.HoldingsResponse{}
+	for _, p := range positions {
+		if p.Qty == 0 && p.RealizedPnl == 0 {
+			continue
+		}
+
+		holding := &userpb.Holding{
+			Symbol:           p.Symbol,
+			Qty:              p.Qty,
+			CostBasisCents:   p.CostBasis,
+			RealizedPnlCents: p.RealizedPnl,
+		}
+		if p.Qty != 0 {
+			holding.AvgPriceCents = p.CostBasis / p.Qty
+		}
+
+		holding.LastPriceCents = holding.AvgPriceCents
+		holding.MarketValueCents = p.CostBasis
+		holding.UnrealizedPnlCents = holding.MarketValueCents - p.CostBasis
+
+		resp.Holdings = append(resp.Holdings, holding)
+		resp.TotalMarketValueCents += holding.MarketValueCents
+		resp.TotalCostBasisCents += p.CostBasis
+		resp.TotalUnrealizedPnlCents += holding.UnrealizedPnlCents
+		resp.TotalRealizedPnlCents += p.RealizedPnl
+	}
+
+	return resp, nil
+}

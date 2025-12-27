@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -43,4 +44,37 @@ func TestGetPortfolioInvalidUser(t *testing.T) {
 
 	_, err := h.GetPortfolio(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGetHoldingsValuesAtCostBasis(t *testing.T) {
+	h, mock := newPortfolioHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectQuery(`FROM positions`).
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"symbol", "qty", "reserved_qty", "realized_pnl", "cost_basis", "updated_at"}).
+			AddRow("AAPL", int64(10), int64(0), int64(100), int64(50000), time.Now()))
+
+	resp, err := h.GetHoldings(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	require.Len(t, resp.Holdings, 1)
+	assert.Equal(t, int64(5000), resp.Holdings[0].AvgPriceCents)
+	assert.Equal(t, int64(50000), resp.Holdings[0].MarketValueCents)
+	assert.Equal(t, int64(0), resp.TotalUnrealizedPnlCents)
+	assert.Equal(t, int64(50000), resp.TotalCostBasisCents)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetHoldingsSkipsClosedPositions(t *testing.T) {
+	h, mock := newPortfolioHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectQuery(`FROM positions`).
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"symbol", "qty", "reserved_qty", "realized_pnl", "cost_basis", "updated_at"}).
+			AddRow("AAPL", int64(0), int64(0), int64(0), int64(0), time.Now()))
+
+	resp, err := h.GetHoldings(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	assert.Empty(t, resp.Holdings)
 }
