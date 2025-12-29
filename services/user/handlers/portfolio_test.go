@@ -78,3 +78,27 @@ func TestGetHoldingsSkipsClosedPositions(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, resp.Holdings)
 }
+
+func TestGetPositions(t *testing.T) {
+	h, mock := newPortfolioHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectQuery(`FROM positions`).
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"symbol", "qty", "reserved_qty", "realized_pnl", "cost_basis", "updated_at"}).
+			AddRow("AAPL", int64(10), int64(2), int64(0), int64(50000), time.Now()))
+
+	resp, err := h.GetPositions(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	require.Len(t, resp.Positions, 1)
+	assert.Equal(t, int64(2), resp.Positions[0].ReservedQty)
+	assert.Equal(t, int64(5000), resp.Positions[0].AvgPriceCents)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetPositionsInvalidUser(t *testing.T) {
+	h, _ := newPortfolioHandler(t)
+
+	_, err := h.GetPositions(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}

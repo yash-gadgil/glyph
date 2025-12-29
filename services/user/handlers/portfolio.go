@@ -90,3 +90,35 @@ func (s *PortfolioHandler) GetHoldings(ctx context.Context, req *userpb.UserSpec
 
 	return resp, nil
 }
+
+func (s *PortfolioHandler) GetPositions(ctx context.Context, req *userpb.UserSpecifier) (*userpb.PositionsResponse, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("get_positions"))
+
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	res, err := s.q.GetPositionsForUser(ctx, userUUID)
+	if err != nil {
+		log.Error("get_positions_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to get positions")
+	}
+
+	positions := make([]*userpb.Position, 0, len(res))
+	for _, pos := range res {
+		p := &userpb.Position{
+			Symbol:           pos.Symbol,
+			Qty:              pos.Qty,
+			ReservedQty:      pos.ReservedQty,
+			RealizedPnlCents: pos.RealizedPnl,
+			CostBasisCents:   pos.CostBasis,
+		}
+		if pos.Qty != 0 {
+			p.AvgPriceCents = pos.CostBasis / pos.Qty
+		}
+		positions = append(positions, p)
+	}
+
+	return &userpb.PositionsResponse{Positions: positions}, nil
+}
