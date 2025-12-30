@@ -1,0 +1,14 @@
+version: "2"
+sql:
+  - schema: "schema.sql"
+    queries: "queries"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "db"
+        out: "gen"
+        overrides:
+          - column: "users.password_hash"
+            go_type:
+              type: "string"
+              pointer: true

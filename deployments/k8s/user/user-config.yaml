@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-config
+  namespace: glyph
+data:
+  USER_SVC_PORT: ":50053"
+  METRICS_PORT: ":9100"
+
+  USER_DB: user_db
+  USER_DB_USER: user-db-user
+  USER_DB_PASSWORD: userpassword
+  USER_DB_PORT: "5432"
+  USER_DB_HOST: userdb.glyph.svc.cluster.local
+
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq.glyph.svc.cluster.local:5672/%2f"

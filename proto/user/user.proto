@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package user;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/user";
+
+service WatchlistService {
+    rpc GetWatchlists(UserSpecifier) returns (WatchlistsResponse) {}
+    rpc GetWatchlist(WatchlistSpecifier) returns (Watchlist) {}
+    rpc CreateWatchlist(CreateWatchlistRequest) returns (WatchlistSpecifier) {}
+    rpc ModifyWatchlist(ModifyWatchlistRequest) returns (google.protobuf.Empty) {}
+    rpc DeleteWatchlist(WatchlistSpecifier) returns (google.protobuf.Empty) {}
+    rpc DeleteSymbolFromWatchlist(DeleteSymbolRequest) returns (google.protobuf.Empty) {}
+}
+
+message Watchlist {
+    string id = 1;
+    string user_id = 2;
+    string name = 3;
+    repeated string symbols = 4;
+}
+
+message WatchlistMetadata {
+    string id = 1;
+    string name = 2;
+}
+
+message UserSpecifier {
+    string user_id = 1;
+}
+
+message WatchlistsResponse {
+    string user_id = 1;
+    repeated WatchlistMetadata w_metadata = 2;
+    Watchlist first = 3;
+}
+
+message CreateWatchlistRequest {
+    string user_id = 1;
+    optional string name = 2;
+}
+
+message ModifyWatchlistRequest {
+    string id = 1;
+    string user_id = 2;
+    enum Action {
+        SUBSCRIBE = 0;
+        UNSUBSCRIBE = 1;
+        RENAME = 2;
+    }
+    Action action = 3;
+    repeated string symbols = 4;
+}
+
+message WatchlistSpecifier {
+    string id = 1;
+    string user_id = 2;
+}
+
+message DeleteSymbolRequest {
+    string id = 1;
+    string user_id = 2;
+    string symbol = 3;
+}
+
+service AccountService {
+    rpc SignupUser(SignupUserInfo) returns (UserSpecifier) {}
+    rpc SigninUser(SigninUserInfo) returns (UserSpecifier) {}
+    rpc CheckEmailAvailability(CheckEmailRequest) returns (CheckEmailResponse) {}
+    rpc UpdatePasswordByEmail(UpdatePasswordRequest) returns (google.protobuf.Empty) {}
+    rpc GetProfile(UserSpecifier) returns (Profile) {}
+    rpc AddFunds(AddFundsRequest) returns (AddFundsResponse) {}
+    rpc ResetAccount(UserSpecifier) returns (google.protobuf.Empty) {}
+    rpc ReserveForOrder(ReserveForOrderRequest) returns (google.protobuf.Empty) {}
+    rpc ReleaseForOrder(ReleaseForOrderRequest) returns (google.protobuf.Empty) {}
+}
+
+message Profile {
+    string user_id = 1;
+    string email = 2;
+    string user_name = 3;
+}
+
+message AddFundsRequest {
+    string user_id = 1;
+    int64 amount_cents = 2;
+}
+
+message AddFundsResponse {
+    int64 cash_balance_cents = 1;
+}
+
+message ReserveForOrderRequest {
+    string order_id = 1;
+    string user_id = 2;
+    string symbol = 3;
+    int32 side = 4;
+    int64 qty = 5;
+    int64 cents_per_share = 6;
+}
+
+message ReleaseForOrderRequest {
+    string order_id = 1;
+}
+
+message SignupUserInfo {
+    string user_name = 1;
+    string email = 2;
+    optional string password = 3;
+}
+
+message SigninUserInfo {
+    string email = 1;
+    optional string password = 2;
+}
+
+message CheckEmailRequest {
+    string email = 1;
+}
+
+message CheckEmailResponse {
+    bool available = 1;
+}
+
+message UpdatePasswordRequest {
+    string email = 1;
+    string password_hash = 2;
+}
+
+service PortfolioService {
+    rpc GetPortfolio(UserSpecifier) returns (PortfolioResponse) {}
+    rpc GetHoldings(UserSpecifier) returns (HoldingsResponse) {}
+    rpc GetPositions(UserSpecifier) returns (PositionsResponse) {}
+}
+
+message PortfolioResponse {
+    int64 cash_balance_cents = 1;
+    int64 reserved_cash_cents = 2;
+    string currency = 3;
+    int32 multiplier = 4;
+    int64 margin_used_cents = 5;
+}
+
+message Holding {
+    string symbol = 1;
+    int64 qty = 2;
+    int64 avg_price_cents = 3;
+    int64 cost_basis_cents = 4;
+    int64 last_price_cents = 5;
+    int64 market_value_cents = 6;
+    int64 unrealized_pnl_cents = 7;
+    int64 realized_pnl_cents = 8;
+}
+
+message HoldingsResponse {
+    repeated Holding holdings = 1;
+    int64 total_market_value_cents = 2;
+    int64 total_cost_basis_cents = 3;
+    int64 total_unrealized_pnl_cents = 4;
+    int64 total_realized_pnl_cents = 5;
+}
+
+message Position {
+    string symbol = 1;
+    int64 qty = 2;
+    int64 reserved_qty = 3;
+    int64 realized_pnl_cents = 4;
+    int64 cost_basis_cents = 5;
+    int64 avg_price_cents = 6;
+}
+
+message PositionsResponse {
+    repeated Position positions = 1;
+}
