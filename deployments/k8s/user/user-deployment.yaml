@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      initContainers:
+        - name: user-migrations
+          image: glyph/user:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: user-config
+          env:
+            - name: GOOSE_DRIVER
+              value: "postgres"
+            - name: GOOSE_DBSTRING
+              value: "postgres://$(USER_DB_USER):$(USER_DB_PASSWORD)@$(USER_DB_HOST):$(USER_DB_PORT)/$(USER_DB)?sslmode=disable"
+            - name: GOOSE_MIGRATION_DIR
+              value: "/app/db/migrations"
+          workingDir: /app
+          command: ["goose", "up"]
+      containers:
+        - name: user
+          image: glyph/user:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: user-config
+          ports:
+            - containerPort: 50053
+          readinessProbe:
+            tcpSocket:
+              port: 50053
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 50053
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"

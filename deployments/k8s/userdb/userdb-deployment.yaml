@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: userdb
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: userdb
+  template:
+    metadata:
+      labels:
+        app: userdb
+    spec:
+      initContainers:
+        - name: wait-for-pvc
+          image: busybox:1.35
+          command:
+            [
+              "sh",
+              "-c",
+              'until [ -d /mnt/data ]; do echo "Waiting for PVC to be bound..."; sleep 2; done; echo "PVC is ready!"',
+            ]
+          volumeMounts:
+            - name: user-volume
+              mountPath: /mnt/data
+      containers:
+        - name: userdb
+          image: postgres:15
+          envFrom:
+            - configMapRef:
+                name: userdb-config
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: user-volume
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+      volumes:
+        - name: user-volume
+          persistentVolumeClaim:
+            claimName: userdb-pvc
