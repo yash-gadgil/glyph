@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package order;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/order";
+
+service OrderService {
+    rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse) {}
+    rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {}
+    rpc GetOrders(GetOrdersRequest) returns (GetOrdersResponse) {}
+    rpc GetOrder(GetOrderRequest) returns (Order) {}
+    rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse) {}
+    rpc GetFills(GetFillsRequest) returns (GetFillsResponse) {}
+    rpc GetStrategyFills(GetStrategyFillsRequest) returns (GetFillsResponse) {}
+}
+
+enum OrderType {
+    MARKET = 0;
+    LIMIT = 1;
+    STOP = 2;
+    STOP_LIMIT = 3;
+}
+
+enum Side {
+    BUY = 0;
+    SELL = 1;
+}
+
+enum TimeInForce {
+    DAY = 0;
+    GTC = 1;
+    IOC = 2;
+    FOK = 3;
+}
+
+enum OrderStatus {
+    PENDING = 0;
+    OPEN = 1;
+    PARTIAL_FILL = 2;
+    FILLED = 3;
+    CANCELLED = 4;
+    REJECTED = 5;
+}
+
+message Order {
+    string id = 1;
+    string user_id = 2;
+    string symbol = 3;
+    Side side = 4;
+    OrderType order_type = 5;
+    TimeInForce time_in_force = 6;
+    int64 qty = 7;
+    int64 filled_qty = 8;
+    int64 price = 9;
+    int64 stop_price = 10;
+    OrderStatus status = 11;
+    google.protobuf.Timestamp created_at = 12;
+    google.protobuf.Timestamp updated_at = 13;
+}
+
+message PlaceOrderRequest {
+    string user_id = 1;
+    string symbol = 2;
+    Side side = 3;
+    OrderType order_type = 4;
+    TimeInForce time_in_force = 5;
+    int64 qty = 6;
+    int64 price = 7;
+    int64 stop_price = 8;
+    int64 reference_price_cents = 9;
+    string strategy_id = 10;
+}
+
+message PlaceOrderResponse {
+    Order order = 1;
+}
+
+message CancelOrderRequest {
+    string order_id = 1;
+    string user_id = 2;
+}
+
+message CancelOrderResponse {
+    bool success = 1;
+    Order order = 2;
+}
+
+message GetOrdersRequest {
+    string user_id = 1;
+    OrderStatus status = 2;
+    bool all_statuses = 3;
+    int32 limit = 4;
+    int32 offset = 5;
+}
+
+message GetOrdersResponse {
+    repeated Order orders = 1;
+}
+
+message GetOrderRequest {
+    string order_id = 1;
+}
+
+message UpdateOrderStatusRequest {
+    string order_id = 1;
+    OrderStatus status = 2;
+    int64 filled_qty = 3;
+}
+
+message UpdateOrderStatusResponse {
+    bool success = 1;
+}
+
+message Fill {
+    string trade_id = 1;
+    string order_id = 2;
+    string symbol = 3;
+    Side side = 4;
+    int64 qty = 5;
+    int64 price_cents = 6;
+    string liquidity = 7;
+    google.protobuf.Timestamp executed_at = 8;
+}
+
+message GetFillsRequest {
+    string user_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+}
+
+message GetStrategyFillsRequest {
+    string strategy_id = 1;
+    string user_id = 2;
+    int32 limit = 3;
+    int32 offset = 4;
+}
+
+message GetFillsResponse {
+    repeated Fill fills = 1;
+}
