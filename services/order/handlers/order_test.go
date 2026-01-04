@@ -181,6 +181,45 @@ func TestPlaceOrderEngineFailureReleasesReservation(t *testing.T) {
 	userClient.AssertExpectations(t)
 }
 
+func TestCancelOrder(t *testing.T) {
+	h, dbMock, obClient, userClient := newOrderHandler(t)
+	userID := uuid.New()
+	orderID := uuid.New()
+
+	dbMock.ExpectQuery(`SELECT .* FROM orders`).
+		WithArgs(orderID).
+		WillReturnRows(orderRow(orderID, userID, "AAPL", 10, 0, int16(ordrpb.OrderStatus_OPEN)))
+	dbMock.ExpectExec(`UPDATE orders`).WithArgs(orderID).WillReturnResult(sqlmock.NewResult(0, 1))
+	obClient.On("CancelOrder", mock.Anything, mock.Anything).
+		Return(&obpb.CancelOrderResponse{}, nil)
+	userClient.On("ReleaseForOrder", mock.Anything, mock.Anything).Return(&emptypb.Empty{}, nil)
+	dbMock.ExpectQuery(`SELECT .* FROM orders`).
+		WithArgs(orderID).
+		WillReturnRows(orderRow(orderID, userID, "AAPL", 10, 0, int16(ordrpb.OrderStatus_CANCELLED)))
+
+	resp, err := h.CancelOrder(context.Background(), &ordrpb.CancelOrderRequest{
+		OrderId: orderID.String(),
+		UserId:  userID.String(),
+	})
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Equal(t, ordrpb.OrderStatus_CANCELLED, resp.Order.Status)
+}
+
+func TestCancelOrderNotFound(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	orderID := uuid.New()
+
+	dbMock.ExpectQuery(`SELECT .* FROM orders`).
+		WithArgs(orderID).
+		WillReturnError(fmt.Errorf("no rows"))
+
+	_, err := h.CancelOrder(context.Background(), &ordrpb.CancelOrderRequest{
+		OrderId: orderID.String(),
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
 func TestReservationPrice(t *testing.T) {
 	p, err := reservationPrice(&ordrpb.PlaceOrderRequest{Price: 5000})
 	require.NoError(t, err)

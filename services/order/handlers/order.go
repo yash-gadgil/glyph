@@ -153,6 +153,41 @@ func (h *OrderHandler) PlaceOrder(ctx context.Context, req *ordrpb.PlaceOrderReq
 	}, nil
 }
 
+func (h *OrderHandler) CancelOrder(ctx context.Context, req *ordrpb.CancelOrderRequest) (*ordrpb.CancelOrderResponse, error) {
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid order_id")
+	}
+
+	order, err := h.q.GetOrderById(ctx, orderID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "order not found")
+	}
+
+	if err := h.q.CancelOrder(ctx, orderID); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to cancel order")
+	}
+
+	if _, err := h.ob.CancelOrder(ctx, &obpb.CancelOrderRequest{
+		OrderId: req.OrderId,
+		Symbol:  order.Symbol,
+	}); err != nil {
+		h.log.Warn("orderbook_cancel_failed", logger.KV("order_id", orderID.String()), zap.Error(err))
+	}
+
+	h.releaseReservation(ctx, orderID)
+
+	updated, err := h.q.GetOrderById(ctx, orderID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch updated order")
+	}
+
+	return &ordrpb.CancelOrderResponse{
+		Success: true,
+		Order:   dbOrderToProto(updated),
+	}, nil
+}
+
 func reservationPrice(req *ordrpb.PlaceOrderRequest) (int64, error) {
 	if req.Price > 0 {
 		return req.Price, nil
