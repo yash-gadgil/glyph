@@ -19,6 +19,9 @@ import (
 )
 
 const (
+	defaultPageLimit = 100
+	maxPageLimit     = 500
+
 	marketBuySlippageNum = 105
 	marketBuySlippageDen = 100
 )
@@ -227,6 +230,54 @@ func (h *OrderHandler) releaseReservation(ctx context.Context, orderID uuid.UUID
 	}); err != nil {
 		h.log.Error("release_reservation_failed", logger.KV("order_id", orderID.String()), zap.Error(err))
 	}
+}
+
+func (h *OrderHandler) GetOrders(ctx context.Context, req *ordrpb.GetOrdersRequest) (*ordrpb.GetOrdersResponse, error) {
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id")
+	}
+
+	limit, offset := pageParams(req.Limit, req.Offset)
+
+	var orders []db.Order
+	if req.AllStatuses {
+		orders, err = h.q.GetOrdersByUser(ctx, db.GetOrdersByUserParams{
+			UserID: userID,
+			Limit:  limit,
+			Offset: offset,
+		})
+	} else {
+		orders, err = h.q.GetOrdersByUserAndStatus(ctx, db.GetOrdersByUserAndStatusParams{
+			UserID: userID,
+			Status: int16(req.Status),
+			Limit:  limit,
+			Offset: offset,
+		})
+	}
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch orders")
+	}
+
+	protoOrders := make([]*ordrpb.Order, len(orders))
+	for i, o := range orders {
+		protoOrders[i] = dbOrderToProto(o)
+	}
+
+	return &ordrpb.GetOrdersResponse{Orders: protoOrders}, nil
+}
+
+func pageParams(limit, offset int32) (int32, int32) {
+	if limit <= 0 {
+		limit = defaultPageLimit
+	}
+	if limit > maxPageLimit {
+		limit = maxPageLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return limit, offset
 }
 
 func dbOrderToProto(o db.Order) *ordrpb.Order {

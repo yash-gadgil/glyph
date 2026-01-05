@@ -220,6 +220,47 @@ func TestCancelOrderNotFound(t *testing.T) {
 	assert.Equal(t, codes.NotFound, status.Code(err))
 }
 
+func TestGetOrdersByStatus(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	userID := uuid.New()
+
+	dbMock.ExpectQuery(`FROM orders.*AND status`).
+		WithArgs(userID, int16(ordrpb.OrderStatus_OPEN), int32(100), int32(0)).
+		WillReturnRows(orderRow(uuid.New(), userID, "AAPL", 10, 0, int16(ordrpb.OrderStatus_OPEN)))
+
+	resp, err := h.GetOrders(context.Background(), &ordrpb.GetOrdersRequest{
+		UserId: userID.String(),
+		Status: ordrpb.OrderStatus_OPEN,
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp.Orders, 1)
+}
+
+func TestGetOrdersAllStatuses(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	userID := uuid.New()
+
+	dbMock.ExpectQuery(`FROM orders`).
+		WithArgs(userID, int32(100), int32(0)).
+		WillReturnRows(orderRow(uuid.New(), userID, "AAPL", 10, 0, int16(ordrpb.OrderStatus_FILLED)))
+
+	resp, err := h.GetOrders(context.Background(), &ordrpb.GetOrdersRequest{
+		UserId:      userID.String(),
+		AllStatuses: true,
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp.Orders, 1)
+}
+
+func TestPageParams(t *testing.T) {
+	l, o := pageParams(0, -5)
+	assert.Equal(t, int32(100), l)
+	assert.Equal(t, int32(0), o)
+
+	l, _ = pageParams(9999, 0)
+	assert.Equal(t, int32(500), l)
+}
+
 func TestReservationPrice(t *testing.T) {
 	p, err := reservationPrice(&ordrpb.PlaceOrderRequest{Price: 5000})
 	require.NoError(t, err)
