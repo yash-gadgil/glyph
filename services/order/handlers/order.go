@@ -267,6 +267,20 @@ func (h *OrderHandler) GetOrders(ctx context.Context, req *ordrpb.GetOrdersReque
 	return &ordrpb.GetOrdersResponse{Orders: protoOrders}, nil
 }
 
+func (h *OrderHandler) GetOrder(ctx context.Context, req *ordrpb.GetOrderRequest) (*ordrpb.Order, error) {
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid order_id")
+	}
+
+	order, err := h.q.GetOrderById(ctx, orderID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "order not found")
+	}
+
+	return dbOrderToProto(order), nil
+}
+
 func pageParams(limit, offset int32) (int32, int32) {
 	if limit <= 0 {
 		limit = defaultPageLimit

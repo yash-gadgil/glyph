@@ -252,6 +252,33 @@ func TestGetOrdersAllStatuses(t *testing.T) {
 	assert.Len(t, resp.Orders, 1)
 }
 
+func TestGetOrder(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	userID := uuid.New()
+	orderID := uuid.New()
+
+	dbMock.ExpectQuery(`SELECT .* FROM orders`).
+		WithArgs(orderID).
+		WillReturnRows(orderRow(orderID, userID, "AAPL", 10, 3, int16(ordrpb.OrderStatus_PARTIAL_FILL)))
+
+	resp, err := h.GetOrder(context.Background(), &ordrpb.GetOrderRequest{OrderId: orderID.String()})
+	require.NoError(t, err)
+	assert.Equal(t, orderID.String(), resp.Id)
+	assert.Equal(t, int64(3), resp.FilledQty)
+}
+
+func TestGetOrderNotFound(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	orderID := uuid.New()
+
+	dbMock.ExpectQuery(`SELECT .* FROM orders`).
+		WithArgs(orderID).
+		WillReturnError(fmt.Errorf("no rows"))
+
+	_, err := h.GetOrder(context.Background(), &ordrpb.GetOrderRequest{OrderId: orderID.String()})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
 func TestPageParams(t *testing.T) {
 	l, o := pageParams(0, -5)
 	assert.Equal(t, int32(100), l)
