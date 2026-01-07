@@ -3,6 +3,8 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +14,7 @@ import (
 	obpb "github.com/yash-gadgil/glyph/services/gen/golang/order_book"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	db "github.com/yash-gadgil/glyph/services/order/db/gen"
+	"github.com/yash-gadgil/glyph/services/order/types"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -279,6 +282,107 @@ func (h *OrderHandler) GetOrder(ctx context.Context, req *ordrpb.GetOrderRequest
 	}
 
 	return dbOrderToProto(order), nil
+}
+
+func (h *OrderHandler) UpdateOrderStatus(ctx context.Context, req *ordrpb.UpdateOrderStatusRequest) (*ordrpb.UpdateOrderStatusResponse, error) {
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid order_id")
+	}
+
+	if err := h.q.UpdateOrderFill(ctx, db.UpdateOrderFillParams{
+		ID:        orderID,
+		FilledQty: req.FilledQty,
+		Status:    int16(req.Status),
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update order status")
+	}
+
+	return &ordrpb.UpdateOrderStatusResponse{Success: true}, nil
+}
+
+func (h *OrderHandler) ApplyFillEvent(ctx context.Context, event types.FillEvent) error {
+	tradeID, err := uuid.Parse(event.TradeID)
+	if err != nil {
+		return fmt.Errorf("bad trade_id %q: %w", event.TradeID, err)
+	}
+	orderID, err := uuid.Parse(event.OrderID)
+	if err != nil {
+		return fmt.Errorf("bad order_id %q: %w", event.OrderID, err)
+	}
+	if event.Qty <= 0 {
+		return fmt.Errorf("invalid fill qty %d", event.Qty)
+	}
+
+	tx, err := h.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	qtx := h.q.WithTx(tx)
+
+	inserted, err := qtx.InsertFill(ctx, db.InsertFillParams{
+		TradeID:    tradeID,
+		OrderID:    orderID,
+		Symbol:     event.Symbol,
+		Side:       event.Side,
+		Qty:        event.Qty,
+		PriceCents: event.PriceCents,
+		Liquidity:  event.Liquidity,
+		ExecutedAt: event.ExecutedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("insert fill: %w", err)
+	}
+	if inserted == 0 {
+		return tx.Commit()
+	}
+
+	if _, err := qtx.ApplyFillToOrder(ctx, db.ApplyFillToOrderParams{
+		ID:        orderID,
+		FilledQty: event.Qty,
+	}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("fill for unknown order %s: %w", orderID, err)
+		}
+		return fmt.Errorf("apply fill: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	return nil
+}
+
+func (h *OrderHandler) ApplyDoneEvent(ctx context.Context, event types.DoneEvent) error {
+	orderID, err := uuid.Parse(event.OrderID)
+	if err != nil {
+		return fmt.Errorf("bad order_id %q: %w", event.OrderID, err)
+	}
+
+	var terminal ordrpb.OrderStatus
+	switch event.Reason {
+	case "filled":
+		terminal = ordrpb.OrderStatus_FILLED
+	case "cancelled", "ioc_expired", "fok_killed":
+		terminal = ordrpb.OrderStatus_CANCELLED
+	default:
+		return fmt.Errorf("unknown done reason %q", event.Reason)
+	}
+
+	if _, err := h.q.FinalizeOrder(ctx, db.FinalizeOrderParams{
+		ID:     orderID,
+		Status: int16(terminal),
+	}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("finalize order: %w", err)
+	}
+
+	return nil
 }
 
 func pageParams(limit, offset int32) (int32, int32) {

@@ -14,6 +14,7 @@ import (
 	ordrpb "github.com/yash-gadgil/glyph/services/gen/golang/order"
 	obpb "github.com/yash-gadgil/glyph/services/gen/golang/order_book"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	"github.com/yash-gadgil/glyph/services/order/types"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -286,6 +287,89 @@ func TestPageParams(t *testing.T) {
 
 	l, _ = pageParams(9999, 0)
 	assert.Equal(t, int32(500), l)
+}
+
+func TestUpdateOrderStatus(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	orderID := uuid.New()
+
+	dbMock.ExpectExec(`UPDATE orders`).
+		WithArgs(orderID, int64(5), int16(ordrpb.OrderStatus_PARTIAL_FILL)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	resp, err := h.UpdateOrderStatus(context.Background(), &ordrpb.UpdateOrderStatusRequest{
+		OrderId:   orderID.String(),
+		Status:    ordrpb.OrderStatus_PARTIAL_FILL,
+		FilledQty: 5,
+	})
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+}
+
+func TestApplyFillEventRecordsFill(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	tradeID := uuid.New()
+	orderID := uuid.New()
+	userID := uuid.New()
+
+	dbMock.ExpectBegin()
+	dbMock.ExpectExec(`INSERT INTO fills`).WillReturnResult(sqlmock.NewResult(0, 1))
+	dbMock.ExpectQuery(`UPDATE orders`).
+		WillReturnRows(orderRow(orderID, userID, "AAPL", 10, 5, int16(ordrpb.OrderStatus_PARTIAL_FILL)))
+	dbMock.ExpectCommit()
+
+	err := h.ApplyFillEvent(context.Background(), types.FillEvent{
+		TradeID: tradeID.String(), OrderID: orderID.String(), Symbol: "AAPL",
+		Side: 0, Qty: 5, PriceCents: 5000, Liquidity: "taker", ExecutedAt: time.Now(),
+	})
+	require.NoError(t, err)
+	assert.NoError(t, dbMock.ExpectationsWereMet())
+}
+
+func TestApplyFillEventRedeliveryIsNoOp(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+
+	dbMock.ExpectBegin()
+	dbMock.ExpectExec(`INSERT INTO fills`).WillReturnResult(sqlmock.NewResult(0, 0))
+	dbMock.ExpectCommit()
+
+	err := h.ApplyFillEvent(context.Background(), types.FillEvent{
+		TradeID: uuid.New().String(), OrderID: uuid.New().String(), Symbol: "AAPL",
+		Side: 0, Qty: 5, PriceCents: 5000, Liquidity: "taker", ExecutedAt: time.Now(),
+	})
+	require.NoError(t, err)
+	assert.NoError(t, dbMock.ExpectationsWereMet())
+}
+
+func TestApplyFillEventBadID(t *testing.T) {
+	h, _, _, _ := newOrderHandler(t)
+
+	err := h.ApplyFillEvent(context.Background(), types.FillEvent{TradeID: "bad"})
+	require.Error(t, err)
+}
+
+func TestApplyDoneEventFinalizes(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	orderID := uuid.New()
+	userID := uuid.New()
+
+	dbMock.ExpectQuery(`UPDATE orders`).
+		WithArgs(orderID, int16(ordrpb.OrderStatus_FILLED)).
+		WillReturnRows(orderRow(orderID, userID, "AAPL", 10, 10, int16(ordrpb.OrderStatus_FILLED)))
+
+	err := h.ApplyDoneEvent(context.Background(), types.DoneEvent{
+		OrderID: orderID.String(), Reason: "filled",
+	})
+	require.NoError(t, err)
+}
+
+func TestApplyDoneEventUnknownReason(t *testing.T) {
+	h, _, _, _ := newOrderHandler(t)
+
+	err := h.ApplyDoneEvent(context.Background(), types.DoneEvent{
+		OrderID: uuid.New().String(), Reason: "huh",
+	})
+	require.Error(t, err)
 }
 
 func TestReservationPrice(t *testing.T) {

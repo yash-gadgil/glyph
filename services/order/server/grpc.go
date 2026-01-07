@@ -83,6 +83,12 @@ func (s *grpcServer) Run(ctx context.Context) error {
 	grpc_prometheus.Register(grpcSrv)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)
 
+	if s.rmqCh != nil {
+		if err := ConsumeOrderEvents(ctx, s.rmqCh, handler); err != nil {
+			s.log.Warn("order_event_consumer_failed", zap.Error(err))
+		}
+	}
+
 	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
 	s.log.Info("grpc_server_running", logger.KV("addr", s.addr))
 
