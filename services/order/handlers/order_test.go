@@ -308,6 +308,35 @@ func TestGetFills(t *testing.T) {
 	assert.Equal(t, "AAPL", resp.Fills[0].Symbol)
 }
 
+func TestGetStrategyFills(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	userID := uuid.New()
+	strategyID := uuid.New()
+
+	dbMock.ExpectQuery(`FROM fills f`).
+		WithArgs(strategyID, userID, int32(100), int32(0)).
+		WillReturnRows(sqlmock.NewRows(fillColumns).
+			AddRow(uuid.New(), uuid.New(), "AAPL", int16(1), int64(2), int64(6000), "maker", time.Now()))
+
+	resp, err := h.GetStrategyFills(context.Background(), &ordrpb.GetStrategyFillsRequest{
+		StrategyId: strategyID.String(),
+		UserId:     userID.String(),
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Fills, 1)
+	assert.Equal(t, ordrpb.Side_SELL, resp.Fills[0].Side)
+}
+
+func TestGetStrategyFillsInvalidID(t *testing.T) {
+	h, _, _, _ := newOrderHandler(t)
+
+	_, err := h.GetStrategyFills(context.Background(), &ordrpb.GetStrategyFillsRequest{
+		StrategyId: "bad",
+		UserId:     uuid.New().String(),
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestUpdateOrderStatus(t *testing.T) {
 	h, dbMock, _, _ := newOrderHandler(t)
 	orderID := uuid.New()
