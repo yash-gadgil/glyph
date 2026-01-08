@@ -284,6 +284,40 @@ func (h *OrderHandler) GetOrder(ctx context.Context, req *ordrpb.GetOrderRequest
 	return dbOrderToProto(order), nil
 }
 
+func (h *OrderHandler) GetFills(ctx context.Context, req *ordrpb.GetFillsRequest) (*ordrpb.GetFillsResponse, error) {
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id")
+	}
+
+	limit, offset := pageParams(req.Limit, req.Offset)
+
+	rows, err := h.q.GetFillsByUser(ctx, db.GetFillsByUserParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch fills")
+	}
+
+	fills := make([]*ordrpb.Fill, len(rows))
+	for i, f := range rows {
+		fills[i] = &ordrpb.Fill{
+			TradeId:    f.TradeID.String(),
+			OrderId:    f.OrderID.String(),
+			Symbol:     f.Symbol,
+			Side:       ordrpb.Side(f.Side),
+			Qty:        f.Qty,
+			PriceCents: f.PriceCents,
+			Liquidity:  f.Liquidity,
+			ExecutedAt: timestamppb.New(f.ExecutedAt),
+		}
+	}
+
+	return &ordrpb.GetFillsResponse{Fills: fills}, nil
+}
+
 func (h *OrderHandler) UpdateOrderStatus(ctx context.Context, req *ordrpb.UpdateOrderStatusRequest) (*ordrpb.UpdateOrderStatusResponse, error) {
 	orderID, err := uuid.Parse(req.OrderId)
 	if err != nil {

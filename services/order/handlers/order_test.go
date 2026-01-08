@@ -289,6 +289,25 @@ func TestPageParams(t *testing.T) {
 	assert.Equal(t, int32(500), l)
 }
 
+var fillColumns = []string{
+	"trade_id", "order_id", "symbol", "side", "qty", "price_cents", "liquidity", "executed_at",
+}
+
+func TestGetFills(t *testing.T) {
+	h, dbMock, _, _ := newOrderHandler(t)
+	userID := uuid.New()
+
+	dbMock.ExpectQuery(`FROM fills f`).
+		WithArgs(userID, int32(100), int32(0)).
+		WillReturnRows(sqlmock.NewRows(fillColumns).
+			AddRow(uuid.New(), uuid.New(), "AAPL", int16(0), int64(5), int64(5000), "taker", time.Now()))
+
+	resp, err := h.GetFills(context.Background(), &ordrpb.GetFillsRequest{UserId: userID.String()})
+	require.NoError(t, err)
+	require.Len(t, resp.Fills, 1)
+	assert.Equal(t, "AAPL", resp.Fills[0].Symbol)
+}
+
 func TestUpdateOrderStatus(t *testing.T) {
 	h, dbMock, _, _ := newOrderHandler(t)
 	orderID := uuid.New()
