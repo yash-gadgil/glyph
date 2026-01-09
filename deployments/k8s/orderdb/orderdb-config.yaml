@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orderdb-config
+  namespace: glyph
+data:
+  POSTGRES_DB: order_db
+  POSTGRES_USER: order-db-user
+  POSTGRES_PASSWORD: orderpassword

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: orderdb
+  namespace: glyph
+spec:
+  selector:
+    app: orderdb
+  ports:
+    - port: 5432

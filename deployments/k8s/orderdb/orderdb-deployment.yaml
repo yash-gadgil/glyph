@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderdb
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderdb
+  template:
+    metadata:
+      labels:
+        app: orderdb
+    spec:
+      initContainers:
+        - name: wait-for-pvc
+          image: busybox:1.35
+          command:
+            [
+              "sh",
+              "-c",
+              'until [ -d /mnt/data ]; do echo "Waiting for PVC to be bound..."; sleep 2; done; echo "PVC is ready!"',
+            ]
+          volumeMounts:
+            - name: order-volume
+              mountPath: /mnt/data
+      containers:
+        - name: orderdb
+          image: postgres:15
+          envFrom:
+            - configMapRef:
+                name: orderdb-config
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: order-volume
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+      volumes:
+        - name: order-volume
+          persistentVolumeClaim:
+            claimName: orderdb-pvc
