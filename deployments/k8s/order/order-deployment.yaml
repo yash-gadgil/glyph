@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      initContainers:
+        - name: order-migrations
+          image: glyph/order:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: order-config
+          env:
+            - name: GOOSE_DRIVER
+              value: "postgres"
+            - name: GOOSE_DBSTRING
+              value: "postgres://$(ORDER_DB_USER):$(ORDER_DB_PASSWORD)@$(ORDER_DB_HOST):$(ORDER_DB_PORT)/$(ORDER_DB)?sslmode=disable"
+            - name: GOOSE_MIGRATION_DIR
+              value: "/app/db/migrations"
+          workingDir: /app
+          command: ["goose", "up"]
+      containers:
+        - name: order
+          image: glyph/order:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: order-config
+          ports:
+            - containerPort: 50055
+          readinessProbe:
+            tcpSocket:
+              port: 50055
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 50055
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"

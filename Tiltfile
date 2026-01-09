@@ -49,7 +49,36 @@ k8s_yaml([
     'deployments/k8s/user/user-service.yaml',
 ])
 
+docker_build(
+    'glyph/order',
+    '.',
+    dockerfile='deployments/docker/order.Dockerfile',
+    only=[
+        'go.mod',
+        'go.sum',
+        'pkg/',
+        'services/gen/',
+        'services/order/',
+    ],
+)
+
+k8s_yaml([
+    'deployments/k8s/orderdb/orderdb-config.yaml',
+    'deployments/k8s/orderdb/orderdb-volume.yaml',
+    'deployments/k8s/orderdb/orderdb-pvc.yaml',
+    'deployments/k8s/orderdb/orderdb-deployment.yaml',
+    'deployments/k8s/orderdb/orderdb-service.yaml',
+])
+
+k8s_yaml([
+    'deployments/k8s/order/order-config.yaml',
+    'deployments/k8s/order/order-deployment.yaml',
+    'deployments/k8s/order/order-service.yaml',
+])
+
 k8s_resource('rabbitmq', port_forwards=['5672:5672', '15672:15672'])
 k8s_resource('order-book', resource_deps=['rabbitmq'])
 k8s_resource('userdb', port_forwards=['5432:5432'])
 k8s_resource('user', resource_deps=['userdb', 'rabbitmq'], port_forwards=['50053:50053'])
+k8s_resource('orderdb', port_forwards=['5433:5432'])
+k8s_resource('order', resource_deps=['orderdb', 'rabbitmq', 'order-book', 'user'], port_forwards=['50055:50055'])
