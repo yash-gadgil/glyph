@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"io"
 	"log"
 	"time"
 
 	"github.com/alpacahq/alpaca-trade-api-go/v3/marketdata"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
+	"google.golang.org/grpc"
 )
 
 const historicalDelay = 16 * time.Minute
@@ -93,6 +95,49 @@ func (h *MrktdataHandler) getMultiBarsWithFeed(symbols []string, req marketdata.
 		h.adoptFeed("iex")
 	}
 	return bars, err
+}
+
+func (h *MrktdataHandler) WatchlistStream(stream grpc.BidiStreamingServer[mrktpb.WatchlistStreamRequest, mrktpb.MarketUpdate]) error {
+	sub := h.hub.Register()
+	defer h.hub.Unregister(sub)
+
+	sendErr := make(chan error, 1)
+	go func() {
+		for bar := range sub.ch {
+			if err := stream.Send(&mrktpb.MarketUpdate{SymbolBar: []*mrktpb.Bar{bar}}); err != nil {
+				sendErr <- err
+				return
+			}
+		}
+	}()
+
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			select {
+			case serr := <-sendErr:
+				return serr
+			default:
+			}
+			return err
+		}
+
+		switch msg.Action {
+		case mrktpb.WatchlistStreamRequest_UNSUBSCRIBE:
+			if err := h.hub.SetSymbols(sub, nil); err != nil {
+				log.Printf("watchlist stream unsubscribe failed: %v", err)
+				return err
+			}
+		default:
+			if err := h.hub.SetSymbols(sub, msg.Symbols); err != nil {
+				log.Printf("watchlist stream subscribe failed: %v", err)
+				return err
+			}
+		}
+	}
 }
 
 func (h *MrktdataHandler) feedDecision() (feed string, probe bool) {
