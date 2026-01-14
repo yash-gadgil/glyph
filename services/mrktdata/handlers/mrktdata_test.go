@@ -222,6 +222,50 @@ func TestGetAvailableSymbolsPropagatesError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestGetLatestPricesConvertsToCents(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Contains(t, r.URL.Path, "/trades/latest")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"trades":{
+			"AAPL":{"t":"2026-06-11T15:00:00Z","p":189.505,"s":100},
+			"TSLA":{"t":"2026-06-11T15:00:00Z","p":248.9,"s":50}
+		}}`))
+	}))
+	defer server.Close()
+
+	svc := NewTestMrktdataHandler(barsClient(server.URL), nil)
+	resp, err := svc.GetLatestPrices(context.Background(), &mrktpb.LatestPricesRequest{
+		Symbols: []string{"AAPL", "TSLA"},
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Prices, 2)
+
+	prices := map[string]int64{}
+	for _, p := range resp.Prices {
+		prices[p.Symbol] = p.PriceCents
+	}
+	assert.Equal(t, int64(18_951), prices["AAPL"], "fractional cents round half away from zero")
+	assert.Equal(t, int64(24_890), prices["TSLA"])
+}
+
+func TestGetLatestPricesEmptyRequest(t *testing.T) {
+	svc := NewTestMrktdataHandler(nil, nil)
+	resp, err := svc.GetLatestPrices(context.Background(), &mrktpb.LatestPricesRequest{})
+	require.NoError(t, err)
+	assert.Empty(t, resp.Prices)
+}
+
+func TestGetLatestPricesPropagatesError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"boom"}`, http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	svc := NewTestMrktdataHandler(barsClient(server.URL), nil)
+	_, err := svc.GetLatestPrices(context.Background(), &mrktpb.LatestPricesRequest{Symbols: []string{"AAPL"}})
+	assert.Error(t, err)
+}
+
 func feedAwareBarsServer(t *testing.T, sipOK *atomic.Bool, capture *[]*http.Request) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"math"
 	"time"
 
 	alpaca "github.com/alpacahq/alpaca-trade-api-go/v3/alpaca"
@@ -140,6 +141,28 @@ func (h *MrktdataHandler) WatchlistStream(stream grpc.BidiStreamingServer[mrktpb
 			}
 		}
 	}
+}
+
+func (h *MrktdataHandler) GetLatestPrices(ctx context.Context, req *mrktpb.LatestPricesRequest) (*mrktpb.LatestPricesResponse, error) {
+	if len(req.Symbols) == 0 {
+		return &mrktpb.LatestPricesResponse{}, nil
+	}
+
+	trades, err := h.stocksApi.GetLatestTrades(req.Symbols, marketdata.GetLatestTradeRequest{
+		Feed: "iex",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &mrktpb.LatestPricesResponse{}
+	for symbol, trade := range trades {
+		resp.Prices = append(resp.Prices, &mrktpb.SymbolPrice{
+			Symbol:     symbol,
+			PriceCents: int64(math.Round(trade.Price * 100)),
+		})
+	}
+	return resp, nil
 }
 
 func (h *MrktdataHandler) GetAvailableSymbols(ctx context.Context, _ *emptypb.Empty) (*mrktpb.AvailableSymbolsResponse, error) {
