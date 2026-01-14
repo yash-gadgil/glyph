@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"strconv"
 	"time"
 
 	alpaca "github.com/alpacahq/alpaca-trade-api-go/v3/alpaca"
@@ -15,6 +16,8 @@ import (
 )
 
 const historicalDelay = 16 * time.Minute
+
+const defaultNewsLimit = 12
 
 func (h *MrktdataHandler) GetHistoricalStockData(ctx context.Context, req *mrktpb.HistoricalStockDataRequest) (*mrktpb.HistoricalStockDataResponse, error) {
 	var tf marketdata.TimeFrame
@@ -141,6 +144,39 @@ func (h *MrktdataHandler) WatchlistStream(stream grpc.BidiStreamingServer[mrktpb
 			}
 		}
 	}
+}
+
+func (h *MrktdataHandler) GetNews(ctx context.Context, req *mrktpb.NewsRequest) (*mrktpb.NewsResponse, error) {
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = defaultNewsLimit
+	}
+
+	articles, err := h.stocksApi.GetNews(marketdata.GetNewsRequest{
+		Symbols:    req.Symbols,
+		TotalLimit: limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &mrktpb.NewsResponse{}
+	for _, a := range articles {
+		article := &mrktpb.NewsArticle{
+			Id:        strconv.Itoa(a.ID),
+			Headline:  a.Headline,
+			Summary:   a.Summary,
+			Source:    a.Author,
+			Url:       a.URL,
+			Symbols:   a.Symbols,
+			CreatedAt: a.CreatedAt.Format(time.RFC3339),
+		}
+		if len(a.Images) > 0 {
+			article.ImageUrl = a.Images[0].URL
+		}
+		resp.Articles = append(resp.Articles, article)
+	}
+	return resp, nil
 }
 
 func (h *MrktdataHandler) GetLatestPrices(ctx context.Context, req *mrktpb.LatestPricesRequest) (*mrktpb.LatestPricesResponse, error) {

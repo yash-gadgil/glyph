@@ -266,6 +266,25 @@ func TestGetLatestPricesPropagatesError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestGetNewsMapsArticles(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Contains(t, r.URL.Path, "/news")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"news":[
+			{"id":42,"headline":"Apple climbs","author":"Reuters","url":"http://x","summary":"up","symbols":["AAPL"],"created_at":"2026-01-10T15:00:00Z","images":[{"size":"large","url":"http://img"}]}
+		],"next_page_token":null}`))
+	}))
+	defer server.Close()
+
+	svc := NewTestMrktdataHandler(barsClient(server.URL), nil)
+	resp, err := svc.GetNews(context.Background(), &mrktpb.NewsRequest{Symbols: []string{"AAPL"}})
+	require.NoError(t, err)
+	require.Len(t, resp.Articles, 1)
+	assert.Equal(t, "42", resp.Articles[0].Id)
+	assert.Equal(t, "Apple climbs", resp.Articles[0].Headline)
+	assert.Equal(t, "http://img", resp.Articles[0].ImageUrl)
+}
+
 func feedAwareBarsServer(t *testing.T, sipOK *atomic.Bool, capture *[]*http.Request) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
