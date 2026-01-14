@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package mrktdata;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata";
+
+service MrktdataService {
+    rpc GetHistoricalStockData(HistoricalStockDataRequest) returns (HistoricalStockDataResponse) {}
+    rpc WatchlistStream(stream WatchlistStreamRequest) returns (stream MarketUpdate) {}
+    rpc GetAvailableSymbols(google.protobuf.Empty) returns (AvailableSymbolsResponse) {}
+    rpc GetLatestPrices(LatestPricesRequest) returns (LatestPricesResponse) {}
+    rpc GetNews(NewsRequest) returns (NewsResponse) {}
+    rpc GetMovers(MoversRequest) returns (MoversResponse) {}
+}
+
+message NewsRequest {
+    repeated string symbols = 1;
+    int32 limit = 2;
+}
+
+message NewsArticle {
+    string id = 1;
+    string headline = 2;
+    string summary = 3;
+    string source = 4;
+    string url = 5;
+    repeated string symbols = 6;
+    string image_url = 7;
+    string created_at = 8;
+}
+
+message NewsResponse {
+    repeated NewsArticle articles = 1;
+}
+
+message MoversRequest {
+    int32 limit = 1;
+}
+
+message Mover {
+    string symbol = 1;
+    string company_name = 2;
+    int64 price_cents = 3;
+    double change_percent = 4;
+    int64 volume = 5;
+}
+
+message MoversResponse {
+    repeated Mover gainers = 1;
+    repeated Mover losers = 2;
+}
+
+message LatestPricesRequest {
+    repeated string symbols = 1;
+}
+
+message SymbolPrice {
+    string symbol = 1;
+    int64 price_cents = 2;
+}
+
+message LatestPricesResponse {
+    repeated SymbolPrice prices = 1;
+}
+
+message Bar {
+    string symbol = 1;
+    float open = 2;
+    float high = 3;
+    float low = 4;
+    float close = 5;
+    string time = 6;
+    int64 volume = 7;
+    float vwap = 8;
+}
+
+enum Timeframe {
+    DAY = 0;
+    HOUR = 1;
+    MIN = 2;
+}
+
+message Date {
+    int32 year = 1;
+    int32 month = 2;
+    int32 day = 3;
+    int32 hour = 4;
+    int32 min = 5;
+}
+
+message SymbolBars {
+    string symbol = 1;
+    repeated Bar bars = 2;
+}
+
+message HistoricalStockDataRequest {
+    repeated string symbols = 1;
+    Timeframe timeframe = 2;
+    Date start = 3;
+    Date end = 4;
+}
+
+message HistoricalStockDataResponse {
+    repeated SymbolBars symbol_bars = 1;
+}
+
+message WatchlistStreamRequest {
+    enum Action {
+        START = 0;
+        SUBSCRIBE = 1;
+        UNSUBSCRIBE = 2;
+    }
+    Action action = 1;
+    repeated string symbols = 2;
+}
+
+message MarketUpdate {
+    repeated Bar symbol_bar = 1;
+}
+
+message Symbol {
+    string name = 1;
+    string company_name = 2;
+}
+
+message AvailableSymbolsResponse {
+    repeated Symbol symbols = 1;
+}
