@@ -10,11 +10,17 @@ import (
 	"testing"
 	"time"
 
+	alpaca "github.com/alpacahq/alpaca-trade-api-go/v3/alpaca"
 	mrktdata "github.com/alpacahq/alpaca-trade-api-go/v3/marketdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+func assetsClient(url string) *alpaca.Client {
+	return alpaca.NewClient(alpaca.ClientOpts{BaseURL: url, RetryLimit: 1})
+}
 
 func fakeBarsServer(t *testing.T, capture *[]*http.Request) *httptest.Server {
 	t.Helper()
@@ -174,6 +180,46 @@ func TestGetHistoricalStockDataCachesWorkingFeed(t *testing.T) {
 	for _, r := range reqs {
 		assert.Equal(t, "sip", r.URL.Query().Get("feed"))
 	}
+}
+
+func TestGetAvailableSymbolsFiltersAndCaches(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		assert.Contains(t, r.URL.Path, "/v2/assets")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"id":"1","symbol":"AAPL","name":"Apple Inc","tradable":true},
+			{"id":"2","symbol":"DEAD","name":"Delisted Corp","tradable":false},
+			{"id":"3","symbol":"TSLA","name":"Tesla Inc","tradable":true}
+		]`))
+	}))
+	defer server.Close()
+
+	svc := NewTestMrktdataHandler(nil, assetsClient(server.URL))
+
+	resp, err := svc.GetAvailableSymbols(context.Background(), &emptypb.Empty{})
+	require.NoError(t, err)
+	require.Len(t, resp.Symbols, 2, "non-tradable assets must be filtered out")
+	assert.Equal(t, "AAPL", resp.Symbols[0].Name)
+	assert.Equal(t, "Apple Inc", resp.Symbols[0].CompanyName)
+	assert.Equal(t, "TSLA", resp.Symbols[1].Name)
+
+	resp2, err := svc.GetAvailableSymbols(context.Background(), &emptypb.Empty{})
+	require.NoError(t, err)
+	assert.Len(t, resp2.Symbols, 2)
+	assert.Equal(t, int32(1), calls.Load(), "assets endpoint should be hit exactly once")
+}
+
+func TestGetAvailableSymbolsPropagatesError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"boom"}`, http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	svc := NewTestMrktdataHandler(nil, assetsClient(server.URL))
+	_, err := svc.GetAvailableSymbols(context.Background(), &emptypb.Empty{})
+	assert.Error(t, err)
 }
 
 func feedAwareBarsServer(t *testing.T, sipOK *atomic.Bool, capture *[]*http.Request) *httptest.Server {

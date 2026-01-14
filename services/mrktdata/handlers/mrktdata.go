@@ -6,9 +6,11 @@ import (
 	"log"
 	"time"
 
+	alpaca "github.com/alpacahq/alpaca-trade-api-go/v3/alpaca"
 	"github.com/alpacahq/alpaca-trade-api-go/v3/marketdata"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const historicalDelay = 16 * time.Minute
@@ -138,6 +140,45 @@ func (h *MrktdataHandler) WatchlistStream(stream grpc.BidiStreamingServer[mrktpb
 			}
 		}
 	}
+}
+
+func (h *MrktdataHandler) GetAvailableSymbols(ctx context.Context, _ *emptypb.Empty) (*mrktpb.AvailableSymbolsResponse, error) {
+	h.symbolsMu.RLock()
+	cached := h.symbolsCache
+	h.symbolsMu.RUnlock()
+
+	if cached == nil {
+		res, err := h.alpacaClient.GetAssets(alpaca.GetAssetsRequest{
+			Status:     "active",
+			AssetClass: "us_equity",
+		})
+		if err != nil {
+			log.Println("error getting symbols", err)
+			return nil, err
+		}
+		newCache := make([]cachedSymbol, 0, len(res))
+		for _, asset := range res {
+			if asset.Tradable {
+				newCache = append(newCache, cachedSymbol{
+					Symbol:      asset.Symbol,
+					CompanyName: asset.Name,
+				})
+			}
+		}
+		h.symbolsMu.Lock()
+		h.symbolsCache = newCache
+		h.symbolsMu.Unlock()
+		cached = newCache
+	}
+
+	resp := &mrktpb.AvailableSymbolsResponse{}
+	for _, sym := range cached {
+		resp.Symbols = append(resp.Symbols, &mrktpb.Symbol{
+			Name:        sym.Symbol,
+			CompanyName: sym.CompanyName,
+		})
+	}
+	return resp, nil
 }
 
 func (h *MrktdataHandler) feedDecision() (feed string, probe bool) {
