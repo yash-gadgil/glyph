@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"sort"
 	"strconv"
 	"time"
 
@@ -18,6 +19,15 @@ import (
 const historicalDelay = 16 * time.Minute
 
 const defaultNewsLimit = 12
+
+const defaultMoversLimit = 6
+
+var moversUniverse = []string{
+	"AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "AVGO", "JPM", "V",
+	"MA", "UNH", "XOM", "HD", "KO", "PEP", "LLY", "COST", "WMT", "MRK",
+	"BAC", "ADBE", "CRM", "AMD", "NFLX", "DIS", "INTC", "ORCL", "CSCO", "QCOM",
+	"UBER", "SHOP", "PYPL", "COIN", "SPOT", "PLTR", "SNOW", "RBLX", "RIVN", "F",
+}
 
 func (h *MrktdataHandler) GetHistoricalStockData(ctx context.Context, req *mrktpb.HistoricalStockDataRequest) (*mrktpb.HistoricalStockDataResponse, error) {
 	var tf marketdata.TimeFrame
@@ -144,6 +154,60 @@ func (h *MrktdataHandler) WatchlistStream(stream grpc.BidiStreamingServer[mrktpb
 			}
 		}
 	}
+}
+
+func (h *MrktdataHandler) GetMovers(ctx context.Context, req *mrktpb.MoversRequest) (*mrktpb.MoversResponse, error) {
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = defaultMoversLimit
+	}
+
+	snapshots, err := h.stocksApi.GetSnapshots(moversUniverse, marketdata.GetSnapshotRequest{
+		Feed: "iex",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	names := map[string]string{}
+	if symbols, err := h.GetAvailableSymbols(ctx, &emptypb.Empty{}); err == nil {
+		for _, sym := range symbols.Symbols {
+			names[sym.Name] = sym.CompanyName
+		}
+	}
+
+	movers := make([]*mrktpb.Mover, 0, len(snapshots))
+	for symbol, snap := range snapshots {
+		if snap == nil || snap.DailyBar == nil || snap.PrevDailyBar == nil || snap.PrevDailyBar.Close == 0 {
+			continue
+		}
+		last := snap.DailyBar.Close
+		prev := snap.PrevDailyBar.Close
+		movers = append(movers, &mrktpb.Mover{
+			Symbol:        symbol,
+			CompanyName:   names[symbol],
+			PriceCents:    int64(math.Round(last * 100)),
+			ChangePercent: (last - prev) / prev * 100,
+			Volume:        int64(snap.DailyBar.Volume),
+		})
+	}
+
+	sort.Slice(movers, func(i, j int) bool {
+		return movers[i].ChangePercent > movers[j].ChangePercent
+	})
+
+	resp := &mrktpb.MoversResponse{}
+	for i := 0; i < len(movers) && i < limit; i++ {
+		if movers[i].ChangePercent > 0 {
+			resp.Gainers = append(resp.Gainers, movers[i])
+		}
+	}
+	for i := len(movers) - 1; i >= 0 && len(resp.Losers) < limit; i-- {
+		if movers[i].ChangePercent < 0 {
+			resp.Losers = append(resp.Losers, movers[i])
+		}
+	}
+	return resp, nil
 }
 
 func (h *MrktdataHandler) GetNews(ctx context.Context, req *mrktpb.NewsRequest) (*mrktpb.NewsResponse, error) {
