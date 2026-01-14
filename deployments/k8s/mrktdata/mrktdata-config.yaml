@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mrktdata-config
+  namespace: glyph
+data:
+  MRKTDATA_SVC_PORT: ":50052"
+  METRICS_PORT: ":9100"
+
+  ORDERBK_SVC_PORT: "order-book:50056"
