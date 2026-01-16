@@ -31,3 +31,13 @@ func IsMarketOpen(now time.Time) bool {
 	minutes := ny.Hour()*60 + ny.Minute()
 	return minutes >= 9*60+30 && minutes < 16*60
 }
+
+func inCloseSweepWindow(now time.Time) bool {
+	ny := now.In(nyLocation)
+	switch ny.Weekday() {
+	case time.Saturday, time.Sunday:
+		return false
+	}
+	minutes := ny.Hour()*60 + ny.Minute()
+	return minutes >= 16*60 && minutes < 16*60+10
+}

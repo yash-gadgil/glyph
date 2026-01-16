@@ -10,6 +10,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/pkg/telemetry"
+	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	obpb "github.com/yash-gadgil/glyph/services/gen/golang/order_book"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"github.com/yash-gadgil/glyph/services/order/handlers"
@@ -82,6 +83,20 @@ func (s *grpcServer) Run(ctx context.Context) error {
 
 	grpc_prometheus.Register(grpcSrv)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)
+
+	if addr := os.Getenv("MRKTDATA_SVC_PORT"); addr != "" {
+		mrktConn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			s.log.Warn("mrktdata_unavailable_price_feed_disabled", zap.Error(err))
+		} else {
+			defer mrktConn.Close()
+			go handler.RunPriceFeed(ctx, mrktpb.NewMrktdataServiceClient(mrktConn))
+		}
+	} else {
+		s.log.Warn("mrktdata_svc_port_unset_price_feed_disabled")
+	}
+
+	go handler.RunDayOrderSweeper(ctx)
 
 	if s.rmqCh != nil {
 		if err := ConsumeOrderEvents(ctx, s.rmqCh, handler); err != nil {

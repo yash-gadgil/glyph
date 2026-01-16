@@ -15,6 +15,8 @@ data:
 
   ORDERBK_SVC_PORT: "order-book:50056"
 
+  MRKTDATA_SVC_PORT: "mrktdata:50052"
+
   USER_SVC_PORT: "user:50053"
 
   RABBITMQ_URL: "amqp://guest:guest@rabbitmq.glyph.svc.cluster.local:5672/%2f"
