@@ -13,4 +13,6 @@ data:
   USER_DB_PORT: "5432"
   USER_DB_HOST: userdb.glyph.svc.cluster.local
 
+  MRKTDATA_SVC_PORT: "mrktdata:50052"
+
   RABBITMQ_URL: "amqp://guest:guest@rabbitmq.glyph.svc.cluster.local:5672/%2f"

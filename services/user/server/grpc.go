@@ -4,14 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"net"
+	"os"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/pkg/telemetry"
+	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"github.com/yash-gadgil/glyph/services/user/handlers"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
@@ -44,9 +47,22 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 	healthServer := health.NewServer()
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 
+	var prices mrktpb.MrktdataServiceClient
+	if addr := os.Getenv("MRKTDATA_SVC_PORT"); addr != "" {
+		mrktConn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			s.log.Warn("mrktdata_unavailable_holdings_valued_at_cost", zap.Error(err))
+		} else {
+			defer mrktConn.Close()
+			prices = mrktpb.NewMrktdataServiceClient(mrktConn)
+		}
+	} else {
+		s.log.Warn("mrktdata_svc_port_unset_holdings_valued_at_cost")
+	}
+
 	userpb.RegisterWatchlistServiceServer(grpcServer, handlers.NewWatchlistHandler(s.db, s.log))
 	userpb.RegisterAccountServiceServer(grpcServer, handlers.NewAccountHandler(s.db, s.log))
-	userpb.RegisterPortfolioServiceServer(grpcServer, handlers.NewPortfolioHandler(s.db, s.log))
+	userpb.RegisterPortfolioServiceServer(grpcServer, handlers.NewPortfolioHandler(s.db, prices, s.log))
 
 	grpc_prometheus.Register(grpcServer)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)

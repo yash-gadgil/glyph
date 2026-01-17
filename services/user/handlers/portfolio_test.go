@@ -20,7 +20,7 @@ func newPortfolioHandler(t *testing.T) (*PortfolioHandler, sqlmock.Sqlmock) {
 	sdb, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sdb.Close() })
-	return NewPortfolioHandler(sdb, zap.NewNop()), mock
+	return NewPortfolioHandler(sdb, nil, zap.NewNop()), mock
 }
 
 func TestGetPortfolio(t *testing.T) {

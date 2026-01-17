@@ -11,7 +11,7 @@ import (
 func TestUserHandlersRegisterOnGrpcServer(t *testing.T) {
 	srv := grpc.NewServer()
 	userpb.RegisterAccountServiceServer(srv, NewAccountHandler(nil, nil))
-	userpb.RegisterPortfolioServiceServer(srv, NewPortfolioHandler(nil, nil))
+	userpb.RegisterPortfolioServiceServer(srv, NewPortfolioHandler(nil, nil, nil))
 	userpb.RegisterWatchlistServiceServer(srv, NewWatchlistHandler(nil, nil))
 
 	info := srv.GetServiceInfo()

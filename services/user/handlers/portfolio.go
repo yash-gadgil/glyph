@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/yash-gadgil/glyph/pkg/logger"
+	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	db "github.com/yash-gadgil/glyph/services/user/db/gen"
 	"go.uber.org/zap"
@@ -15,13 +16,30 @@ import (
 
 type PortfolioHandler struct {
 	userpb.UnimplementedPortfolioServiceServer
-	db  *sql.DB
-	q   *db.Queries
-	log *zap.Logger
+	db     *sql.DB
+	q      *db.Queries
+	prices mrktpb.MrktdataServiceClient
+	log    *zap.Logger
 }
 
-func NewPortfolioHandler(sdb *sql.DB, log *zap.Logger) *PortfolioHandler {
-	return &PortfolioHandler{db: sdb, q: db.New(sdb), log: log}
+func NewPortfolioHandler(sdb *sql.DB, prices mrktpb.MrktdataServiceClient, log *zap.Logger) *PortfolioHandler {
+	return &PortfolioHandler{db: sdb, q: db.New(sdb), prices: prices, log: log}
+}
+
+func (h *PortfolioHandler) latestPrices(ctx context.Context, symbols []string) map[string]int64 {
+	out := map[string]int64{}
+	if h.prices == nil || len(symbols) == 0 {
+		return out
+	}
+	resp, err := h.prices.GetLatestPrices(ctx, &mrktpb.LatestPricesRequest{Symbols: symbols})
+	if err != nil {
+		h.log.Warn("latest_prices_failed_falling_back_to_cost_basis", zap.Error(err))
+		return out
+	}
+	for _, p := range resp.Prices {
+		out[p.Symbol] = p.PriceCents
+	}
+	return out
 }
 
 func (s *PortfolioHandler) GetPortfolio(ctx context.Context, req *userpb.UserSpecifier) (*userpb.PortfolioResponse, error) {
@@ -61,6 +79,14 @@ func (s *PortfolioHandler) GetHoldings(ctx context.Context, req *userpb.UserSpec
 		return nil, status.Errorf(codes.Internal, "failed to load positions")
 	}
 
+	symbols := make([]string, 0, len(positions))
+	for _, p := range positions {
+		if p.Qty != 0 {
+			symbols = append(symbols, p.Symbol)
+		}
+	}
+	prices := s.latestPrices(ctx, symbols)
+
 	resp := &userpb.HoldingsResponse{}
 	for _, p := range positions {
 		if p.Qty == 0 && p.RealizedPnl == 0 {
@@ -77,8 +103,13 @@ func (s *PortfolioHandler) GetHoldings(ctx context.Context, req *userpb.UserSpec
 			holding.AvgPriceCents = p.CostBasis / p.Qty
 		}
 
-		holding.LastPriceCents = holding.AvgPriceCents
-		holding.MarketValueCents = p.CostBasis
+		if last, ok := prices[p.Symbol]; ok && last > 0 {
+			holding.LastPriceCents = last
+			holding.MarketValueCents = last * p.Qty
+		} else {
+			holding.LastPriceCents = holding.AvgPriceCents
+			holding.MarketValueCents = p.CostBasis
+		}
 		holding.UnrealizedPnlCents = holding.MarketValueCents - p.CostBasis
 
 		resp.Holdings = append(resp.Holdings, holding)
