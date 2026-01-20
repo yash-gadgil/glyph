@@ -5,6 +5,7 @@
 package db
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,14 @@ type Account struct {
 	Multiplier   int32
 	MarginUsed   int64
 	CreatedAt    time.Time
+}
+
+type AccountValueSnapshot struct {
+	UserID           uuid.UUID
+	EquityCents      int64
+	CashCents        int64
+	MarketValueCents int64
+	CapturedAt       time.Time
 }
 
 type OrderReservation struct {
@@ -53,6 +62,29 @@ type Settlement struct {
 	CashDeltaCents   int64
 	RealizedPnlCents int64
 	AppliedAt        time.Time
+}
+
+type Strategy struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Name      string
+	Config    json.RawMessage
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type StrategyDeployment struct {
+	ID                uuid.UUID
+	UserID            uuid.UUID
+	StrategyID        uuid.UUID
+	Symbol            string
+	PositionSizeCents int64
+	Status            int16
+	InPosition        bool
+	EntryPriceCents   int64
+	Qty               int64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type User struct {
