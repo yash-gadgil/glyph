@@ -45,3 +45,28 @@ func TestGetStrategiesInvalidUser(t *testing.T) {
 	_, err := h.GetStrategies(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestCreateStrategy(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+
+	mock.ExpectQuery(`INSERT INTO strategies`).
+		WithArgs(userID, "Dip", []byte(`{"entry":{}}`)).
+		WillReturnRows(sqlmock.NewRows(strategyColumns).
+			AddRow(stratID, userID, "Dip", []byte(`{"entry":{}}`), time.Now(), time.Now()))
+
+	resp, err := h.CreateStrategy(context.Background(), &userpb.CreateStrategyRequest{
+		UserId: userID.String(), Name: "Dip", ConfigJson: `{"entry":{}}`,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, stratID.String(), resp.Id)
+}
+
+func TestCreateStrategyRejectsBadJSON(t *testing.T) {
+	h, _ := newStrategyHandler(t)
+	_, err := h.CreateStrategy(context.Background(), &userpb.CreateStrategyRequest{
+		UserId: uuid.New().String(), Name: "X", ConfigJson: "{not json",
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}

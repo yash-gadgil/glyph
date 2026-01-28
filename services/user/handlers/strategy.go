@@ -77,3 +77,28 @@ func (s *StrategyHandler) GetStrategies(ctx context.Context, req *userpb.UserSpe
 	}
 	return resp, nil
 }
+
+func (s *StrategyHandler) CreateStrategy(ctx context.Context, req *userpb.CreateStrategyRequest) (*userpb.Strategy, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+	if err := validateStrategyInput(req.Name, req.ConfigJson); err != nil {
+		return nil, err
+	}
+
+	row, err := s.q.CreateStrategy(ctx, db.CreateStrategyParams{
+		UserID: userUUID,
+		Name:   strings.TrimSpace(req.Name),
+		Config: json.RawMessage(req.ConfigJson),
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "unique") || strings.Contains(err.Error(), "duplicate") {
+			return nil, status.Errorf(codes.AlreadyExists, "a strategy named %q already exists", req.Name)
+		}
+		s.log.Error("strategy_create_failed", logger.Action("create_strategy"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to create strategy")
+	}
+
+	return strategyToProto(row), nil
+}
