@@ -63,6 +63,7 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 	userpb.RegisterWatchlistServiceServer(grpcServer, handlers.NewWatchlistHandler(s.db, s.log))
 	userpb.RegisterAccountServiceServer(grpcServer, handlers.NewAccountHandler(s.db, s.log))
 	userpb.RegisterPortfolioServiceServer(grpcServer, handlers.NewPortfolioHandler(s.db, prices, s.log))
+	userpb.RegisterStrategyServiceServer(grpcServer, handlers.NewStrategyHandler(s.db, prices, s.log))
 
 	grpc_prometheus.Register(grpcServer)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)
