@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -69,4 +70,34 @@ func TestCreateStrategyRejectsBadJSON(t *testing.T) {
 		UserId: uuid.New().String(), Name: "X", ConfigJson: "{not json",
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestUpdateStrategy(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+
+	mock.ExpectQuery(`UPDATE strategies`).
+		WithArgs(stratID, userID, "New", []byte(`{"entry":{}}`)).
+		WillReturnRows(sqlmock.NewRows(strategyColumns).
+			AddRow(stratID, userID, "New", []byte(`{"entry":{}}`), time.Now(), time.Now()))
+
+	resp, err := h.UpdateStrategy(context.Background(), &userpb.UpdateStrategyRequest{
+		Id: stratID.String(), UserId: userID.String(), Name: "New", ConfigJson: `{"entry":{}}`,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "New", resp.Name)
+}
+
+func TestUpdateStrategyNotFound(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+
+	mock.ExpectQuery(`UPDATE strategies`).WillReturnError(sql.ErrNoRows)
+
+	_, err := h.UpdateStrategy(context.Background(), &userpb.UpdateStrategyRequest{
+		Id: stratID.String(), UserId: userID.String(), Name: "New", ConfigJson: `{}`,
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -98,6 +99,36 @@ func (s *StrategyHandler) CreateStrategy(ctx context.Context, req *userpb.Create
 		}
 		s.log.Error("strategy_create_failed", logger.Action("create_strategy"), zap.Error(err))
 		return nil, status.Errorf(codes.Internal, "failed to create strategy")
+	}
+
+	return strategyToProto(row), nil
+}
+
+func (s *StrategyHandler) UpdateStrategy(ctx context.Context, req *userpb.UpdateStrategyRequest) (*userpb.Strategy, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+	strategyUUID, err := uuid.Parse(req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid strategy ID")
+	}
+	if err := validateStrategyInput(req.Name, req.ConfigJson); err != nil {
+		return nil, err
+	}
+
+	row, err := s.q.UpdateStrategy(ctx, db.UpdateStrategyParams{
+		ID:     strategyUUID,
+		UserID: userUUID,
+		Name:   strings.TrimSpace(req.Name),
+		Config: json.RawMessage(req.ConfigJson),
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Errorf(codes.NotFound, "strategy not found")
+		}
+		s.log.Error("strategy_update_failed", logger.Action("update_strategy"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to update strategy")
 	}
 
 	return strategyToProto(row), nil
