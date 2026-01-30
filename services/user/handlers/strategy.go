@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const maxStrategyConfigBytes = 64 * 1024
@@ -132,4 +133,25 @@ func (s *StrategyHandler) UpdateStrategy(ctx context.Context, req *userpb.Update
 	}
 
 	return strategyToProto(row), nil
+}
+
+func (s *StrategyHandler) DeleteStrategy(ctx context.Context, req *userpb.StrategySpecifier) (*emptypb.Empty, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+	strategyUUID, err := uuid.Parse(req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid strategy ID")
+	}
+
+	if err := s.q.DeleteStrategy(ctx, db.DeleteStrategyParams{
+		ID:     strategyUUID,
+		UserID: userUUID,
+	}); err != nil {
+		s.log.Error("strategy_delete_failed", logger.Action("delete_strategy"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to delete strategy")
+	}
+
+	return &emptypb.Empty{}, nil
 }

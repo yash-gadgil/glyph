@@ -101,3 +101,26 @@ func TestUpdateStrategyNotFound(t *testing.T) {
 	})
 	assert.Equal(t, codes.NotFound, status.Code(err))
 }
+
+func TestDeleteStrategy(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+
+	mock.ExpectExec(`DELETE FROM strategies`).
+		WithArgs(stratID, userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	_, err := h.DeleteStrategy(context.Background(), &userpb.StrategySpecifier{
+		Id: stratID.String(), UserId: userID.String(),
+	})
+	require.NoError(t, err)
+}
+
+func TestDeleteStrategyInvalidID(t *testing.T) {
+	h, _ := newStrategyHandler(t)
+	_, err := h.DeleteStrategy(context.Background(), &userpb.StrategySpecifier{
+		Id: "bad", UserId: uuid.New().String(),
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
