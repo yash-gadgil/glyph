@@ -124,3 +124,71 @@ func TestDeleteStrategyInvalidID(t *testing.T) {
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+var deploymentColumns = []string{
+	"id", "user_id", "strategy_id", "symbol", "position_size_cents", "status",
+	"in_position", "entry_price_cents", "qty", "created_at", "updated_at",
+}
+
+func TestDeployStrategy(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+	depID := uuid.New()
+	cfg := []byte(`{"entry":{"rules":[{"lhs":{"kind":"price"},"op":">","rhs":{"kind":"value","value":1}}]}}`)
+
+	mock.ExpectQuery(`FROM strategies`).
+		WithArgs(stratID, userID).
+		WillReturnRows(sqlmock.NewRows(strategyColumns).
+			AddRow(stratID, userID, "Dip", cfg, time.Now(), time.Now()))
+	mock.ExpectQuery(`FROM strategy_deployments`).
+		WithArgs(userID, stratID, "AAPL").
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`INSERT INTO strategy_deployments`).
+		WithArgs(userID, stratID, "AAPL", int64(100000)).
+		WillReturnRows(sqlmock.NewRows(deploymentColumns).
+			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(0), false, int64(0), int64(0), time.Now(), time.Now()))
+
+	resp, err := h.DeployStrategy(context.Background(), &userpb.DeployStrategyRequest{
+		StrategyId: stratID.String(), UserId: userID.String(), Symbol: "aapl", PositionSizeCents: 100000,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "running", resp.Status)
+	assert.Equal(t, "AAPL", resp.Symbol)
+}
+
+func TestDeployStrategyReactivatesStopped(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+	depID := uuid.New()
+	cfg := []byte(`{"entry":{"rules":[{"lhs":{"kind":"price"},"op":">","rhs":{"kind":"value","value":1}}]}}`)
+
+	mock.ExpectQuery(`FROM strategies`).
+		WithArgs(stratID, userID).
+		WillReturnRows(sqlmock.NewRows(strategyColumns).
+			AddRow(stratID, userID, "Dip", cfg, time.Now(), time.Now()))
+	mock.ExpectQuery(`FROM strategy_deployments`).
+		WithArgs(userID, stratID, "AAPL").
+		WillReturnRows(sqlmock.NewRows(deploymentColumns).
+			AddRow(depID, userID, stratID, "AAPL", int64(50000), int16(1), false, int64(0), int64(0), time.Now(), time.Now()))
+	mock.ExpectQuery(`UPDATE strategy_deployments`).
+		WithArgs(depID, int64(100000)).
+		WillReturnRows(sqlmock.NewRows(deploymentColumns).
+			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(0), false, int64(0), int64(0), time.Now(), time.Now()))
+
+	resp, err := h.DeployStrategy(context.Background(), &userpb.DeployStrategyRequest{
+		StrategyId: stratID.String(), UserId: userID.String(), Symbol: "aapl", PositionSizeCents: 100000,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "running", resp.Status)
+	assert.Equal(t, int64(100000), resp.PositionSizeCents)
+}
+
+func TestDeployStrategyTooSmall(t *testing.T) {
+	h, _ := newStrategyHandler(t)
+	_, err := h.DeployStrategy(context.Background(), &userpb.DeployStrategyRequest{
+		StrategyId: uuid.New().String(), UserId: uuid.New().String(), Symbol: "AAPL", PositionSizeCents: 50,
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}

@@ -7,6 +7,18 @@ RETURNING *;
 SELECT * FROM strategy_deployments
 WHERE id = $1 AND user_id = $2;
 
+-- name: GetLatestDeploymentForSymbol :one
+SELECT * FROM strategy_deployments
+WHERE user_id = $1 AND strategy_id = $2 AND symbol = $3
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: ReactivateDeployment :one
+UPDATE strategy_deployments
+SET status = 0, position_size_cents = $2, in_position = FALSE, entry_price_cents = 0, qty = 0, updated_at = now()
+WHERE id = $1
+RETURNING *;
+
 -- name: GetDeploymentsForUser :many
 SELECT d.*, s.name AS strategy_name
 FROM strategy_deployments d

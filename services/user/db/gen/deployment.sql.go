@@ -156,6 +156,38 @@ func (q *Queries) GetDeploymentsForUser(ctx context.Context, userID uuid.UUID) (
 	return items, nil
 }
 
+const getLatestDeploymentForSymbol = `-- name: GetLatestDeploymentForSymbol :one
+SELECT id, user_id, strategy_id, symbol, position_size_cents, status, in_position, entry_price_cents, qty, created_at, updated_at FROM strategy_deployments
+WHERE user_id = $1 AND strategy_id = $2 AND symbol = $3
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetLatestDeploymentForSymbolParams struct {
+	UserID     uuid.UUID
+	StrategyID uuid.UUID
+	Symbol     string
+}
+
+func (q *Queries) GetLatestDeploymentForSymbol(ctx context.Context, arg GetLatestDeploymentForSymbolParams) (StrategyDeployment, error) {
+	row := q.db.QueryRowContext(ctx, getLatestDeploymentForSymbol, arg.UserID, arg.StrategyID, arg.Symbol)
+	var i StrategyDeployment
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.StrategyID,
+		&i.Symbol,
+		&i.PositionSizeCents,
+		&i.Status,
+		&i.InPosition,
+		&i.EntryPriceCents,
+		&i.Qty,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getRunningDeployments = `-- name: GetRunningDeployments :many
 SELECT d.id, d.user_id, d.strategy_id, d.symbol, d.position_size_cents, d.status, d.in_position, d.entry_price_cents, d.qty, d.created_at, d.updated_at, s.config AS strategy_config
 FROM strategy_deployments d
@@ -212,6 +244,37 @@ func (q *Queries) GetRunningDeployments(ctx context.Context) ([]GetRunningDeploy
 		return nil, err
 	}
 	return items, nil
+}
+
+const reactivateDeployment = `-- name: ReactivateDeployment :one
+UPDATE strategy_deployments
+SET status = 0, position_size_cents = $2, in_position = FALSE, entry_price_cents = 0, qty = 0, updated_at = now()
+WHERE id = $1
+RETURNING id, user_id, strategy_id, symbol, position_size_cents, status, in_position, entry_price_cents, qty, created_at, updated_at
+`
+
+type ReactivateDeploymentParams struct {
+	ID                uuid.UUID
+	PositionSizeCents int64
+}
+
+func (q *Queries) ReactivateDeployment(ctx context.Context, arg ReactivateDeploymentParams) (StrategyDeployment, error) {
+	row := q.db.QueryRowContext(ctx, reactivateDeployment, arg.ID, arg.PositionSizeCents)
+	var i StrategyDeployment
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.StrategyID,
+		&i.Symbol,
+		&i.PositionSizeCents,
+		&i.Status,
+		&i.InPosition,
+		&i.EntryPriceCents,
+		&i.Qty,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const stopDeployment = `-- name: StopDeployment :one
