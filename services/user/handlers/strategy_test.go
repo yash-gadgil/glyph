@@ -192,3 +192,21 @@ func TestDeployStrategyTooSmall(t *testing.T) {
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestStopDeployment(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+	depID := uuid.New()
+
+	mock.ExpectQuery(`UPDATE strategy_deployments`).
+		WithArgs(depID, userID).
+		WillReturnRows(sqlmock.NewRows(deploymentColumns).
+			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(1), false, int64(0), int64(0), time.Now(), time.Now()))
+
+	resp, err := h.StopDeployment(context.Background(), &userpb.DeploymentSpecifier{
+		Id: depID.String(), UserId: userID.String(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "stopped", resp.Status)
+}
