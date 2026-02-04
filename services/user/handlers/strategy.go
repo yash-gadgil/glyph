@@ -274,3 +274,25 @@ func (s *StrategyHandler) StopDeployment(ctx context.Context, req *userpb.Deploy
 	return deploymentToProto(row.ID, row.StrategyID, row.UserID, row.Symbol, row.PositionSizeCents,
 		row.Status, row.InPosition, row.EntryPriceCents, row.Qty, "", row.CreatedAt, row.UpdatedAt), nil
 }
+
+func (s *StrategyHandler) DeleteDeployment(ctx context.Context, req *userpb.DeploymentSpecifier) (*emptypb.Empty, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+	depUUID, err := uuid.Parse(req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid deployment ID")
+	}
+
+	rows, err := s.q.DeleteDeployment(ctx, db.DeleteDeploymentParams{ID: depUUID, UserID: userUUID})
+	if err != nil {
+		s.log.Error("deployment_delete_failed", logger.Action("delete_deployment"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to delete deployment")
+	}
+	if rows == 0 {
+		return nil, status.Errorf(codes.NotFound, "deployment not found or still running, stop it first")
+	}
+
+	return &emptypb.Empty{}, nil
+}

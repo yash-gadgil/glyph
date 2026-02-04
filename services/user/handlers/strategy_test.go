@@ -210,3 +210,33 @@ func TestStopDeployment(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "stopped", resp.Status)
 }
+
+func TestDeleteDeploymentStillRunning(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	depID := uuid.New()
+
+	mock.ExpectExec(`DELETE FROM strategy_deployments`).
+		WithArgs(depID, userID).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	_, err := h.DeleteDeployment(context.Background(), &userpb.DeploymentSpecifier{
+		Id: depID.String(), UserId: userID.String(),
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestDeleteDeployment(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	depID := uuid.New()
+
+	mock.ExpectExec(`DELETE FROM strategy_deployments`).
+		WithArgs(depID, userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	_, err := h.DeleteDeployment(context.Background(), &userpb.DeploymentSpecifier{
+		Id: depID.String(), UserId: userID.String(),
+	})
+	require.NoError(t, err)
+}
