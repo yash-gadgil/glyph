@@ -240,3 +240,22 @@ func TestDeleteDeployment(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestGetDeployments(t *testing.T) {
+	h, mock := newStrategyHandler(t)
+	userID := uuid.New()
+	stratID := uuid.New()
+	depID := uuid.New()
+
+	cols := append(append([]string{}, deploymentColumns...), "strategy_name")
+	mock.ExpectQuery(`FROM strategy_deployments`).
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows(cols).
+			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(0), true, int64(15000), int64(6), time.Now(), time.Now(), "Dip"))
+
+	resp, err := h.GetDeployments(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	require.Len(t, resp.Deployments, 1)
+	assert.Equal(t, "Dip", resp.Deployments[0].StrategyName)
+	assert.True(t, resp.Deployments[0].InPosition)
+}

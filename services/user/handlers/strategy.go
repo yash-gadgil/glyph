@@ -296,3 +296,25 @@ func (s *StrategyHandler) DeleteDeployment(ctx context.Context, req *userpb.Depl
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *StrategyHandler) GetDeployments(ctx context.Context, req *userpb.UserSpecifier) (*userpb.DeploymentsResponse, error) {
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	rows, err := s.q.GetDeploymentsForUser(ctx, userUUID)
+	if err != nil {
+		s.log.Error("deployments_fetch_failed", logger.Action("get_deployments"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to load deployments")
+	}
+
+	resp := &userpb.DeploymentsResponse{}
+	for _, row := range rows {
+		resp.Deployments = append(resp.Deployments, deploymentToProto(
+			row.ID, row.StrategyID, row.UserID, row.Symbol, row.PositionSizeCents,
+			row.Status, row.InPosition, row.EntryPriceCents, row.Qty, row.StrategyName,
+			row.CreatedAt, row.UpdatedAt))
+	}
+	return resp, nil
+}
