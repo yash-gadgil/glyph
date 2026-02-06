@@ -318,3 +318,212 @@ func (s *StrategyHandler) GetDeployments(ctx context.Context, req *userpb.UserSp
 	}
 	return resp, nil
 }
+
+func backtestTimeframe(tf string) (mrktpb.Timeframe, time.Duration, error) {
+	switch strings.ToUpper(strings.TrimSpace(tf)) {
+	case "", "DAY":
+		return mrktpb.Timeframe_DAY, 2 * 365 * 24 * time.Hour, nil
+	case "HOUR":
+		return mrktpb.Timeframe_HOUR, 30 * 24 * time.Hour, nil
+	case "MIN":
+		return mrktpb.Timeframe_MIN, 7 * 24 * time.Hour, nil
+	default:
+		return 0, 0, status.Errorf(codes.InvalidArgument, "unknown timeframe %q (want DAY, HOUR, or MIN)", tf)
+	}
+}
+
+func parseBacktestDate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, false
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t.UTC(), true
+	}
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t.UTC(), true
+	}
+	return time.Time{}, false
+}
+
+func dateProto(t time.Time) *mrktpb.Date {
+	return &mrktpb.Date{
+		Year:  int32(t.Year()),
+		Month: int32(t.Month()),
+		Day:   int32(t.Day()),
+		Hour:  int32(t.Hour()),
+		Min:   int32(t.Minute()),
+	}
+}
+
+// warmupSpan estimates how far before the requested start we must fetch to
+// have `warmup` bars available for indicator warm-up. It over-fetches
+// generously (markets are open only a fraction of wall-clock time); the
+// surplus is trimmed by trimToWindow.
+func warmupSpan(tf mrktpb.Timeframe, warmup int) time.Duration {
+	n := time.Duration(warmup)
+	switch tf {
+	case mrktpb.Timeframe_MIN:
+		return n*8*time.Minute + 5*24*time.Hour
+	case mrktpb.Timeframe_HOUR:
+		return n*8*time.Hour + 5*24*time.Hour
+	default: // DAY
+		return n*48*time.Hour + 10*24*time.Hour
+	}
+}
+
+// trimToWindow keeps exactly `warmup` bars before the first bar at/after
+// start, so the strategy is warmed up by the time the tested window begins
+// and the equity curve starts on the requested start date rather than
+// `warmup` bars later.
+func trimToWindow(bars []strategyengine.Bar, start time.Time, warmup int) []strategyengine.Bar {
+	startIdx := 0
+	for startIdx < len(bars) && bars[startIdx].Time.Before(start) {
+		startIdx++
+	}
+	lo := startIdx - warmup
+	if lo < 0 {
+		lo = 0
+	}
+	return bars[lo:]
+}
+
+func barsFromProto(resp *mrktpb.HistoricalStockDataResponse, symbol string) []strategyengine.Bar {
+	var src []*mrktpb.Bar
+	for _, sb := range resp.GetSymbolBars() {
+		if sb.Symbol == symbol {
+			src = sb.Bars
+			break
+		}
+	}
+	if src == nil && len(resp.GetSymbolBars()) > 0 {
+		src = resp.GetSymbolBars()[0].Bars
+	}
+
+	out := make([]strategyengine.Bar, 0, len(src))
+	for _, b := range src {
+		t, _ := time.Parse(time.RFC3339, b.Time)
+		out = append(out, strategyengine.Bar{
+			Time:   t,
+			Open:   float64(b.Open),
+			High:   float64(b.High),
+			Low:    float64(b.Low),
+			Close:  float64(b.Close),
+			Volume: float64(b.Volume),
+			VWAP:   float64(b.Vwap),
+		})
+	}
+	return out
+}
+
+func backtestResultToProto(r *strategyengine.BacktestResult) *userpb.BacktestResponse {
+	out := &userpb.BacktestResponse{
+		TotalReturnPct:   r.TotalReturnPct,
+		MaxDrawdownPct:   r.MaxDrawdownPct,
+		Sharpe:           r.Sharpe,
+		WinRate:          r.WinRate,
+		ProfitFactor:     r.ProfitFactor,
+		NumTrades:        int32(r.NumTrades),
+		AvgHoldBars:      r.AvgHoldBars,
+		FinalEquityCents: r.FinalEquityCents,
+		BarsUsed:         int32(r.BarsUsed),
+		WarmupBars:       int32(r.WarmupBars),
+	}
+	for _, p := range r.EquityCurve {
+		out.EquityCurve = append(out.EquityCurve, &userpb.BacktestEquityPoint{
+			TimeUnix:    p.Time.Unix(),
+			EquityCents: p.EquityCents,
+		})
+	}
+	for _, t := range r.Trades {
+		out.Trades = append(out.Trades, &userpb.BacktestTrade{
+			EntryTimeUnix:   t.EntryTime.Unix(),
+			ExitTimeUnix:    t.ExitTime.Unix(),
+			EntryPriceCents: t.EntryPriceCents,
+			ExitPriceCents:  t.ExitPriceCents,
+			Qty:             t.Qty,
+			PnlCents:        t.PnLCents,
+			ReturnPct:       t.ReturnPct,
+			HoldBars:        int32(t.HoldBars),
+			ExitReason:      t.ExitReason,
+		})
+	}
+	return out
+}
+
+func (s *StrategyHandler) RunBacktest(ctx context.Context, req *userpb.BacktestRequest) (*userpb.BacktestResponse, error) {
+	symbol := strings.ToUpper(strings.TrimSpace(req.Symbol))
+	if symbol == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "symbol is required")
+	}
+	if req.InitialCapitalCents <= 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "initial_capital_cents must be positive")
+	}
+	if req.PositionSizeCents <= 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "position_size_cents must be positive")
+	}
+
+	cfg, err := strategyengine.ParseConfig([]byte(req.ConfigJson))
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid strategy config: %v", err)
+	}
+
+	tf, maxSpan, err := backtestTimeframe(req.Timeframe)
+	if err != nil {
+		return nil, err
+	}
+
+	end, ok := parseBacktestDate(req.End)
+	if !ok {
+		end = time.Now().UTC()
+	}
+	start, ok := parseBacktestDate(req.Start)
+	if !ok {
+		start = end.Add(-maxSpan)
+	}
+	if !start.Before(end) {
+		return nil, status.Errorf(codes.InvalidArgument, "start must be before end")
+	}
+	if end.Sub(start) > maxSpan {
+		return nil, status.Errorf(codes.InvalidArgument,
+			"range too large for %s timeframe (max %d days)", tf.String(), int(maxSpan.Hours()/24))
+	}
+
+	if s.mrkt == nil {
+		return nil, status.Errorf(codes.Unavailable, "market data service unavailable")
+	}
+
+	warmup := strategyengine.MaxLookback(cfg)
+
+	resp, err := s.mrkt.GetHistoricalStockData(ctx, &mrktpb.HistoricalStockDataRequest{
+		Symbols:   []string{symbol},
+		Timeframe: tf,
+		Start:     dateProto(start.Add(-warmupSpan(tf, warmup))),
+		End:       dateProto(end),
+	})
+	if err != nil {
+		s.log.Error("backtest_bars_fetch_failed", logger.Action("run_backtest"), zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to load historical data")
+	}
+
+	bars := barsFromProto(resp, symbol)
+	bars = trimToWindow(bars, start, warmup)
+	if len(bars) <= warmup {
+		return nil, status.Errorf(codes.InvalidArgument,
+			"not enough bars (%d) for this strategy's warm-up (%d), widen the date range or use a longer timeframe",
+			len(bars), warmup)
+	}
+
+	result, err := strategyengine.RunBacktest(cfg, bars, strategyengine.BacktestParams{
+		InitialCapitalCents: req.InitialCapitalCents,
+		PositionSizeCents:   req.PositionSizeCents,
+		Timeframe:           tf.String(),
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	telemetry.BacktestsTotal.Inc()
+
+	return backtestResultToProto(result), nil
+}

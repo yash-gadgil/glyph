@@ -259,3 +259,38 @@ func TestGetDeployments(t *testing.T) {
 	assert.Equal(t, "Dip", resp.Deployments[0].StrategyName)
 	assert.True(t, resp.Deployments[0].InPosition)
 }
+
+func TestRunBacktestValidation(t *testing.T) {
+	h, _ := newStrategyHandler(t)
+
+	_, err := h.RunBacktest(context.Background(), &userpb.BacktestRequest{Symbol: ""})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	_, err = h.RunBacktest(context.Background(), &userpb.BacktestRequest{
+		Symbol: "AAPL", InitialCapitalCents: 0,
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	_, err = h.RunBacktest(context.Background(), &userpb.BacktestRequest{
+		Symbol: "AAPL", InitialCapitalCents: 1000, PositionSizeCents: 100, ConfigJson: "{bad",
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestRunBacktestNeedsMarketData(t *testing.T) {
+	h, _ := newStrategyHandler(t)
+	cfg := `{"entry":{"rules":[{"lhs":{"kind":"price"},"op":">","rhs":{"kind":"value","value":1}}]}}`
+
+	_, err := h.RunBacktest(context.Background(), &userpb.BacktestRequest{
+		Symbol: "AAPL", InitialCapitalCents: 1000000, PositionSizeCents: 100000,
+		ConfigJson: cfg, Timeframe: "DAY",
+	})
+	assert.Equal(t, codes.Unavailable, status.Code(err))
+}
+
+func TestParseBacktestDate(t *testing.T) {
+	_, ok := parseBacktestDate("2026-01-02")
+	assert.True(t, ok)
+	_, ok = parseBacktestDate("")
+	assert.False(t, ok)
+}
