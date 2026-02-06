@@ -102,3 +102,20 @@ func TestGetPositionsInvalidUser(t *testing.T) {
 	_, err := h.GetPositions(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestGetPortfolioHistory(t *testing.T) {
+	h, mock := newPortfolioHandler(t)
+	userID := uuid.New()
+
+	mock.ExpectQuery(`FROM account_value_snapshots`).
+		WithArgs(userID, sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id", "equity_cents", "cash_cents", "market_value_cents", "captured_at"}).
+			AddRow(userID, int64(10050000), int64(9000000), int64(1050000), time.Now()))
+
+	resp, err := h.GetPortfolioHistory(context.Background(), &userpb.PortfolioHistoryRequest{
+		UserId: userID.String(), Hours: 48,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Points, 1)
+	assert.Equal(t, int64(10050000), resp.Points[0].EquityCents)
+}

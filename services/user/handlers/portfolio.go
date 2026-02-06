@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yash-gadgil/glyph/pkg/logger"
@@ -152,4 +153,49 @@ func (s *PortfolioHandler) GetPositions(ctx context.Context, req *userpb.UserSpe
 	}
 
 	return &userpb.PositionsResponse{Positions: positions}, nil
+}
+
+const (
+	defaultHistoryHours = 24
+	maxHistoryHours     = 2160
+)
+
+func (s *PortfolioHandler) GetPortfolioHistory(ctx context.Context, req *userpb.PortfolioHistoryRequest) (*userpb.PortfolioHistoryResponse, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("get_portfolio_history"))
+
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	hours := req.Hours
+	if hours <= 0 {
+		hours = defaultHistoryHours
+	}
+	if hours > maxHistoryHours {
+		hours = maxHistoryHours
+	}
+
+	since := time.Now().Add(-time.Duration(hours) * time.Hour)
+	rows, err := s.q.GetSnapshotsSince(ctx, db.GetSnapshotsSinceParams{
+		UserID:     userUUID,
+		CapturedAt: since,
+	})
+	if err != nil {
+		log.Error("portfolio_history_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to load portfolio history")
+	}
+
+	resp := &userpb.PortfolioHistoryResponse{
+		Points: make([]*userpb.PortfolioHistoryPoint, 0, len(rows)),
+	}
+	for _, r := range rows {
+		resp.Points = append(resp.Points, &userpb.PortfolioHistoryPoint{
+			TimeUnix:         r.CapturedAt.Unix(),
+			EquityCents:      r.EquityCents,
+			CashCents:        r.CashCents,
+			MarketValueCents: r.MarketValueCents,
+		})
+	}
+	return resp, nil
 }
