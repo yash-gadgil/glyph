@@ -10,8 +10,12 @@ import (
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/pkg/telemetry"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
+	ordrpb "github.com/yash-gadgil/glyph/services/gen/golang/order"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	db "github.com/yash-gadgil/glyph/services/user/db/gen"
 	"github.com/yash-gadgil/glyph/services/user/handlers"
+	"github.com/yash-gadgil/glyph/services/user/strategyengine"
+	"github.com/yash-gadgil/glyph/services/user/worker"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -67,6 +71,21 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 
 	grpc_prometheus.Register(grpcServer)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)
+
+	go worker.NewSnapshotter(s.db, prices, s.log).Run(ctx)
+
+	if addr := os.Getenv("ORDER_SVC_PORT"); addr != "" && prices != nil {
+		orderConn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			s.log.Warn("order_unavailable_strategy_engine_disabled", zap.Error(err))
+		} else {
+			defer orderConn.Close()
+			engine := strategyengine.NewEngine(db.New(s.db), prices, ordrpb.NewOrderServiceClient(orderConn), s.log)
+			go engine.Run(ctx)
+		}
+	} else {
+		s.log.Warn("strategy_engine_disabled_missing_order_or_mrktdata")
+	}
 
 	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
 	s.log.Info("grpc_server_running", logger.Action("running_grpc_server"), logger.KV("addr", s.addr))
