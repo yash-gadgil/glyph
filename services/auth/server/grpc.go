@@ -14,6 +14,7 @@ import (
 	"github.com/yash-gadgil/glyph/services/auth/handlers"
 	"github.com/yash-gadgil/glyph/services/auth/types"
 	"github.com/yash-gadgil/glyph/services/auth/utils"
+	"github.com/yash-gadgil/glyph/services/auth/worker"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -82,6 +83,8 @@ func (s *grpcServer) Run(ctx context.Context) error {
 	authHandler := handlers.NewAuthHandler(googleConf, addConf, cache, keyStore, s.log)
 	defer authHandler.Close()
 
+	emailStop := worker.StartEmailWorker(cache, s.log)
+
 	handlers.Register(grpcServer, authHandler)
 
 	grpc_prometheus.Register(grpcServer)
@@ -95,6 +98,7 @@ func (s *grpcServer) Run(ctx context.Context) error {
 		healthServer.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
 		s.log.Info("shutting_down_grpc_server")
 		close(rotationStop)
+		close(emailStop)
 		grpcServer.GracefulStop()
 	}()
 
