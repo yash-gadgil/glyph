@@ -94,3 +94,33 @@ func TestSignupRejectsWeakPassword(t *testing.T) {
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestSigninIssuesTokens(t *testing.T) {
+	h, client, _ := newAuthHandler(t)
+
+	client.On("SigninUser", mock.Anything, mock.Anything).
+		Return(&userpb.UserSpecifier{UserId: "user-1"}, nil)
+
+	resp, err := h.Signin(context.Background(), &authpb.SigninRequest{
+		Email: "user@example.com", Password: "Passw0rd!",
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.AccessToken)
+	assert.NotEmpty(t, resp.RefreshToken)
+
+	uid, err := utils.VerifyToken(resp.AccessToken, h.keyStore)
+	require.NoError(t, err)
+	assert.Equal(t, "user-1", uid)
+}
+
+func TestSigninUnknownEmail(t *testing.T) {
+	h, client, _ := newAuthHandler(t)
+
+	client.On("SigninUser", mock.Anything, mock.Anything).
+		Return((*userpb.UserSpecifier)(nil), status.Error(codes.NotFound, "no user"))
+
+	_, err := h.Signin(context.Background(), &authpb.SigninRequest{
+		Email: "user@example.com", Password: "Passw0rd!",
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}

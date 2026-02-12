@@ -80,3 +80,52 @@ func (s *AuthHandler) Signup(ctx context.Context, req *authpb.SignupRequest) (*e
 	log.Info("queued_verification_email")
 	return &emptypb.Empty{}, nil
 }
+
+func (s *AuthHandler) Signin(ctx context.Context, req *authpb.SigninRequest) (*authpb.TokenResponse, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("signin"))
+
+	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid signin request")
+	}
+	if err := utils.ValidateEmail(req.Email); err != nil {
+		return nil, invalidArg(err, "Invalid email")
+	}
+	if err := utils.ValidatePassword(req.Password); err != nil {
+		return nil, invalidArg(err, "Invalid password")
+	}
+
+	log = log.With(logger.KV("user_email", req.Email))
+
+	res, err := s.userClient.SigninUser(ctx, &userpb.SigninUserInfo{
+		Email:    req.Email,
+		Password: &req.Password,
+	})
+	if err != nil {
+		log.Error("signin_failed", zap.Error(err))
+		switch status.Code(err) {
+		case codes.NotFound:
+			return nil, status.Errorf(codes.NotFound, "We couldn't find an account for that email")
+		case codes.PermissionDenied:
+			return nil, status.Errorf(codes.PermissionDenied, "%s", status.Convert(err).Message())
+		default:
+			return nil, status.Errorf(codes.Unauthenticated, "Signin failed")
+		}
+	}
+
+	return s.issueTokens(res.UserId, time.Hour, 30*24*time.Hour)
+}
+
+func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
+	accessToken, err := utils.CreateToken(userID, time.Now().Add(accessTTL), s.keyStore.GetCurrentKey())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create access token")
+	}
+	refreshToken, err := utils.CreateToken(userID, time.Now().Add(refreshTTL), s.keyStore.GetCurrentKey())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create refresh token")
+	}
+	return &authpb.TokenResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
