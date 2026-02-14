@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
@@ -123,4 +124,27 @@ func TestSigninUnknownEmail(t *testing.T) {
 		Email: "user@example.com", Password: "Passw0rd!",
 	})
 	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestVerifyEmailPromotesPending(t *testing.T) {
+	h, client, _ := newAuthHandler(t)
+	ctx := context.Background()
+
+	require.NoError(t, h.cache.StorePendingSignup(ctx, "user@example.com", "Yash", "hash", 30*time.Minute))
+	token, err := utils.CreateTokenWithClaims(map[string]any{"email": "user@example.com"},
+		time.Now().Add(time.Hour), h.keyStore.GetCurrentKey())
+	require.NoError(t, err)
+
+	client.On("SignupUser", mock.Anything, mock.Anything).
+		Return(&userpb.UserSpecifier{UserId: "user-1"}, nil)
+
+	resp, err := h.VerifyEmail(ctx, &authpb.VerificationRequest{Token: token})
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.AccessToken)
+}
+
+func TestVerifyEmailBadToken(t *testing.T) {
+	h, _, _ := newAuthHandler(t)
+	_, err := h.VerifyEmail(context.Background(), &authpb.VerificationRequest{Token: "garbage"})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }

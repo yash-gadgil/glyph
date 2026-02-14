@@ -118,6 +118,48 @@ func (s *AuthHandler) Signin(ctx context.Context, req *authpb.SigninRequest) (*a
 	return s.issueTokens(res.UserId, time.Hour, 30*24*time.Hour)
 }
 
+func (s *AuthHandler) VerifyEmail(ctx context.Context, req *authpb.VerificationRequest) (*authpb.TokenResponse, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("verify_email"))
+
+	claims, err := utils.ParseTokenClaims(req.Token, s.keyStore)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid or expired verification link")
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok || email == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "email claim missing or invalid")
+	}
+
+	pending, err := s.cache.GetPendingSignup(ctx, email)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "verification link invalid or expired")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	res, err := s.userClient.SignupUser(ctx, &userpb.SignupUserInfo{
+		UserName: pending.Name,
+		Email:    email,
+		Password: &pending.PasswordHash,
+	})
+	if err != nil {
+		log.Error("create_user_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to complete registration")
+	}
+
+	if err := s.cache.DeletePendingSignup(ctx, email); err != nil {
+		log.Warn("delete_pending_signup_failed", zap.Error(err))
+	}
+
+	if res.GetUserId() == "" {
+		return nil, status.Errorf(codes.Internal, "user ID not available")
+	}
+
+	return s.issueTokens(res.GetUserId(), 3*time.Hour, 30*24*time.Hour)
+}
+
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
 	accessToken, err := utils.CreateToken(userID, time.Now().Add(accessTTL), s.keyStore.GetCurrentKey())
 	if err != nil {
