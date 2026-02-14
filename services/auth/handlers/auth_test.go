@@ -148,3 +148,16 @@ func TestVerifyEmailBadToken(t *testing.T) {
 	_, err := h.VerifyEmail(context.Background(), &authpb.VerificationRequest{Token: "garbage"})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
+
+func TestVerifyToken(t *testing.T) {
+	h, _, _ := newAuthHandler(t)
+	tok, err := utils.CreateToken("user-1", time.Now().Add(time.Hour), h.keyStore.GetCurrentKey())
+	require.NoError(t, err)
+
+	resp, err := h.VerifyToken(context.Background(), &authpb.VerificationRequest{Token: tok})
+	require.NoError(t, err)
+	assert.Equal(t, "user-1", resp.UserId)
+
+	_, err = h.VerifyToken(context.Background(), &authpb.VerificationRequest{Token: "garbage"})
+	assert.Error(t, err)
+}

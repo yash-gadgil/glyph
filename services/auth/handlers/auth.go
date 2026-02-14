@@ -160,6 +160,14 @@ func (s *AuthHandler) VerifyEmail(ctx context.Context, req *authpb.VerificationR
 	return s.issueTokens(res.GetUserId(), 3*time.Hour, 30*24*time.Hour)
 }
 
+func (s *AuthHandler) VerifyToken(ctx context.Context, req *authpb.VerificationRequest) (*authpb.VerificationResponse, error) {
+	userID, err := utils.VerifyToken(req.Token, s.keyStore)
+	if err != nil {
+		return nil, err
+	}
+	return &authpb.VerificationResponse{UserId: userID}, nil
+}
+
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
 	accessToken, err := utils.CreateToken(userID, time.Now().Add(accessTTL), s.keyStore.GetCurrentKey())
 	if err != nil {
