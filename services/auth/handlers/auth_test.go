@@ -178,3 +178,13 @@ func TestRefreshTokenInvalid(t *testing.T) {
 	_, err := h.RefreshToken(context.Background(), &authpb.RefreshTokenRequest{RefreshToken: "nope"})
 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 }
+
+func TestGetPublicKeys(t *testing.T) {
+	h, _, _ := newAuthHandler(t)
+	resp, err := h.GetPublicKeys(context.Background(), &emptypb.Empty{})
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(resp.Keys), 1)
+	assert.Equal(t, "RSA", resp.Keys[0].Kty)
+	assert.Equal(t, "RS256", resp.Keys[0].Alg)
+	assert.NotEmpty(t, resp.Keys[0].N)
+}

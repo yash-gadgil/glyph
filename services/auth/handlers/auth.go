@@ -176,6 +176,25 @@ func (s *AuthHandler) RefreshToken(ctx context.Context, req *authpb.RefreshToken
 	return s.issueTokens(userID, time.Hour, 30*24*time.Hour)
 }
 
+func (s *AuthHandler) GetPublicKeys(ctx context.Context, req *emptypb.Empty) (*authpb.GetPublicKeysResponse, error) {
+	keys := s.keyStore.GetAllPublicKeys()
+
+	pbKeys := make([]*authpb.PublicKey, 0, len(keys))
+	for _, key := range keys {
+		jwk := utils.PublicKeyToJWK(key.ID, key.PublicKey)
+		pbKeys = append(pbKeys, &authpb.PublicKey{
+			Kid: jwk["kid"],
+			Kty: jwk["kty"],
+			Use: jwk["use"],
+			Alg: jwk["alg"],
+			N:   jwk["n"],
+			E:   jwk["e"],
+		})
+	}
+
+	return &authpb.GetPublicKeysResponse{Keys: pbKeys}, nil
+}
+
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
 	accessToken, err := utils.CreateToken(userID, time.Now().Add(accessTTL), s.keyStore.GetCurrentKey())
 	if err != nil {
