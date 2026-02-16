@@ -168,6 +168,14 @@ func (s *AuthHandler) VerifyToken(ctx context.Context, req *authpb.VerificationR
 	return &authpb.VerificationResponse{UserId: userID}, nil
 }
 
+func (s *AuthHandler) RefreshToken(ctx context.Context, req *authpb.RefreshTokenRequest) (*authpb.TokenResponse, error) {
+	userID, err := utils.GetUserIDFromToken(req.RefreshToken, s.keyStore)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "invalid refresh token")
+	}
+	return s.issueTokens(userID, time.Hour, 30*24*time.Hour)
+}
+
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
 	accessToken, err := utils.CreateToken(userID, time.Now().Add(accessTTL), s.keyStore.GetCurrentKey())
 	if err != nil {

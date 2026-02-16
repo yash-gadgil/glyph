@@ -161,3 +161,20 @@ func TestVerifyToken(t *testing.T) {
 	_, err = h.VerifyToken(context.Background(), &authpb.VerificationRequest{Token: "garbage"})
 	assert.Error(t, err)
 }
+
+func TestRefreshTokenRotates(t *testing.T) {
+	h, _, _ := newAuthHandler(t)
+	refresh, err := utils.CreateToken("user-1", time.Now().Add(24*time.Hour), h.keyStore.GetCurrentKey())
+	require.NoError(t, err)
+
+	resp, err := h.RefreshToken(context.Background(), &authpb.RefreshTokenRequest{RefreshToken: refresh})
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.AccessToken)
+	assert.NotEmpty(t, resp.RefreshToken)
+}
+
+func TestRefreshTokenInvalid(t *testing.T) {
+	h, _, _ := newAuthHandler(t)
+	_, err := h.RefreshToken(context.Background(), &authpb.RefreshTokenRequest{RefreshToken: "nope"})
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+}
