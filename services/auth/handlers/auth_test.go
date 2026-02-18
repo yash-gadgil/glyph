@@ -15,6 +15,7 @@ import (
 	authpb "github.com/yash-gadgil/glyph/services/gen/golang/auth"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -177,6 +178,26 @@ func TestRefreshTokenInvalid(t *testing.T) {
 	h, _, _ := newAuthHandler(t)
 	_, err := h.RefreshToken(context.Background(), &authpb.RefreshTokenRequest{RefreshToken: "nope"})
 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+}
+
+func TestOAuthURL(t *testing.T) {
+	mr := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	ks, err := utils.NewKeyStore(zap.NewNop())
+	require.NoError(t, err)
+	cfg := &oauth2.Config{
+		ClientID:    "client",
+		RedirectURL: "http://localhost:8080/cb",
+		Scopes:      []string{"email"},
+		Endpoint:    oauth2.Endpoint{AuthURL: "https://accounts.example.com/o/oauth2/auth"},
+	}
+	h := NewTestAuthHandler(cfg, &db.Cache{Rdb: rdb}, ks, new(mockAccountClient), zap.NewNop())
+
+	resp, err := h.OAuthURL(context.Background(), &authpb.OAuthURLRequest{State: "login"})
+	require.NoError(t, err)
+	assert.Contains(t, resp.Url, "accounts.example.com")
+	assert.Contains(t, resp.Url, "state=login")
 }
 
 func TestGetPublicKeys(t *testing.T) {

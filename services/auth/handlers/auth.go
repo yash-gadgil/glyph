@@ -10,6 +10,7 @@ import (
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -193,6 +194,11 @@ func (s *AuthHandler) GetPublicKeys(ctx context.Context, req *emptypb.Empty) (*a
 	}
 
 	return &authpb.GetPublicKeysResponse{Keys: pbKeys}, nil
+}
+
+func (s *AuthHandler) OAuthURL(ctx context.Context, req *authpb.OAuthURLRequest) (*authpb.OAuthURLResponse, error) {
+	url := s.googleConfig.AuthCodeURL(req.State, oauth2.AccessTypeOffline)
+	return &authpb.OAuthURLResponse{Url: url}, nil
 }
 
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
