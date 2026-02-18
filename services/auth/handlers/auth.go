@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/yash-gadgil/glyph/pkg/logger"
+	"github.com/yash-gadgil/glyph/services/auth/types"
 	"github.com/yash-gadgil/glyph/services/auth/utils"
 	authpb "github.com/yash-gadgil/glyph/services/gen/golang/auth"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
@@ -199,6 +201,61 @@ func (s *AuthHandler) GetPublicKeys(ctx context.Context, req *emptypb.Empty) (*a
 func (s *AuthHandler) OAuthURL(ctx context.Context, req *authpb.OAuthURLRequest) (*authpb.OAuthURLResponse, error) {
 	url := s.googleConfig.AuthCodeURL(req.State, oauth2.AccessTypeOffline)
 	return &authpb.OAuthURLResponse{Url: url}, nil
+}
+
+func (s *AuthHandler) OAuthCallback(ctx context.Context, req *authpb.OAuthCallbackRequest) (*authpb.TokenResponse, error) {
+	t, err := s.googleConfig.Exchange(ctx, req.Code)
+	if err != nil {
+		return nil, err
+	}
+
+	client := s.googleConfig.Client(ctx, t)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var info types.GoAuth
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	if req.State != "register" && req.State != "login" {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid state passed in callback: %s", req.State)
+	}
+
+	userID, err := s.findOrCreateOAuthUser(ctx, info.Name, info.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.issueTokens(userID, 5*time.Hour, 30*24*time.Hour)
+}
+
+func (s *AuthHandler) findOrCreateOAuthUser(ctx context.Context, name, email string) (string, error) {
+	signin, err := s.userClient.SigninUser(ctx, &userpb.SigninUserInfo{Email: email, Password: nil})
+	if err == nil {
+		return signin.GetUserId(), nil
+	}
+	if status.Code(err) != codes.NotFound {
+		return "", status.Errorf(codes.Internal, "Failed to process login")
+	}
+
+	signup, err := s.userClient.SignupUser(ctx, &userpb.SignupUserInfo{UserName: name, Email: email, Password: nil})
+	if err == nil {
+		return signup.GetUserId(), nil
+	}
+
+	signin, retryErr := s.userClient.SigninUser(ctx, &userpb.SigninUserInfo{Email: email, Password: nil})
+	if retryErr == nil {
+		return signin.GetUserId(), nil
+	}
+
+	return "", status.Errorf(codes.Internal, "Failed to process login")
 }
 
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {

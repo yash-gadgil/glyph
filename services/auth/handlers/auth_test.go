@@ -200,6 +200,30 @@ func TestOAuthURL(t *testing.T) {
 	assert.Contains(t, resp.Url, "state=login")
 }
 
+func TestFindOrCreateOAuthExistingUser(t *testing.T) {
+	h, client, _ := newAuthHandler(t)
+
+	client.On("SigninUser", mock.Anything, mock.Anything).
+		Return(&userpb.UserSpecifier{UserId: "user-1"}, nil)
+
+	id, err := h.findOrCreateOAuthUser(context.Background(), "Yash", "user@example.com")
+	require.NoError(t, err)
+	assert.Equal(t, "user-1", id)
+}
+
+func TestFindOrCreateOAuthNewUser(t *testing.T) {
+	h, client, _ := newAuthHandler(t)
+
+	client.On("SigninUser", mock.Anything, mock.Anything).
+		Return((*userpb.UserSpecifier)(nil), status.Error(codes.NotFound, "no user")).Once()
+	client.On("SignupUser", mock.Anything, mock.Anything).
+		Return(&userpb.UserSpecifier{UserId: "user-2"}, nil)
+
+	id, err := h.findOrCreateOAuthUser(context.Background(), "Yash", "new@example.com")
+	require.NoError(t, err)
+	assert.Equal(t, "user-2", id)
+}
+
 func TestGetPublicKeys(t *testing.T) {
 	h, _, _ := newAuthHandler(t)
 	resp, err := h.GetPublicKeys(context.Background(), &emptypb.Empty{})
