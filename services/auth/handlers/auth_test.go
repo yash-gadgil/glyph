@@ -224,6 +224,33 @@ func TestFindOrCreateOAuthNewUser(t *testing.T) {
 	assert.Equal(t, "user-2", id)
 }
 
+func TestForgotPasswordQueuesEmail(t *testing.T) {
+	h, client, mr := newAuthHandler(t)
+
+	client.On("CheckEmailAvailability", mock.Anything, mock.Anything).
+		Return(&userpb.CheckEmailResponse{Available: false}, nil)
+
+	_, err := h.ForgotPassword(context.Background(), &authpb.ForgotPasswordRequest{Email: "user@example.com"})
+	require.NoError(t, err)
+
+	entries, err := mr.List("password_reset_queue")
+	require.NoError(t, err)
+	assert.Len(t, entries, 1)
+}
+
+func TestForgotPasswordUnknownEmailSilentSuccess(t *testing.T) {
+	h, client, mr := newAuthHandler(t)
+
+	client.On("CheckEmailAvailability", mock.Anything, mock.Anything).
+		Return(&userpb.CheckEmailResponse{Available: true}, nil)
+
+	_, err := h.ForgotPassword(context.Background(), &authpb.ForgotPasswordRequest{Email: "ghost@example.com"})
+	require.NoError(t, err)
+
+	entries, _ := mr.List("password_reset_queue")
+	assert.Empty(t, entries)
+}
+
 func TestGetPublicKeys(t *testing.T) {
 	h, _, _ := newAuthHandler(t)
 	resp, err := h.GetPublicKeys(context.Background(), &emptypb.Empty{})

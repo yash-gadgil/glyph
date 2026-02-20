@@ -258,6 +258,43 @@ func (s *AuthHandler) findOrCreateOAuthUser(ctx context.Context, name, email str
 	return "", status.Errorf(codes.Internal, "Failed to process login")
 }
 
+func (s *AuthHandler) ForgotPassword(ctx context.Context, req *authpb.ForgotPasswordRequest) (*emptypb.Empty, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("forgot_password"))
+
+	if err := utils.ValidateEmail(req.Email); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid email")
+	}
+
+	log = log.With(logger.KV("email", req.Email))
+
+	res, err := s.userClient.CheckEmailAvailability(ctx, &userpb.CheckEmailRequest{Email: req.Email})
+	if err != nil {
+		log.Error("email_check_failed", zap.Error(err))
+		return &emptypb.Empty{}, nil
+	}
+	if res.Available {
+		log.Info("email_not_found_silent_success")
+		return &emptypb.Empty{}, nil
+	}
+
+	resetToken, err := utils.CreateTokenWithClaims(map[string]any{
+		"email":   req.Email,
+		"purpose": "password_reset",
+	}, time.Now().Add(time.Hour), s.keyStore.GetCurrentKey())
+	if err != nil {
+		log.Error("token_creation_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "Failed to process request")
+	}
+
+	if err := s.cache.EnqueuePasswordResetEmail(ctx, req.Email, resetToken); err != nil {
+		log.Error("enqueue_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "Failed to process request")
+	}
+
+	log.Info("password_reset_email_queued")
+	return &emptypb.Empty{}, nil
+}
+
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
 	accessToken, err := utils.CreateToken(userID, time.Now().Add(accessTTL), s.keyStore.GetCurrentKey())
 	if err != nil {
