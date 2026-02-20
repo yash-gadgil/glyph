@@ -295,6 +295,56 @@ func (s *AuthHandler) ForgotPassword(ctx context.Context, req *authpb.ForgotPass
 	return &emptypb.Empty{}, nil
 }
 
+func (s *AuthHandler) ResetPassword(ctx context.Context, req *authpb.ResetPasswordRequest) (*authpb.TokenResponse, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("reset_password"))
+
+	claims, err := utils.ParseTokenClaims(req.Token, s.keyStore)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid or expired reset link")
+	}
+
+	if purpose, _ := claims["purpose"].(string); purpose != "password_reset" {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid reset link")
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok || email == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid reset link")
+	}
+
+	log = log.With(logger.KV("email", email))
+
+	if err := utils.ValidatePassword(req.NewPassword); err != nil {
+		return nil, invalidArg(err, "Invalid password")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		log.Error("bcrypt_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "Failed to reset password")
+	}
+
+	if _, err := s.userClient.UpdatePasswordByEmail(ctx, &userpb.UpdatePasswordRequest{
+		Email:        email,
+		PasswordHash: string(hash),
+	}); err != nil {
+		log.Error("password_update_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "Failed to reset password")
+	}
+
+	signinRes, err := s.userClient.SigninUser(ctx, &userpb.SigninUserInfo{
+		Email:    email,
+		Password: &req.NewPassword,
+	})
+	if err != nil {
+		log.Error("signin_after_reset_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "Password reset succeeded but auto-login failed")
+	}
+
+	log.Info("password_reset_complete")
+	return s.issueTokens(signinRes.UserId, time.Hour, 30*24*time.Hour)
+}
+
 func (s *AuthHandler) issueTokens(userID string, accessTTL, refreshTTL time.Duration) (*authpb.TokenResponse, error) {
 	accessToken, err := utils.CreateToken(userID, time.Now().Add(accessTTL), s.keyStore.GetCurrentKey())
 	if err != nil {

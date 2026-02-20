@@ -251,6 +251,36 @@ func TestForgotPasswordUnknownEmailSilentSuccess(t *testing.T) {
 	assert.Empty(t, entries)
 }
 
+func TestResetPasswordUpdatesAndIssuesTokens(t *testing.T) {
+	h, client, _ := newAuthHandler(t)
+	token, err := utils.CreateTokenWithClaims(map[string]any{
+		"email": "user@example.com", "purpose": "password_reset",
+	}, time.Now().Add(time.Hour), h.keyStore.GetCurrentKey())
+	require.NoError(t, err)
+
+	client.On("UpdatePasswordByEmail", mock.Anything, mock.Anything).Return(&emptypb.Empty{}, nil)
+	client.On("SigninUser", mock.Anything, mock.Anything).Return(&userpb.UserSpecifier{UserId: "user-1"}, nil)
+
+	resp, err := h.ResetPassword(context.Background(), &authpb.ResetPasswordRequest{
+		Token: token, NewPassword: "NewPassw0rd!",
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.AccessToken)
+}
+
+func TestResetPasswordWrongPurpose(t *testing.T) {
+	h, _, _ := newAuthHandler(t)
+	token, err := utils.CreateTokenWithClaims(map[string]any{
+		"email": "user@example.com", "purpose": "verify",
+	}, time.Now().Add(time.Hour), h.keyStore.GetCurrentKey())
+	require.NoError(t, err)
+
+	_, err = h.ResetPassword(context.Background(), &authpb.ResetPasswordRequest{
+		Token: token, NewPassword: "NewPassw0rd!",
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestGetPublicKeys(t *testing.T) {
 	h, _, _ := newAuthHandler(t)
 	resp, err := h.GetPublicKeys(context.Background(), &emptypb.Empty{})
