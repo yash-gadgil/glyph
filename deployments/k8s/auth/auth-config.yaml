@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-config
+  namespace: glyph
+data:
+  GATEWAY_SVC_PORT: ":8080"
+  AUTH_SVC_PORT: ":50051"
+  METRICS_PORT: ":9100"
+  USER_SERVICE_ADDR: "user:50053"
+  CACHE_ADDR: "auth-cache:6379"
+  EMAIL_VERIFICATION_URL: "http://localhost:8080"
