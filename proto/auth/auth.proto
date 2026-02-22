@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package auth;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/auth";
+
+service AuthService {
+    rpc Signup(SignupRequest) returns (google.protobuf.Empty) {}
+    rpc Signin(SigninRequest) returns (TokenResponse) {}
+    rpc OAuthURL(OAuthURLRequest) returns (OAuthURLResponse) {}
+    rpc OAuthCallback(OAuthCallbackRequest) returns (TokenResponse) {}
+    rpc VerifyEmail(VerificationRequest) returns (TokenResponse) {}
+    rpc VerifyToken(VerificationRequest) returns (VerificationResponse) {}
+    rpc RefreshToken(RefreshTokenRequest) returns (TokenResponse) {}
+    rpc GetPublicKeys(google.protobuf.Empty) returns (GetPublicKeysResponse) {}
+    rpc ForgotPassword(ForgotPasswordRequest) returns (google.protobuf.Empty) {}
+    rpc ResetPassword(ResetPasswordRequest) returns (TokenResponse) {}
+}
+
+message SignupRequest {
+    string user_name = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message SigninRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message TokenResponse {
+    string access_token = 1;
+    string refresh_token = 2;
+}
+
+message OAuthURLRequest {
+    string provider = 1;
+    string state = 2;
+}
+
+message OAuthURLResponse {
+    string url = 1;
+}
+
+message OAuthCallbackRequest {
+    string provider = 1;
+    string code = 2;
+    string state = 3;
+}
+
+message VerificationRequest {
+    string token = 1;
+}
+
+message VerificationResponse {
+    string user_id = 1;
+}
+
+message RefreshTokenRequest {
+    string refresh_token = 1;
+}
+
+message PublicKey {
+    string kid = 1;
+    string kty = 2;
+    string use = 3;
+    string alg = 4;
+    string n = 5;
+    string e = 6;
+}
+
+message GetPublicKeysResponse {
+    repeated PublicKey keys = 1;
+}
+
+message ForgotPasswordRequest {
+    string email = 1;
+}
+
+message ResetPasswordRequest {
+    string token = 1;
+    string new_password = 2;
+}

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-cache
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-cache
+  template:
+    metadata:
+      labels:
+        app: auth-cache
+    spec:
+      containers:
+        - name: auth-cache
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
