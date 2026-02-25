@@ -25,6 +25,7 @@ type Config struct {
 
 	authConn   *grpc.ClientConn
 	AuthClient authpb.AuthServiceClient
+	jwks       *jwksCache
 
 	mrktdataConn   *grpc.ClientConn
 	mrktdataClient mrktpb.MrktdataServiceClient
@@ -63,6 +64,7 @@ func NewFromEnv() *Config {
 		} else {
 			cfg.authConn = conn
 			cfg.AuthClient = authpb.NewAuthServiceClient(conn)
+			cfg.jwks = newJWKSCache(cfg.AuthClient)
 		}
 	}
 
@@ -89,6 +91,20 @@ func NewFromEnv() *Config {
 	}
 
 	return cfg
+}
+
+func NewTestConfig(authClient authpb.AuthServiceClient) *Config {
+	return &Config{
+		AuthClient: authClient,
+		jwks:       newJWKSCache(authClient),
+		log:        zap.NewNop(),
+	}
+}
+
+func (cfg *Config) ExpireJWKSCacheForTest() {
+	if cfg.jwks != nil {
+		cfg.jwks.expireForTest()
+	}
 }
 
 func (cfg *Config) Close() error {
