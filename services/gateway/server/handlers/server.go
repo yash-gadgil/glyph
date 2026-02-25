@@ -71,4 +71,6 @@ func (s *Server) AddRoute(routeName string, handlerFunc func(chi.Router)) *Serve
 	return s
 }
 
-func (s *Server) mountRoutes() {}
+func (s *Server) mountRoutes() {
+	s.AddRoute("/auth", s.cfg.LoadAuthRoutes)
+}
