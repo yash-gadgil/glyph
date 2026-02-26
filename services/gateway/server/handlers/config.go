@@ -107,6 +107,21 @@ func (cfg *Config) ExpireJWKSCacheForTest() {
 	}
 }
 
+func (cfg *Config) WithAccountClient(c userpb.AccountServiceClient) *Config {
+	cfg.accountClient = c
+	return cfg
+}
+
+func (cfg *Config) WithPortfolioClient(c userpb.PortfolioServiceClient) *Config {
+	cfg.portfolioClient = c
+	return cfg
+}
+
+func (cfg *Config) WithOrderClient(c ordrpb.OrderServiceClient) *Config {
+	cfg.orderClient = c
+	return cfg
+}
+
 func (cfg *Config) Close() error {
 	var errs []error
 	for _, conn := range []*grpc.ClientConn{cfg.userConn, cfg.authConn, cfg.mrktdataConn, cfg.orderConn} {
