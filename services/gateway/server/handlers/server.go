@@ -74,4 +74,5 @@ func (s *Server) AddRoute(routeName string, handlerFunc func(chi.Router)) *Serve
 func (s *Server) mountRoutes() {
 	s.AddRoute("/auth", s.cfg.LoadAuthRoutes)
 	s.AddRoute("/account", s.cfg.LoadAccountRoutes)
+	s.AddRoute("/portfolio", s.cfg.LoadPortfolioRoutes)
 }
