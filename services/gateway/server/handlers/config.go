@@ -122,6 +122,16 @@ func (cfg *Config) WithOrderClient(c ordrpb.OrderServiceClient) *Config {
 	return cfg
 }
 
+func (cfg *Config) WithWatchlistClient(c userpb.WatchlistServiceClient) *Config {
+	cfg.watchlistClient = c
+	return cfg
+}
+
+func (cfg *Config) WithMrktdataClient(c mrktpb.MrktdataServiceClient) *Config {
+	cfg.mrktdataClient = c
+	return cfg
+}
+
 func (cfg *Config) Close() error {
 	var errs []error
 	for _, conn := range []*grpc.ClientConn{cfg.userConn, cfg.authConn, cfg.mrktdataConn, cfg.orderConn} {
