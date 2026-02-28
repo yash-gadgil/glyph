@@ -76,4 +76,5 @@ func (s *Server) mountRoutes() {
 	s.AddRoute("/account", s.cfg.LoadAccountRoutes)
 	s.AddRoute("/portfolio", s.cfg.LoadPortfolioRoutes)
 	s.AddRoute("/watchlists", s.cfg.LoadWatchlistRoutes)
+	s.AddRoute("/orders", s.cfg.LoadOrderRoutes)
 }
