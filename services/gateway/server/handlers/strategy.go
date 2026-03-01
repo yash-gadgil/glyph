@@ -18,6 +18,12 @@ func (cfg *Config) LoadStrategyRoutes(r chi.Router) {
 
 	r.Get("/", cfg.GetStrategies)
 	r.Post("/", cfg.CreateStrategy)
+	r.Post("/backtest", cfg.BacktestStrategy)
+	r.Get("/deployments", cfg.GetDeployments)
+	r.Post("/deployments/{id}/stop", cfg.StopDeployment)
+	r.Delete("/deployments/{id}", cfg.DeleteDeployment)
+	r.Post("/{id}/deploy", cfg.DeployStrategy)
+	r.Get("/{id}/trades", cfg.GetStrategyTrades)
 	r.Patch("/{id}", cfg.UpdateStrategy)
 	r.Delete("/{id}", cfg.DeleteStrategy)
 }
