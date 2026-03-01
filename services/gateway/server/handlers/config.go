@@ -132,6 +132,11 @@ func (cfg *Config) WithMrktdataClient(c mrktpb.MrktdataServiceClient) *Config {
 	return cfg
 }
 
+func (cfg *Config) WithStrategyClient(c userpb.StrategyServiceClient) *Config {
+	cfg.strategyClient = c
+	return cfg
+}
+
 func (cfg *Config) Close() error {
 	var errs []error
 	for _, conn := range []*grpc.ClientConn{cfg.userConn, cfg.authConn, cfg.mrktdataConn, cfg.orderConn} {
