@@ -121,6 +121,25 @@ k8s_yaml([
     'deployments/k8s/auth/auth-service.yaml',
 ])
 
+docker_build(
+    'glyph/gateway',
+    '.',
+    dockerfile='deployments/docker/gateway.Dockerfile',
+    only=[
+        'go.mod',
+        'go.sum',
+        'pkg/',
+        'services/gen/',
+        'services/gateway/',
+    ],
+)
+
+k8s_yaml([
+    'deployments/k8s/gateway/gateway-config.yaml',
+    'deployments/k8s/gateway/gateway-deployment.yaml',
+    'deployments/k8s/gateway/gateway-service.yaml',
+])
+
 k8s_resource('rabbitmq', port_forwards=['5672:5672', '15672:15672'])
 k8s_resource('order-book', resource_deps=['rabbitmq'])
 k8s_resource('mrktdata', resource_deps=['order-book'])
@@ -130,3 +149,4 @@ k8s_resource('userdb', port_forwards=['5432:5432'])
 k8s_resource('user', resource_deps=['userdb', 'rabbitmq'], port_forwards=['50053:50053'])
 k8s_resource('orderdb', port_forwards=['5433:5432'])
 k8s_resource('order', resource_deps=['orderdb', 'rabbitmq', 'order-book', 'user'], port_forwards=['50055:50055'])
+k8s_resource('gateway', resource_deps=['auth', 'user', 'mrktdata', 'order'], port_forwards=['8080:8080'])

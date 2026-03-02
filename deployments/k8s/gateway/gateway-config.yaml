@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: glyph
+data:
+  GATEWAY_SVC_PORT: ":8080"
+  METRICS_PORT: ":9100"
+  AUTH_SVC_PORT: "auth:50051"
+  USER_SVC_PORT: "user:50053"
+  MRKTDATA_SVC_PORT: "mrktdata:50052"
+  ORDER_SVC_PORT: "order:50055"
