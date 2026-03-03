@@ -4,3 +4,8 @@
 .idea/
 *.log
 README.md
+target/
+**/node_modules
+web/.next/
+web/test-results/
+web/playwright-report/
