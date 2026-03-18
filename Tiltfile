@@ -150,3 +150,14 @@ k8s_resource('user', resource_deps=['userdb', 'rabbitmq'], port_forwards=['50053
 k8s_resource('orderdb', port_forwards=['5433:5432'])
 k8s_resource('order', resource_deps=['orderdb', 'rabbitmq', 'order-book', 'user'], port_forwards=['50055:50055'])
 k8s_resource('gateway', resource_deps=['auth', 'user', 'mrktdata', 'order'], port_forwards=['8080:8080'])
+
+k8s_yaml([
+    'deployments/k8s/monitoring/prometheus-config.yaml',
+    'deployments/k8s/monitoring/prometheus-deployment.yaml',
+    'deployments/k8s/monitoring/grafana-datasource.yaml',
+    'deployments/k8s/monitoring/grafana-dashboard.yaml',
+    'deployments/k8s/monitoring/grafana-deployment.yaml',
+])
+
+k8s_resource('prometheus', port_forwards=['9090:9090'])
+k8s_resource('grafana', resource_deps=['prometheus'], port_forwards=['3001:3000'])

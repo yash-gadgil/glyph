@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: glyph
+data:
+  dashboards.yml: |
+    apiVersion: 1
+    providers:
+      - name: glyph
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-glyph
+  namespace: glyph
+data:
+  glyph-overview.json: |
+    {
+      "uid": "glyph-overview",
+      "title": "Glyph Overview",
+      "tags": ["glyph"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "5s",
+      "time": { "from": "now-15m", "to": "now" },
+      "templating": { "list": [] },
+      "annotations": { "list": [] },
+      "panels": [
+        {
+          "id": 1,
+          "title": "HTTP request rate by route",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "targets": [
+            { "refId": "A", "expr": "sum(rate(glyph_http_requests_total[1m])) by (route)", "legendFormat": "{{route}}" }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "HTTP p95 latency by route",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+          "targets": [
+            { "refId": "A", "expr": "histogram_quantile(0.95, sum(rate(glyph_http_request_duration_seconds_bucket[5m])) by (le, route))", "legendFormat": "{{route}}" }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "gRPC p95 latency by service",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+          "targets": [
+            { "refId": "A", "expr": "histogram_quantile(0.95, sum(rate(grpc_server_handling_seconds_bucket[5m])) by (le, job))", "legendFormat": "{{job}}" }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Orders placed vs fills applied",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "targets": [
+            { "refId": "A", "expr": "sum(rate(glyph_orders_placed_total[1m]))", "legendFormat": "orders placed" },
+            { "refId": "B", "expr": "sum(rate(glyph_fills_applied_total[1m]))", "legendFormat": "fills applied" }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Fill apply lag (p95)",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+          "targets": [
+            { "refId": "A", "expr": "histogram_quantile(0.95, sum(rate(glyph_fill_apply_lag_seconds_bucket[5m])) by (le))", "legendFormat": "p95 lag" }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Active WS connections",
+          "type": "stat",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+          "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [
+            { "refId": "A", "expr": "sum(glyph_ws_connections_active)", "legendFormat": "active" }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Backtests (last 1h)",
+          "type": "stat",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+          "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [
+            { "refId": "A", "expr": "sum(increase(glyph_backtests_total[1h]))", "legendFormat": "backtests" }
+          ]
+        },
+        {
+          "id": 8,
+          "title": "Signups & signins rate",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "targets": [
+            { "refId": "A", "expr": "rate(glyph_signups_total[5m])", "legendFormat": "signups" },
+            { "refId": "B", "expr": "rate(glyph_signins_total[5m])", "legendFormat": "signins" }
+          ]
+        },
+        {
+          "id": 9,
+          "title": "Strategy ticks & engine orders",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "targets": [
+            { "refId": "A", "expr": "rate(glyph_strategy_ticks_total[1m])", "legendFormat": "ticks" },
+            { "refId": "B", "expr": "sum(rate(glyph_strategy_engine_orders_total[5m]))", "legendFormat": "engine orders" }
+          ]
+        }
+      ]
+    }
