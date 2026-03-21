@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package inference;
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/inference";
+
+service InferenceService {
+    rpc Generate(GenerateRequest) returns (stream Token) {}
+}
+
+message GenerateRequest {
+    string system = 1;
+    string prompt = 2;
+    int32 max_tokens = 3;
+    float temperature = 4;
+}
+
+message Token {
+    string text = 1;
+    bool done = 2;
+}
