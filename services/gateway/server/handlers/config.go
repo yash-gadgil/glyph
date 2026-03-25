@@ -6,6 +6,7 @@ import (
 
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/services/gateway/server/utils"
+	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
 	authpb "github.com/yash-gadgil/glyph/services/gen/golang/auth"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	ordrpb "github.com/yash-gadgil/glyph/services/gen/golang/order"
@@ -32,6 +33,9 @@ type Config struct {
 
 	orderConn   *grpc.ClientConn
 	orderClient ordrpb.OrderServiceClient
+
+	advisorConn   *grpc.ClientConn
+	advisorClient advisorpb.AdvisorServiceClient
 
 	log *zap.Logger
 }
@@ -90,6 +94,18 @@ func NewFromEnv() *Config {
 		cfg.log.Warn("order_service_unconfigured", zap.String("reason", "ORDER_SVC_PORT not set"))
 	}
 
+	if v := os.Getenv("ADVISOR_SVC_PORT"); v != "" {
+		conn, err := utils.GetGrpcClient(v)
+		if err != nil {
+			cfg.log.Error("advisor_service_dial_failed", zap.String("addr", v), zap.Error(err))
+		} else {
+			cfg.advisorConn = conn
+			cfg.advisorClient = advisorpb.NewAdvisorServiceClient(conn)
+		}
+	} else {
+		cfg.log.Warn("advisor_service_unconfigured", zap.String("reason", "ADVISOR_SVC_PORT not set"))
+	}
+
 	return cfg
 }
 
@@ -137,9 +153,14 @@ func (cfg *Config) WithStrategyClient(c userpb.StrategyServiceClient) *Config {
 	return cfg
 }
 
+func (cfg *Config) WithAdvisorClient(c advisorpb.AdvisorServiceClient) *Config {
+	cfg.advisorClient = c
+	return cfg
+}
+
 func (cfg *Config) Close() error {
 	var errs []error
-	for _, conn := range []*grpc.ClientConn{cfg.userConn, cfg.authConn, cfg.mrktdataConn, cfg.orderConn} {
+	for _, conn := range []*grpc.ClientConn{cfg.userConn, cfg.authConn, cfg.mrktdataConn, cfg.orderConn, cfg.advisorConn} {
 		if conn != nil {
 			if err := conn.Close(); err != nil {
 				errs = append(errs, err)
