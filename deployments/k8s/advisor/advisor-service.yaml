@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: advisor
+  namespace: glyph
+spec:
+  selector:
+    app: advisor
+  ports:
+    - name: grpc
+      port: 50058
+    - name: metrics
+      port: 9100
