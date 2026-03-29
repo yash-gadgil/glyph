@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inference
+  template:
+    metadata:
+      labels:
+        app: inference
+    spec:
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: inference-models-pvc
+      initContainers:
+        - name: model-downloader
+          image: glyph/inference:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: inference-config
+          workingDir: /app
+          command:
+            - uv
+            - run
+            - python
+            - -c
+            - "import os; from transformers import AutoTokenizer, AutoModelForCausalLM; m = os.environ['MODEL_ID']; AutoTokenizer.from_pretrained(m); AutoModelForCausalLM.from_pretrained(m)"
+          volumeMounts:
+            - name: models
+              mountPath: /models
+      containers:
+        - name: inference
+          image: glyph/inference:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: inference-config
+          volumeMounts:
+            - name: models
+              mountPath: /models
+          ports:
+            - containerPort: 50057
+          readinessProbe:
+            tcpSocket:
+              port: 50057
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 50057
+            initialDelaySeconds: 45
+            periodSeconds: 15
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "6Gi"

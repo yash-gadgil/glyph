@@ -79,4 +79,5 @@ func (s *Server) mountRoutes() {
 	s.AddRoute("/orders", s.cfg.LoadOrderRoutes)
 	s.AddRoute("/explore", s.cfg.LoadExploreRoutes)
 	s.AddRoute("/strategies", s.cfg.LoadStrategyRoutes)
+	s.AddRoute("/advisor", s.cfg.LoadAdvisorRoutes)
 }

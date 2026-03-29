@@ -122,6 +122,43 @@ k8s_yaml([
 ])
 
 docker_build(
+    'glyph/inference',
+    '.',
+    dockerfile='deployments/docker/inference.Dockerfile',
+    only=[
+        'services/gen/python/',
+        'services/inference/',
+    ],
+)
+
+k8s_yaml([
+    'deployments/k8s/inference/inference-config.yaml',
+    'deployments/k8s/inference/inference-volume.yaml',
+    'deployments/k8s/inference/inference-pvc.yaml',
+    'deployments/k8s/inference/inference-deployment.yaml',
+    'deployments/k8s/inference/inference-service.yaml',
+])
+
+docker_build(
+    'glyph/advisor',
+    '.',
+    dockerfile='deployments/docker/advisor.Dockerfile',
+    only=[
+        'go.mod',
+        'go.sum',
+        'pkg/',
+        'services/gen/',
+        'services/advisor/',
+    ],
+)
+
+k8s_yaml([
+    'deployments/k8s/advisor/advisor-config.yaml',
+    'deployments/k8s/advisor/advisor-deployment.yaml',
+    'deployments/k8s/advisor/advisor-service.yaml',
+])
+
+docker_build(
     'glyph/gateway',
     '.',
     dockerfile='deployments/docker/gateway.Dockerfile',
@@ -149,7 +186,9 @@ k8s_resource('userdb', port_forwards=['5432:5432'])
 k8s_resource('user', resource_deps=['userdb', 'rabbitmq'], port_forwards=['50053:50053'])
 k8s_resource('orderdb', port_forwards=['5433:5432'])
 k8s_resource('order', resource_deps=['orderdb', 'rabbitmq', 'order-book', 'user'], port_forwards=['50055:50055'])
-k8s_resource('gateway', resource_deps=['auth', 'user', 'mrktdata', 'order'], port_forwards=['8080:8080'])
+k8s_resource('inference', port_forwards=['50057:50057'])
+k8s_resource('advisor', resource_deps=['user', 'inference'], port_forwards=['50058:50058'])
+k8s_resource('gateway', resource_deps=['auth', 'user', 'mrktdata', 'order', 'advisor'], port_forwards=['8080:8080'])
 
 k8s_yaml([
     'deployments/k8s/monitoring/prometheus-config.yaml',

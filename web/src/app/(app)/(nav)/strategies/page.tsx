@@ -38,6 +38,7 @@ import SymbolCombobox from "@/components/ui/SymbolCombobox";
 import { TextEffect } from "@/components/primitives/TextEffect";
 import { PageEnter, RevealStagger, RevealItem } from "@/components/primitives/Reveal";
 import { motion, AnimatePresence } from "motion/react";
+import { generateStrategy } from "@/services/advisor/strategy";
 import { useDeployments, type Deployment } from "@/services/strategies/queries";
 import { useDeployStrategy, useStopDeployment, useDeleteDeployment } from "@/services/strategies/mutations";
 import { formatCents } from "@/lib/utils";
@@ -328,6 +329,9 @@ export default function Strategies() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [deployError, setDeployError] = useState("");
   const [presetBusy, setPresetBusy] = useState(false);
+  const [genBusy, setGenBusy] = useState(false);
+  const [genError, setGenError] = useState("");
+  const [genRationale, setGenRationale] = useState("");
 
   const { data: deployments = [] } = useDeployments();
   const deployMutation = useDeployStrategy();
@@ -340,6 +344,30 @@ export default function Strategies() {
       .then(setCustomStrategies)
       .catch(() => setCustomStrategies([]));
   }, []);
+
+  async function handleGenerate() {
+    if (genBusy) return;
+    setGenBusy(true);
+    setGenError("");
+    setGenRationale("");
+    try {
+      const generated = await generateStrategy();
+      const cs: CustomStrategy = {
+        ...generated.config,
+        name: generated.name,
+        description: generated.rationale,
+        createdAt: new Date().toISOString(),
+      };
+      await createCustomStrategy(cs);
+      const list = await loadCustomStrategies();
+      setCustomStrategies(list);
+      setGenRationale(generated.rationale);
+    } catch {
+      setGenError("Could not generate a strategy right now. Try again in a moment.");
+    } finally {
+      setGenBusy(false);
+    }
+  }
 
   function deleteCustomStrategy(id: string) {
     if (!window.confirm("Delete this custom strategy?")) return;
@@ -510,14 +538,52 @@ export default function Strategies() {
                     href="/strategies/new"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-transparent group-hover:text-emerald-300 transition-colors"
                   >
-                    <Wand2 size={14} />
                     Create Strategy
                   </Link>
+                </PixelHover>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.72, duration: 0.3 }}
+              >
+                <PixelHover
+                  gap={3}
+                  speed={40}
+                  colors="#a06cd5,#7d34c4,#5600a2"
+                  className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#5600a2]/60 transition-colors"
+                >
+                  <button
+                    onClick={handleGenerate}
+                    disabled={genBusy}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-transparent transition-colors group-hover:text-[#c9a6f0] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {genBusy ? "Generating…" : "Generate with AI"}
+                  </button>
                 </PixelHover>
               </motion.div>
             </div>
           </header>
         </RevealItem>
+
+        {(genRationale || genError) && (
+          <RevealItem>
+            <GlassSurface borderRadius={16} order="start" alignItems="stretch" flexDirection="col" innerClassName="p-4">
+              {genError ? (
+                <div className="flex items-start gap-3 text-red-400 text-sm">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  <p>{genError}</p>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3 text-sm text-neutral-300">
+                  <Sparkles size={16} className="mt-0.5 shrink-0" style={{ color: "#5600a2" }} />
+                  <p><span className="font-medium" style={{ color: "#8b3fd6" }}>Added a strategy: </span>{genRationale}</p>
+                </div>
+              )}
+            </GlassSurface>
+          </RevealItem>
+        )}
 
         {visibleDeployments.length > 0 && (
           <motion.section
@@ -941,16 +1007,6 @@ export default function Strategies() {
             })}
           </div>
         </motion.section>
-
-        <RevealItem>
-          <div className="flex items-start gap-3 px-5 py-4 rounded-xl border border-white/5 bg-white/3 text-xs text-white/25 font-medium leading-relaxed">
-            <Sparkles size={14} className="shrink-0 mt-0.5 text-white/20" />
-            Deployed strategies run on Glyph&apos;s execution engine: rules are
-            evaluated once a minute during market hours and orders fill against
-            live market prices in your paper account. Paper results are
-            optimistic, no slippage or liquidity constraints are simulated.
-          </div>
-        </RevealItem>
 
       </RevealStagger>
 

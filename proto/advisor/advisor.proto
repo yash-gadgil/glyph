@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package advisor;
+
+option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/advisor";
+
+service AdvisorService {
+    rpc AnalyzePortfolio(AnalyzeRequest) returns (stream AnalysisChunk) {}
+    rpc GenerateStrategy(GenerateStrategyRequest) returns (StrategySuggestion) {}
+}
+
+message AnalyzeRequest {
+    string user_id = 1;
+}
+
+message AnalysisChunk {
+    string text = 1;
+    bool done = 2;
+}
+
+message GenerateStrategyRequest {
+    string user_id = 1;
+}
+
+message StrategySuggestion {
+    string name = 1;
+    string config_json = 2;
+    string rationale = 3;
+    string template = 4;
+}

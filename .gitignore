@@ -4,3 +4,6 @@ target/
 .idea/
 *.log
 *-secrets.yaml
+.venv/
+__pycache__/
+.data/

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: advisor
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: advisor
+  template:
+    metadata:
+      labels:
+        app: advisor
+    spec:
+      containers:
+        - name: advisor
+          image: glyph/advisor:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: advisor-config
+          ports:
+            - containerPort: 50058
+          readinessProbe:
+            tcpSocket:
+              port: 50058
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 50058
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"

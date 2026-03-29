@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-config
+  namespace: glyph
+data:
+  INFERENCE_BIND: "[::]:50057"
+  MODEL_ID: "Qwen/Qwen2.5-1.5B-Instruct"
+  HF_HOME: "/models"
