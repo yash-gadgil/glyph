@@ -12,9 +12,9 @@ import (
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/pkg/telemetry"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
-	db "github.com/yash-gadgil/glyph/services/user/db/gen"
-	"github.com/yash-gadgil/glyph/services/user/strategyengine"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
+	db "github.com/yash-gadgil/glyph/services/strategy/db/gen"
+	"github.com/yash-gadgil/glyph/services/strategy/engine"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,8 +32,8 @@ func deploymentStatus(status int16) string {
 	return "stopped"
 }
 
-func deploymentToProto(id, strategyID, userID uuid.UUID, symbol string, sizeCents int64, status int16, inPosition bool, entryCents, qty int64, name string, createdAt, updatedAt time.Time) *userpb.Deployment {
-	return &userpb.Deployment{
+func deploymentToProto(id, strategyID, userID uuid.UUID, symbol string, sizeCents int64, status int16, inPosition bool, entryCents, qty int64, name string, createdAt, updatedAt time.Time) *strategypb.Deployment {
+	return &strategypb.Deployment{
 		Id:                id.String(),
 		StrategyId:        strategyID.String(),
 		UserId:            userID.String(),
@@ -50,7 +50,7 @@ func deploymentToProto(id, strategyID, userID uuid.UUID, symbol string, sizeCent
 }
 
 type StrategyHandler struct {
-	userpb.UnimplementedStrategyServiceServer
+	strategypb.UnimplementedStrategyServiceServer
 	db   *sql.DB
 	q    *db.Queries
 	mrkt mrktpb.MrktdataServiceClient
@@ -78,8 +78,8 @@ func validateStrategyInput(name, configJSON string) error {
 	return nil
 }
 
-func strategyToProto(s db.Strategy) *userpb.Strategy {
-	return &userpb.Strategy{
+func strategyToProto(s db.Strategy) *strategypb.Strategy {
+	return &strategypb.Strategy{
 		Id:         s.ID.String(),
 		UserId:     s.UserID.String(),
 		Name:       s.Name,
@@ -89,7 +89,7 @@ func strategyToProto(s db.Strategy) *userpb.Strategy {
 	}
 }
 
-func (s *StrategyHandler) GetStrategies(ctx context.Context, req *userpb.UserSpecifier) (*userpb.StrategiesResponse, error) {
+func (s *StrategyHandler) GetStrategies(ctx context.Context, req *strategypb.UserSpecifier) (*strategypb.StrategiesResponse, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -101,14 +101,14 @@ func (s *StrategyHandler) GetStrategies(ctx context.Context, req *userpb.UserSpe
 		return nil, status.Errorf(codes.Internal, "failed to load strategies")
 	}
 
-	resp := &userpb.StrategiesResponse{}
+	resp := &strategypb.StrategiesResponse{}
 	for _, row := range rows {
 		resp.Strategies = append(resp.Strategies, strategyToProto(row))
 	}
 	return resp, nil
 }
 
-func (s *StrategyHandler) CreateStrategy(ctx context.Context, req *userpb.CreateStrategyRequest) (*userpb.Strategy, error) {
+func (s *StrategyHandler) CreateStrategy(ctx context.Context, req *strategypb.CreateStrategyRequest) (*strategypb.Strategy, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -133,7 +133,7 @@ func (s *StrategyHandler) CreateStrategy(ctx context.Context, req *userpb.Create
 	return strategyToProto(row), nil
 }
 
-func (s *StrategyHandler) UpdateStrategy(ctx context.Context, req *userpb.UpdateStrategyRequest) (*userpb.Strategy, error) {
+func (s *StrategyHandler) UpdateStrategy(ctx context.Context, req *strategypb.UpdateStrategyRequest) (*strategypb.Strategy, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -163,7 +163,7 @@ func (s *StrategyHandler) UpdateStrategy(ctx context.Context, req *userpb.Update
 	return strategyToProto(row), nil
 }
 
-func (s *StrategyHandler) DeleteStrategy(ctx context.Context, req *userpb.StrategySpecifier) (*emptypb.Empty, error) {
+func (s *StrategyHandler) DeleteStrategy(ctx context.Context, req *strategypb.StrategySpecifier) (*emptypb.Empty, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -184,7 +184,7 @@ func (s *StrategyHandler) DeleteStrategy(ctx context.Context, req *userpb.Strate
 	return &emptypb.Empty{}, nil
 }
 
-func (s *StrategyHandler) DeployStrategy(ctx context.Context, req *userpb.DeployStrategyRequest) (*userpb.Deployment, error) {
+func (s *StrategyHandler) DeployStrategy(ctx context.Context, req *strategypb.DeployStrategyRequest) (*strategypb.Deployment, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -205,7 +205,7 @@ func (s *StrategyHandler) DeployStrategy(ctx context.Context, req *userpb.Deploy
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "strategy not found")
 	}
-	if _, err := strategyengine.ParseConfig(strat.Config); err != nil {
+	if _, err := engine.ParseConfig(strat.Config); err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "strategy has no runnable entry rules, edit it first")
 	}
 
@@ -252,7 +252,7 @@ func (s *StrategyHandler) DeployStrategy(ctx context.Context, req *userpb.Deploy
 		row.Status, row.InPosition, row.EntryPriceCents, row.Qty, strat.Name, row.CreatedAt, row.UpdatedAt), nil
 }
 
-func (s *StrategyHandler) StopDeployment(ctx context.Context, req *userpb.DeploymentSpecifier) (*userpb.Deployment, error) {
+func (s *StrategyHandler) StopDeployment(ctx context.Context, req *strategypb.DeploymentSpecifier) (*strategypb.Deployment, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -275,7 +275,7 @@ func (s *StrategyHandler) StopDeployment(ctx context.Context, req *userpb.Deploy
 		row.Status, row.InPosition, row.EntryPriceCents, row.Qty, "", row.CreatedAt, row.UpdatedAt), nil
 }
 
-func (s *StrategyHandler) DeleteDeployment(ctx context.Context, req *userpb.DeploymentSpecifier) (*emptypb.Empty, error) {
+func (s *StrategyHandler) DeleteDeployment(ctx context.Context, req *strategypb.DeploymentSpecifier) (*emptypb.Empty, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -297,7 +297,7 @@ func (s *StrategyHandler) DeleteDeployment(ctx context.Context, req *userpb.Depl
 	return &emptypb.Empty{}, nil
 }
 
-func (s *StrategyHandler) GetDeployments(ctx context.Context, req *userpb.UserSpecifier) (*userpb.DeploymentsResponse, error) {
+func (s *StrategyHandler) GetDeployments(ctx context.Context, req *strategypb.UserSpecifier) (*strategypb.DeploymentsResponse, error) {
 	userUUID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
@@ -309,7 +309,7 @@ func (s *StrategyHandler) GetDeployments(ctx context.Context, req *userpb.UserSp
 		return nil, status.Errorf(codes.Internal, "failed to load deployments")
 	}
 
-	resp := &userpb.DeploymentsResponse{}
+	resp := &strategypb.DeploymentsResponse{}
 	for _, row := range rows {
 		resp.Deployments = append(resp.Deployments, deploymentToProto(
 			row.ID, row.StrategyID, row.UserID, row.Symbol, row.PositionSizeCents,
@@ -356,10 +356,6 @@ func dateProto(t time.Time) *mrktpb.Date {
 	}
 }
 
-// warmupSpan estimates how far before the requested start we must fetch to
-// have `warmup` bars available for indicator warm-up. It over-fetches
-// generously (markets are open only a fraction of wall-clock time); the
-// surplus is trimmed by trimToWindow.
 func warmupSpan(tf mrktpb.Timeframe, warmup int) time.Duration {
 	n := time.Duration(warmup)
 	switch tf {
@@ -372,11 +368,7 @@ func warmupSpan(tf mrktpb.Timeframe, warmup int) time.Duration {
 	}
 }
 
-// trimToWindow keeps exactly `warmup` bars before the first bar at/after
-// start, so the strategy is warmed up by the time the tested window begins
-// and the equity curve starts on the requested start date rather than
-// `warmup` bars later.
-func trimToWindow(bars []strategyengine.Bar, start time.Time, warmup int) []strategyengine.Bar {
+func trimToWindow(bars []engine.Bar, start time.Time, warmup int) []engine.Bar {
 	startIdx := 0
 	for startIdx < len(bars) && bars[startIdx].Time.Before(start) {
 		startIdx++
@@ -388,7 +380,7 @@ func trimToWindow(bars []strategyengine.Bar, start time.Time, warmup int) []stra
 	return bars[lo:]
 }
 
-func barsFromProto(resp *mrktpb.HistoricalStockDataResponse, symbol string) []strategyengine.Bar {
+func barsFromProto(resp *mrktpb.HistoricalStockDataResponse, symbol string) []engine.Bar {
 	var src []*mrktpb.Bar
 	for _, sb := range resp.GetSymbolBars() {
 		if sb.Symbol == symbol {
@@ -400,10 +392,10 @@ func barsFromProto(resp *mrktpb.HistoricalStockDataResponse, symbol string) []st
 		src = resp.GetSymbolBars()[0].Bars
 	}
 
-	out := make([]strategyengine.Bar, 0, len(src))
+	out := make([]engine.Bar, 0, len(src))
 	for _, b := range src {
 		t, _ := time.Parse(time.RFC3339, b.Time)
-		out = append(out, strategyengine.Bar{
+		out = append(out, engine.Bar{
 			Time:   t,
 			Open:   float64(b.Open),
 			High:   float64(b.High),
@@ -416,8 +408,8 @@ func barsFromProto(resp *mrktpb.HistoricalStockDataResponse, symbol string) []st
 	return out
 }
 
-func backtestResultToProto(r *strategyengine.BacktestResult) *userpb.BacktestResponse {
-	out := &userpb.BacktestResponse{
+func backtestResultToProto(r *engine.BacktestResult) *strategypb.BacktestResponse {
+	out := &strategypb.BacktestResponse{
 		TotalReturnPct:   r.TotalReturnPct,
 		MaxDrawdownPct:   r.MaxDrawdownPct,
 		Sharpe:           r.Sharpe,
@@ -430,13 +422,13 @@ func backtestResultToProto(r *strategyengine.BacktestResult) *userpb.BacktestRes
 		WarmupBars:       int32(r.WarmupBars),
 	}
 	for _, p := range r.EquityCurve {
-		out.EquityCurve = append(out.EquityCurve, &userpb.BacktestEquityPoint{
+		out.EquityCurve = append(out.EquityCurve, &strategypb.BacktestEquityPoint{
 			TimeUnix:    p.Time.Unix(),
 			EquityCents: p.EquityCents,
 		})
 	}
 	for _, t := range r.Trades {
-		out.Trades = append(out.Trades, &userpb.BacktestTrade{
+		out.Trades = append(out.Trades, &strategypb.BacktestTrade{
 			EntryTimeUnix:   t.EntryTime.Unix(),
 			ExitTimeUnix:    t.ExitTime.Unix(),
 			EntryPriceCents: t.EntryPriceCents,
@@ -451,7 +443,7 @@ func backtestResultToProto(r *strategyengine.BacktestResult) *userpb.BacktestRes
 	return out
 }
 
-func (s *StrategyHandler) RunBacktest(ctx context.Context, req *userpb.BacktestRequest) (*userpb.BacktestResponse, error) {
+func (s *StrategyHandler) RunBacktest(ctx context.Context, req *strategypb.BacktestRequest) (*strategypb.BacktestResponse, error) {
 	symbol := strings.ToUpper(strings.TrimSpace(req.Symbol))
 	if symbol == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "symbol is required")
@@ -463,7 +455,7 @@ func (s *StrategyHandler) RunBacktest(ctx context.Context, req *userpb.BacktestR
 		return nil, status.Errorf(codes.InvalidArgument, "position_size_cents must be positive")
 	}
 
-	cfg, err := strategyengine.ParseConfig([]byte(req.ConfigJson))
+	cfg, err := engine.ParseConfig([]byte(req.ConfigJson))
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid strategy config: %v", err)
 	}
@@ -493,7 +485,7 @@ func (s *StrategyHandler) RunBacktest(ctx context.Context, req *userpb.BacktestR
 		return nil, status.Errorf(codes.Unavailable, "market data service unavailable")
 	}
 
-	warmup := strategyengine.MaxLookback(cfg)
+	warmup := engine.MaxLookback(cfg)
 
 	resp, err := s.mrkt.GetHistoricalStockData(ctx, &mrktpb.HistoricalStockDataRequest{
 		Symbols:   []string{symbol},
@@ -514,7 +506,7 @@ func (s *StrategyHandler) RunBacktest(ctx context.Context, req *userpb.BacktestR
 			len(bars), warmup)
 	}
 
-	result, err := strategyengine.RunBacktest(cfg, bars, strategyengine.BacktestParams{
+	result, err := engine.RunBacktest(cfg, bars, engine.BacktestParams{
 		InitialCapitalCents: req.InitialCapitalCents,
 		PositionSizeCents:   req.PositionSizeCents,
 		Timeframe:           tf.String(),

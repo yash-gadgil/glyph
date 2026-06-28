@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -35,7 +35,7 @@ func TestGetStrategies(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(strategyColumns).
 			AddRow(uuid.New(), userID, "Dip", []byte(`{"entry":{}}`), time.Now(), time.Now()))
 
-	resp, err := h.GetStrategies(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	resp, err := h.GetStrategies(context.Background(), &strategypb.UserSpecifier{UserId: userID.String()})
 	require.NoError(t, err)
 	require.Len(t, resp.Strategies, 1)
 	assert.Equal(t, "Dip", resp.Strategies[0].Name)
@@ -43,7 +43,7 @@ func TestGetStrategies(t *testing.T) {
 
 func TestGetStrategiesInvalidUser(t *testing.T) {
 	h, _ := newStrategyHandler(t)
-	_, err := h.GetStrategies(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
+	_, err := h.GetStrategies(context.Background(), &strategypb.UserSpecifier{UserId: "bad"})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
@@ -57,7 +57,7 @@ func TestCreateStrategy(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(strategyColumns).
 			AddRow(stratID, userID, "Dip", []byte(`{"entry":{}}`), time.Now(), time.Now()))
 
-	resp, err := h.CreateStrategy(context.Background(), &userpb.CreateStrategyRequest{
+	resp, err := h.CreateStrategy(context.Background(), &strategypb.CreateStrategyRequest{
 		UserId: userID.String(), Name: "Dip", ConfigJson: `{"entry":{}}`,
 	})
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestCreateStrategy(t *testing.T) {
 
 func TestCreateStrategyRejectsBadJSON(t *testing.T) {
 	h, _ := newStrategyHandler(t)
-	_, err := h.CreateStrategy(context.Background(), &userpb.CreateStrategyRequest{
+	_, err := h.CreateStrategy(context.Background(), &strategypb.CreateStrategyRequest{
 		UserId: uuid.New().String(), Name: "X", ConfigJson: "{not json",
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -82,7 +82,7 @@ func TestUpdateStrategy(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(strategyColumns).
 			AddRow(stratID, userID, "New", []byte(`{"entry":{}}`), time.Now(), time.Now()))
 
-	resp, err := h.UpdateStrategy(context.Background(), &userpb.UpdateStrategyRequest{
+	resp, err := h.UpdateStrategy(context.Background(), &strategypb.UpdateStrategyRequest{
 		Id: stratID.String(), UserId: userID.String(), Name: "New", ConfigJson: `{"entry":{}}`,
 	})
 	require.NoError(t, err)
@@ -96,7 +96,7 @@ func TestUpdateStrategyNotFound(t *testing.T) {
 
 	mock.ExpectQuery(`UPDATE strategies`).WillReturnError(sql.ErrNoRows)
 
-	_, err := h.UpdateStrategy(context.Background(), &userpb.UpdateStrategyRequest{
+	_, err := h.UpdateStrategy(context.Background(), &strategypb.UpdateStrategyRequest{
 		Id: stratID.String(), UserId: userID.String(), Name: "New", ConfigJson: `{}`,
 	})
 	assert.Equal(t, codes.NotFound, status.Code(err))
@@ -111,7 +111,7 @@ func TestDeleteStrategy(t *testing.T) {
 		WithArgs(stratID, userID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	_, err := h.DeleteStrategy(context.Background(), &userpb.StrategySpecifier{
+	_, err := h.DeleteStrategy(context.Background(), &strategypb.StrategySpecifier{
 		Id: stratID.String(), UserId: userID.String(),
 	})
 	require.NoError(t, err)
@@ -119,7 +119,7 @@ func TestDeleteStrategy(t *testing.T) {
 
 func TestDeleteStrategyInvalidID(t *testing.T) {
 	h, _ := newStrategyHandler(t)
-	_, err := h.DeleteStrategy(context.Background(), &userpb.StrategySpecifier{
+	_, err := h.DeleteStrategy(context.Background(), &strategypb.StrategySpecifier{
 		Id: "bad", UserId: uuid.New().String(),
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -149,7 +149,7 @@ func TestDeployStrategy(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(deploymentColumns).
 			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(0), false, int64(0), int64(0), time.Now(), time.Now()))
 
-	resp, err := h.DeployStrategy(context.Background(), &userpb.DeployStrategyRequest{
+	resp, err := h.DeployStrategy(context.Background(), &strategypb.DeployStrategyRequest{
 		StrategyId: stratID.String(), UserId: userID.String(), Symbol: "aapl", PositionSizeCents: 100000,
 	})
 	require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestDeployStrategyReactivatesStopped(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(deploymentColumns).
 			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(0), false, int64(0), int64(0), time.Now(), time.Now()))
 
-	resp, err := h.DeployStrategy(context.Background(), &userpb.DeployStrategyRequest{
+	resp, err := h.DeployStrategy(context.Background(), &strategypb.DeployStrategyRequest{
 		StrategyId: stratID.String(), UserId: userID.String(), Symbol: "aapl", PositionSizeCents: 100000,
 	})
 	require.NoError(t, err)
@@ -187,7 +187,7 @@ func TestDeployStrategyReactivatesStopped(t *testing.T) {
 
 func TestDeployStrategyTooSmall(t *testing.T) {
 	h, _ := newStrategyHandler(t)
-	_, err := h.DeployStrategy(context.Background(), &userpb.DeployStrategyRequest{
+	_, err := h.DeployStrategy(context.Background(), &strategypb.DeployStrategyRequest{
 		StrategyId: uuid.New().String(), UserId: uuid.New().String(), Symbol: "AAPL", PositionSizeCents: 50,
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -204,7 +204,7 @@ func TestStopDeployment(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(deploymentColumns).
 			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(1), false, int64(0), int64(0), time.Now(), time.Now()))
 
-	resp, err := h.StopDeployment(context.Background(), &userpb.DeploymentSpecifier{
+	resp, err := h.StopDeployment(context.Background(), &strategypb.DeploymentSpecifier{
 		Id: depID.String(), UserId: userID.String(),
 	})
 	require.NoError(t, err)
@@ -220,7 +220,7 @@ func TestDeleteDeploymentStillRunning(t *testing.T) {
 		WithArgs(depID, userID).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	_, err := h.DeleteDeployment(context.Background(), &userpb.DeploymentSpecifier{
+	_, err := h.DeleteDeployment(context.Background(), &strategypb.DeploymentSpecifier{
 		Id: depID.String(), UserId: userID.String(),
 	})
 	assert.Equal(t, codes.NotFound, status.Code(err))
@@ -235,7 +235,7 @@ func TestDeleteDeployment(t *testing.T) {
 		WithArgs(depID, userID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	_, err := h.DeleteDeployment(context.Background(), &userpb.DeploymentSpecifier{
+	_, err := h.DeleteDeployment(context.Background(), &strategypb.DeploymentSpecifier{
 		Id: depID.String(), UserId: userID.String(),
 	})
 	require.NoError(t, err)
@@ -253,7 +253,7 @@ func TestGetDeployments(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(cols).
 			AddRow(depID, userID, stratID, "AAPL", int64(100000), int16(0), true, int64(15000), int64(6), time.Now(), time.Now(), "Dip"))
 
-	resp, err := h.GetDeployments(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	resp, err := h.GetDeployments(context.Background(), &strategypb.UserSpecifier{UserId: userID.String()})
 	require.NoError(t, err)
 	require.Len(t, resp.Deployments, 1)
 	assert.Equal(t, "Dip", resp.Deployments[0].StrategyName)
@@ -263,15 +263,15 @@ func TestGetDeployments(t *testing.T) {
 func TestRunBacktestValidation(t *testing.T) {
 	h, _ := newStrategyHandler(t)
 
-	_, err := h.RunBacktest(context.Background(), &userpb.BacktestRequest{Symbol: ""})
+	_, err := h.RunBacktest(context.Background(), &strategypb.BacktestRequest{Symbol: ""})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 
-	_, err = h.RunBacktest(context.Background(), &userpb.BacktestRequest{
+	_, err = h.RunBacktest(context.Background(), &strategypb.BacktestRequest{
 		Symbol: "AAPL", InitialCapitalCents: 0,
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 
-	_, err = h.RunBacktest(context.Background(), &userpb.BacktestRequest{
+	_, err = h.RunBacktest(context.Background(), &strategypb.BacktestRequest{
 		Symbol: "AAPL", InitialCapitalCents: 1000, PositionSizeCents: 100, ConfigJson: "{bad",
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -281,7 +281,7 @@ func TestRunBacktestNeedsMarketData(t *testing.T) {
 	h, _ := newStrategyHandler(t)
 	cfg := `{"entry":{"rules":[{"lhs":{"kind":"price"},"op":">","rhs":{"kind":"value","value":1}}]}}`
 
-	_, err := h.RunBacktest(context.Background(), &userpb.BacktestRequest{
+	_, err := h.RunBacktest(context.Background(), &strategypb.BacktestRequest{
 		Symbol: "AAPL", InitialCapitalCents: 1000000, PositionSizeCents: 100000,
 		ConfigJson: cfg, Timeframe: "DAY",
 	})

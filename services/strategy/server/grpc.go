@@ -10,9 +10,11 @@ import (
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/pkg/telemetry"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
-	"github.com/yash-gadgil/glyph/services/user/handlers"
-	"github.com/yash-gadgil/glyph/services/user/worker"
+	ordrpb "github.com/yash-gadgil/glyph/services/gen/golang/order"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
+	db "github.com/yash-gadgil/glyph/services/strategy/db/gen"
+	"github.com/yash-gadgil/glyph/services/strategy/engine"
+	"github.com/yash-gadgil/glyph/services/strategy/handlers"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,10 +29,11 @@ type gRPCServer struct {
 }
 
 func NewGrpcServer(addr string, db *sql.DB) *gRPCServer {
-	return &gRPCServer{db: db, addr: addr, log: logger.New("user-service")}
+	return &gRPCServer{db: db, addr: addr, log: logger.New("strategy-service")}
 }
 
 func (s *gRPCServer) Run(ctx context.Context) error {
+
 	lis, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		s.log.Error("failed_to_listen", logger.KV("addr", s.addr), zap.Error(err))
@@ -61,14 +64,23 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 		s.log.Warn("mrktdata_svc_port_unset_holdings_valued_at_cost")
 	}
 
-	userpb.RegisterWatchlistServiceServer(grpcServer, handlers.NewWatchlistHandler(s.db, s.log))
-	userpb.RegisterAccountServiceServer(grpcServer, handlers.NewAccountHandler(s.db, s.log))
-	userpb.RegisterPortfolioServiceServer(grpcServer, handlers.NewPortfolioHandler(s.db, prices, s.log))
+	strategypb.RegisterStrategyServiceServer(grpcServer, handlers.NewStrategyHandler(s.db, prices, s.log))
 
 	grpc_prometheus.Register(grpcServer)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)
 
-	go worker.NewSnapshotter(s.db, prices, s.log).Run(ctx)
+	if addr := os.Getenv("ORDER_SVC_PORT"); addr != "" && prices != nil {
+		orderConn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			s.log.Warn("order_unavailable_strategy_engine_disabled", zap.Error(err))
+		} else {
+			defer orderConn.Close()
+			engine := engine.NewEngine(db.New(s.db), prices, ordrpb.NewOrderServiceClient(orderConn), s.log)
+			go engine.Run(ctx)
+		}
+	} else {
+		s.log.Warn("strategy_engine_disabled_missing_order_or_mrktdata")
+	}
 
 	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
 	s.log.Info("grpc_server_running", logger.Action("running_grpc_server"), logger.KV("addr", s.addr))
