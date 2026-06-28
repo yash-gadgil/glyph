@@ -99,6 +99,47 @@ func TestResetAccountSuccess(t *testing.T) {
 	account.AssertExpectations(t)
 }
 
+func TestDeleteAccountSuccess(t *testing.T) {
+	account := new(mocks.MockAccountClient)
+	cfg := accountConfig(account, new(mocks.MockPortfolioClient), new(mocks.MockOrderClient))
+
+	account.On("DeleteAccount", mock.Anything, &userpb.UserSpecifier{UserId: "user-1"}).
+		Return(&emptypb.Empty{}, nil)
+
+	req := handlers.WithUserID(httptest.NewRequest(http.MethodDelete, "/account", nil), "user-1")
+	w := httptest.NewRecorder()
+
+	cfg.DeleteAccount(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	account.AssertExpectations(t)
+}
+
+func TestDeleteAccountMissingUser(t *testing.T) {
+	cfg := accountConfig(new(mocks.MockAccountClient), new(mocks.MockPortfolioClient), new(mocks.MockOrderClient))
+
+	w := httptest.NewRecorder()
+	cfg.DeleteAccount(w, httptest.NewRequest(http.MethodDelete, "/account", nil))
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestDeleteAccountServiceError(t *testing.T) {
+	account := new(mocks.MockAccountClient)
+	cfg := accountConfig(account, new(mocks.MockPortfolioClient), new(mocks.MockOrderClient))
+
+	account.On("DeleteAccount", mock.Anything, &userpb.UserSpecifier{UserId: "user-1"}).
+		Return(nil, status.Error(codes.NotFound, "user not found"))
+
+	req := handlers.WithUserID(httptest.NewRequest(http.MethodDelete, "/account", nil), "user-1")
+	w := httptest.NewRecorder()
+
+	cfg.DeleteAccount(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	account.AssertExpectations(t)
+}
+
 func TestGetProfileServiceError(t *testing.T) {
 	account := new(mocks.MockAccountClient)
 	cfg := accountConfig(account, new(mocks.MockPortfolioClient), new(mocks.MockOrderClient))
