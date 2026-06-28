@@ -83,3 +83,11 @@ JOIN orders o ON o.id = f.order_id
 WHERE o.strategy_id = $1 AND o.user_id = $2
 ORDER BY f.executed_at DESC
 LIMIT $3 OFFSET $4;
+
+-- name: DeleteFillsForUser :execrows
+DELETE FROM fills
+WHERE order_id IN (SELECT id FROM orders WHERE user_id = $1);
+
+-- name: DeleteOrdersForUser :execrows
+DELETE FROM orders
+WHERE user_id = $1;

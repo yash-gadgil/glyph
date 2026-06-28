@@ -102,6 +102,9 @@ func (s *grpcServer) Run(ctx context.Context) error {
 		if err := ConsumeOrderEvents(ctx, s.rmqCh, handler); err != nil {
 			s.log.Warn("order_event_consumer_failed", zap.Error(err))
 		}
+		if err := StartUserDeletedConsumer(ctx, s.rmqCh, s.db, s.log); err != nil {
+			s.log.Warn("user_deleted_consumer_failed", zap.Error(err))
+		}
 	}
 
 	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)

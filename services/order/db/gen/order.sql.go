@@ -112,6 +112,32 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 	return i, err
 }
 
+const deleteFillsForUser = `-- name: DeleteFillsForUser :execrows
+DELETE FROM fills
+WHERE order_id IN (SELECT id FROM orders WHERE user_id = $1)
+`
+
+func (q *Queries) DeleteFillsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteFillsForUser, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteOrdersForUser = `-- name: DeleteOrdersForUser :execrows
+DELETE FROM orders
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteOrdersForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteOrdersForUser, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const finalizeOrder = `-- name: FinalizeOrder :one
 UPDATE orders
 SET status = $2, updated_at = now()
