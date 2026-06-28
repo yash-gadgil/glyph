@@ -11,3 +11,4 @@ data:
   MRKTDATA_SVC_PORT: "mrktdata:50052"
   ORDER_SVC_PORT: "order:50055"
   ADVISOR_SVC_PORT: "advisor:50058"
+  STRATEGY_SVC_PORT: "strategy:50059"

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strategydb
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: strategydb
+  template:
+    metadata:
+      labels:
+        app: strategydb
+    spec:
+      initContainers:
+        - name: wait-for-pvc
+          image: busybox:1.35
+          command:
+            [
+              "sh",
+              "-c",
+              'until [ -d /mnt/data ]; do echo "Waiting for PVC to be bound..."; sleep 2; done; echo "PVC is ready!"',
+            ]
+          volumeMounts:
+            - name: strategy-volume
+              mountPath: /mnt/data
+      containers:
+        - name: strategydb
+          image: postgres:15
+          envFrom:
+            - configMapRef:
+                name: strategydb-config
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: strategy-volume
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+      volumes:
+        - name: strategy-volume
+          persistentVolumeClaim:
+            claimName: strategydb-pvc

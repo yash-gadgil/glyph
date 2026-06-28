@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: strategydb-config
+  namespace: glyph
+data:
+  POSTGRES_DB: strategy_db
+  POSTGRES_USER: strat-db-user
+  POSTGRES_PASSWORD: stratpassword

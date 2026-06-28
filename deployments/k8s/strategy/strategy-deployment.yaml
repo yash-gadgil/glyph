@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strategy
+  namespace: glyph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: strategy
+  template:
+    metadata:
+      labels:
+        app: strategy
+    spec:
+      initContainers:
+        - name: strategy-migrations
+          image: glyph/strategy:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: strategy-config
+          env:
+            - name: GOOSE_DRIVER
+              value: "postgres"
+            - name: GOOSE_DBSTRING
+              value: "postgres://$(STRATEGY_DB_USER):$(STRATEGY_DB_PASSWORD)@$(STRATEGY_DB_HOST):$(STRATEGY_DB_PORT)/$(STRATEGY_DB)?sslmode=disable"
+            - name: GOOSE_MIGRATION_DIR
+              value: "/app/db/migrations"
+          workingDir: /app
+          command: ["goose", "up"]
+      containers:
+        - name: strategy
+          image: glyph/strategy:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: strategy-config
+          ports:
+            - containerPort: 50059
+          readinessProbe:
+            tcpSocket:
+              port: 50059
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 50059
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"

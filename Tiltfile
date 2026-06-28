@@ -159,6 +159,33 @@ k8s_yaml([
 ])
 
 docker_build(
+    'glyph/strategy',
+    '.',
+    dockerfile='deployments/docker/strategy.Dockerfile',
+    only=[
+        'go.mod',
+        'go.sum',
+        'pkg/',
+        'services/gen/',
+        'services/strategy/',
+    ],
+)
+
+k8s_yaml([
+    'deployments/k8s/strategydb/strategydb-config.yaml',
+    'deployments/k8s/strategydb/strategydb-volume.yaml',
+    'deployments/k8s/strategydb/strategydb-pvc.yaml',
+    'deployments/k8s/strategydb/strategydb-deployment.yaml',
+    'deployments/k8s/strategydb/strategydb-service.yaml',
+])
+
+k8s_yaml([
+    'deployments/k8s/strategy/strategy-config.yaml',
+    'deployments/k8s/strategy/strategy-deployment.yaml',
+    'deployments/k8s/strategy/strategy-service.yaml',
+])
+
+docker_build(
     'glyph/gateway',
     '.',
     dockerfile='deployments/docker/gateway.Dockerfile',
@@ -186,9 +213,11 @@ k8s_resource('userdb', port_forwards=['5432:5432'])
 k8s_resource('user', resource_deps=['userdb', 'rabbitmq'], port_forwards=['50053:50053'])
 k8s_resource('orderdb', port_forwards=['5433:5432'])
 k8s_resource('order', resource_deps=['orderdb', 'rabbitmq', 'order-book', 'user'], port_forwards=['50055:50055'])
+k8s_resource('strategydb', port_forwards=['5434:5432'])
+k8s_resource('strategy', resource_deps=['strategydb', 'rabbitmq', 'mrktdata', 'order'], port_forwards=['50059:50059'])
 k8s_resource('inference', port_forwards=['50057:50057'])
 k8s_resource('advisor', resource_deps=['user', 'inference'], port_forwards=['50058:50058'])
-k8s_resource('gateway', resource_deps=['auth', 'user', 'mrktdata', 'order', 'advisor'], port_forwards=['8080:8080'])
+k8s_resource('gateway', resource_deps=['auth', 'user', 'mrktdata', 'order', 'strategy', 'advisor'], port_forwards=['8080:8080'])
 
 k8s_yaml([
     'deployments/k8s/monitoring/prometheus-config.yaml',

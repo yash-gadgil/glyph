@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: strategy-config
+  namespace: glyph
+data:
+  STRATEGY_SVC_PORT: ":50059"
+  METRICS_PORT: ":9100"
+
+  STRATEGY_DB: strategy_db
+  STRATEGY_DB_USER: strat-db-user
+  STRATEGY_DB_PASSWORD: stratpassword
+  STRATEGY_DB_PORT: "5432"
+  STRATEGY_DB_HOST: strategydb.glyph.svc.cluster.local
+
+  MRKTDATA_SVC_PORT: "mrktdata:50052"
+
+  ORDER_SVC_PORT: "order:50055"
