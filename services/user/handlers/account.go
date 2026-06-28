@@ -191,7 +191,7 @@ func (s *AccountHandler) DeleteAccount(ctx context.Context, req *userpb.UserSpec
 	}
 
 	if s.pub != nil {
-		if err := s.pub.PublishUserDeleted(ctx, req.UserId); err != nil {
+		if err := s.pub.PublishUserDeleted(context.WithoutCancel(ctx), req.UserId); err != nil {
 			log.Error("publish_user_deleted_failed", logger.KV("user_id", req.UserId), zap.Error(err))
 		}
 	}
