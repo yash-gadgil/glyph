@@ -1227,1002 +1227,6 @@ func (x *PortfolioHistoryResponse) GetPoints() []*PortfolioHistoryPoint {
 	return nil
 }
 
-type Strategy struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	ConfigJson    string                 `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Strategy) Reset() {
-	*x = Strategy{}
-	mi := &file_user_user_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Strategy) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Strategy) ProtoMessage() {}
-
-func (x *Strategy) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Strategy.ProtoReflect.Descriptor instead.
-func (*Strategy) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *Strategy) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Strategy) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *Strategy) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *Strategy) GetConfigJson() string {
-	if x != nil {
-		return x.ConfigJson
-	}
-	return ""
-}
-
-func (x *Strategy) GetCreatedAt() string {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return ""
-}
-
-func (x *Strategy) GetUpdatedAt() string {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return ""
-}
-
-type StrategiesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Strategies    []*Strategy            `protobuf:"bytes,1,rep,name=strategies,proto3" json:"strategies,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StrategiesResponse) Reset() {
-	*x = StrategiesResponse{}
-	mi := &file_user_user_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StrategiesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StrategiesResponse) ProtoMessage() {}
-
-func (x *StrategiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StrategiesResponse.ProtoReflect.Descriptor instead.
-func (*StrategiesResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *StrategiesResponse) GetStrategies() []*Strategy {
-	if x != nil {
-		return x.Strategies
-	}
-	return nil
-}
-
-type CreateStrategyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ConfigJson    string                 `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateStrategyRequest) Reset() {
-	*x = CreateStrategyRequest{}
-	mi := &file_user_user_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateStrategyRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateStrategyRequest) ProtoMessage() {}
-
-func (x *CreateStrategyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateStrategyRequest.ProtoReflect.Descriptor instead.
-func (*CreateStrategyRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *CreateStrategyRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *CreateStrategyRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *CreateStrategyRequest) GetConfigJson() string {
-	if x != nil {
-		return x.ConfigJson
-	}
-	return ""
-}
-
-type UpdateStrategyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	ConfigJson    string                 `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateStrategyRequest) Reset() {
-	*x = UpdateStrategyRequest{}
-	mi := &file_user_user_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateStrategyRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateStrategyRequest) ProtoMessage() {}
-
-func (x *UpdateStrategyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateStrategyRequest.ProtoReflect.Descriptor instead.
-func (*UpdateStrategyRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *UpdateStrategyRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *UpdateStrategyRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *UpdateStrategyRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *UpdateStrategyRequest) GetConfigJson() string {
-	if x != nil {
-		return x.ConfigJson
-	}
-	return ""
-}
-
-type StrategySpecifier struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StrategySpecifier) Reset() {
-	*x = StrategySpecifier{}
-	mi := &file_user_user_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StrategySpecifier) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StrategySpecifier) ProtoMessage() {}
-
-func (x *StrategySpecifier) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StrategySpecifier.ProtoReflect.Descriptor instead.
-func (*StrategySpecifier) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *StrategySpecifier) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *StrategySpecifier) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type DeployStrategyRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	StrategyId        string                 `protobuf:"bytes,1,opt,name=strategy_id,json=strategyId,proto3" json:"strategy_id,omitempty"`
-	UserId            string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Symbol            string                 `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	PositionSizeCents int64                  `protobuf:"varint,4,opt,name=position_size_cents,json=positionSizeCents,proto3" json:"position_size_cents,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *DeployStrategyRequest) Reset() {
-	*x = DeployStrategyRequest{}
-	mi := &file_user_user_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeployStrategyRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeployStrategyRequest) ProtoMessage() {}
-
-func (x *DeployStrategyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeployStrategyRequest.ProtoReflect.Descriptor instead.
-func (*DeployStrategyRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *DeployStrategyRequest) GetStrategyId() string {
-	if x != nil {
-		return x.StrategyId
-	}
-	return ""
-}
-
-func (x *DeployStrategyRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *DeployStrategyRequest) GetSymbol() string {
-	if x != nil {
-		return x.Symbol
-	}
-	return ""
-}
-
-func (x *DeployStrategyRequest) GetPositionSizeCents() int64 {
-	if x != nil {
-		return x.PositionSizeCents
-	}
-	return 0
-}
-
-type DeploymentSpecifier struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeploymentSpecifier) Reset() {
-	*x = DeploymentSpecifier{}
-	mi := &file_user_user_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeploymentSpecifier) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeploymentSpecifier) ProtoMessage() {}
-
-func (x *DeploymentSpecifier) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeploymentSpecifier.ProtoReflect.Descriptor instead.
-func (*DeploymentSpecifier) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{27}
-}
-
-func (x *DeploymentSpecifier) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *DeploymentSpecifier) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type Deployment struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	StrategyId        string                 `protobuf:"bytes,2,opt,name=strategy_id,json=strategyId,proto3" json:"strategy_id,omitempty"`
-	UserId            string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Symbol            string                 `protobuf:"bytes,4,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	PositionSizeCents int64                  `protobuf:"varint,5,opt,name=position_size_cents,json=positionSizeCents,proto3" json:"position_size_cents,omitempty"`
-	Status            string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	InPosition        bool                   `protobuf:"varint,7,opt,name=in_position,json=inPosition,proto3" json:"in_position,omitempty"`
-	EntryPriceCents   int64                  `protobuf:"varint,8,opt,name=entry_price_cents,json=entryPriceCents,proto3" json:"entry_price_cents,omitempty"`
-	Qty               int64                  `protobuf:"varint,9,opt,name=qty,proto3" json:"qty,omitempty"`
-	StrategyName      string                 `protobuf:"bytes,10,opt,name=strategy_name,json=strategyName,proto3" json:"strategy_name,omitempty"`
-	CreatedAt         string                 `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt         string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *Deployment) Reset() {
-	*x = Deployment{}
-	mi := &file_user_user_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Deployment) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Deployment) ProtoMessage() {}
-
-func (x *Deployment) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Deployment.ProtoReflect.Descriptor instead.
-func (*Deployment) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{28}
-}
-
-func (x *Deployment) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Deployment) GetStrategyId() string {
-	if x != nil {
-		return x.StrategyId
-	}
-	return ""
-}
-
-func (x *Deployment) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *Deployment) GetSymbol() string {
-	if x != nil {
-		return x.Symbol
-	}
-	return ""
-}
-
-func (x *Deployment) GetPositionSizeCents() int64 {
-	if x != nil {
-		return x.PositionSizeCents
-	}
-	return 0
-}
-
-func (x *Deployment) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *Deployment) GetInPosition() bool {
-	if x != nil {
-		return x.InPosition
-	}
-	return false
-}
-
-func (x *Deployment) GetEntryPriceCents() int64 {
-	if x != nil {
-		return x.EntryPriceCents
-	}
-	return 0
-}
-
-func (x *Deployment) GetQty() int64 {
-	if x != nil {
-		return x.Qty
-	}
-	return 0
-}
-
-func (x *Deployment) GetStrategyName() string {
-	if x != nil {
-		return x.StrategyName
-	}
-	return ""
-}
-
-func (x *Deployment) GetCreatedAt() string {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return ""
-}
-
-func (x *Deployment) GetUpdatedAt() string {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return ""
-}
-
-type DeploymentsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Deployments   []*Deployment          `protobuf:"bytes,1,rep,name=deployments,proto3" json:"deployments,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeploymentsResponse) Reset() {
-	*x = DeploymentsResponse{}
-	mi := &file_user_user_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeploymentsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeploymentsResponse) ProtoMessage() {}
-
-func (x *DeploymentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeploymentsResponse.ProtoReflect.Descriptor instead.
-func (*DeploymentsResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *DeploymentsResponse) GetDeployments() []*Deployment {
-	if x != nil {
-		return x.Deployments
-	}
-	return nil
-}
-
-type BacktestRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	UserId              string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	ConfigJson          string                 `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	Symbol              string                 `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	Timeframe           string                 `protobuf:"bytes,4,opt,name=timeframe,proto3" json:"timeframe,omitempty"`
-	Start               string                 `protobuf:"bytes,5,opt,name=start,proto3" json:"start,omitempty"`
-	End                 string                 `protobuf:"bytes,6,opt,name=end,proto3" json:"end,omitempty"`
-	InitialCapitalCents int64                  `protobuf:"varint,7,opt,name=initial_capital_cents,json=initialCapitalCents,proto3" json:"initial_capital_cents,omitempty"`
-	PositionSizeCents   int64                  `protobuf:"varint,8,opt,name=position_size_cents,json=positionSizeCents,proto3" json:"position_size_cents,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *BacktestRequest) Reset() {
-	*x = BacktestRequest{}
-	mi := &file_user_user_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BacktestRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BacktestRequest) ProtoMessage() {}
-
-func (x *BacktestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BacktestRequest.ProtoReflect.Descriptor instead.
-func (*BacktestRequest) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *BacktestRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *BacktestRequest) GetConfigJson() string {
-	if x != nil {
-		return x.ConfigJson
-	}
-	return ""
-}
-
-func (x *BacktestRequest) GetSymbol() string {
-	if x != nil {
-		return x.Symbol
-	}
-	return ""
-}
-
-func (x *BacktestRequest) GetTimeframe() string {
-	if x != nil {
-		return x.Timeframe
-	}
-	return ""
-}
-
-func (x *BacktestRequest) GetStart() string {
-	if x != nil {
-		return x.Start
-	}
-	return ""
-}
-
-func (x *BacktestRequest) GetEnd() string {
-	if x != nil {
-		return x.End
-	}
-	return ""
-}
-
-func (x *BacktestRequest) GetInitialCapitalCents() int64 {
-	if x != nil {
-		return x.InitialCapitalCents
-	}
-	return 0
-}
-
-func (x *BacktestRequest) GetPositionSizeCents() int64 {
-	if x != nil {
-		return x.PositionSizeCents
-	}
-	return 0
-}
-
-type BacktestEquityPoint struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TimeUnix      int64                  `protobuf:"varint,1,opt,name=time_unix,json=timeUnix,proto3" json:"time_unix,omitempty"`
-	EquityCents   int64                  `protobuf:"varint,2,opt,name=equity_cents,json=equityCents,proto3" json:"equity_cents,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BacktestEquityPoint) Reset() {
-	*x = BacktestEquityPoint{}
-	mi := &file_user_user_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BacktestEquityPoint) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BacktestEquityPoint) ProtoMessage() {}
-
-func (x *BacktestEquityPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BacktestEquityPoint.ProtoReflect.Descriptor instead.
-func (*BacktestEquityPoint) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *BacktestEquityPoint) GetTimeUnix() int64 {
-	if x != nil {
-		return x.TimeUnix
-	}
-	return 0
-}
-
-func (x *BacktestEquityPoint) GetEquityCents() int64 {
-	if x != nil {
-		return x.EquityCents
-	}
-	return 0
-}
-
-type BacktestTrade struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	EntryTimeUnix   int64                  `protobuf:"varint,1,opt,name=entry_time_unix,json=entryTimeUnix,proto3" json:"entry_time_unix,omitempty"`
-	ExitTimeUnix    int64                  `protobuf:"varint,2,opt,name=exit_time_unix,json=exitTimeUnix,proto3" json:"exit_time_unix,omitempty"`
-	EntryPriceCents int64                  `protobuf:"varint,3,opt,name=entry_price_cents,json=entryPriceCents,proto3" json:"entry_price_cents,omitempty"`
-	ExitPriceCents  int64                  `protobuf:"varint,4,opt,name=exit_price_cents,json=exitPriceCents,proto3" json:"exit_price_cents,omitempty"`
-	Qty             int64                  `protobuf:"varint,5,opt,name=qty,proto3" json:"qty,omitempty"`
-	PnlCents        int64                  `protobuf:"varint,6,opt,name=pnl_cents,json=pnlCents,proto3" json:"pnl_cents,omitempty"`
-	ReturnPct       float64                `protobuf:"fixed64,7,opt,name=return_pct,json=returnPct,proto3" json:"return_pct,omitempty"`
-	HoldBars        int32                  `protobuf:"varint,8,opt,name=hold_bars,json=holdBars,proto3" json:"hold_bars,omitempty"`
-	ExitReason      string                 `protobuf:"bytes,9,opt,name=exit_reason,json=exitReason,proto3" json:"exit_reason,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *BacktestTrade) Reset() {
-	*x = BacktestTrade{}
-	mi := &file_user_user_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BacktestTrade) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BacktestTrade) ProtoMessage() {}
-
-func (x *BacktestTrade) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BacktestTrade.ProtoReflect.Descriptor instead.
-func (*BacktestTrade) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{32}
-}
-
-func (x *BacktestTrade) GetEntryTimeUnix() int64 {
-	if x != nil {
-		return x.EntryTimeUnix
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetExitTimeUnix() int64 {
-	if x != nil {
-		return x.ExitTimeUnix
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetEntryPriceCents() int64 {
-	if x != nil {
-		return x.EntryPriceCents
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetExitPriceCents() int64 {
-	if x != nil {
-		return x.ExitPriceCents
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetQty() int64 {
-	if x != nil {
-		return x.Qty
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetPnlCents() int64 {
-	if x != nil {
-		return x.PnlCents
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetReturnPct() float64 {
-	if x != nil {
-		return x.ReturnPct
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetHoldBars() int32 {
-	if x != nil {
-		return x.HoldBars
-	}
-	return 0
-}
-
-func (x *BacktestTrade) GetExitReason() string {
-	if x != nil {
-		return x.ExitReason
-	}
-	return ""
-}
-
-type BacktestResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	TotalReturnPct   float64                `protobuf:"fixed64,1,opt,name=total_return_pct,json=totalReturnPct,proto3" json:"total_return_pct,omitempty"`
-	MaxDrawdownPct   float64                `protobuf:"fixed64,2,opt,name=max_drawdown_pct,json=maxDrawdownPct,proto3" json:"max_drawdown_pct,omitempty"`
-	Sharpe           float64                `protobuf:"fixed64,3,opt,name=sharpe,proto3" json:"sharpe,omitempty"`
-	WinRate          float64                `protobuf:"fixed64,4,opt,name=win_rate,json=winRate,proto3" json:"win_rate,omitempty"`
-	ProfitFactor     float64                `protobuf:"fixed64,5,opt,name=profit_factor,json=profitFactor,proto3" json:"profit_factor,omitempty"`
-	NumTrades        int32                  `protobuf:"varint,6,opt,name=num_trades,json=numTrades,proto3" json:"num_trades,omitempty"`
-	AvgHoldBars      float64                `protobuf:"fixed64,7,opt,name=avg_hold_bars,json=avgHoldBars,proto3" json:"avg_hold_bars,omitempty"`
-	FinalEquityCents int64                  `protobuf:"varint,8,opt,name=final_equity_cents,json=finalEquityCents,proto3" json:"final_equity_cents,omitempty"`
-	EquityCurve      []*BacktestEquityPoint `protobuf:"bytes,9,rep,name=equity_curve,json=equityCurve,proto3" json:"equity_curve,omitempty"`
-	Trades           []*BacktestTrade       `protobuf:"bytes,10,rep,name=trades,proto3" json:"trades,omitempty"`
-	BarsUsed         int32                  `protobuf:"varint,11,opt,name=bars_used,json=barsUsed,proto3" json:"bars_used,omitempty"`
-	WarmupBars       int32                  `protobuf:"varint,12,opt,name=warmup_bars,json=warmupBars,proto3" json:"warmup_bars,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *BacktestResponse) Reset() {
-	*x = BacktestResponse{}
-	mi := &file_user_user_proto_msgTypes[33]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BacktestResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BacktestResponse) ProtoMessage() {}
-
-func (x *BacktestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[33]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BacktestResponse.ProtoReflect.Descriptor instead.
-func (*BacktestResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{33}
-}
-
-func (x *BacktestResponse) GetTotalReturnPct() float64 {
-	if x != nil {
-		return x.TotalReturnPct
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetMaxDrawdownPct() float64 {
-	if x != nil {
-		return x.MaxDrawdownPct
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetSharpe() float64 {
-	if x != nil {
-		return x.Sharpe
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetWinRate() float64 {
-	if x != nil {
-		return x.WinRate
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetProfitFactor() float64 {
-	if x != nil {
-		return x.ProfitFactor
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetNumTrades() int32 {
-	if x != nil {
-		return x.NumTrades
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetAvgHoldBars() float64 {
-	if x != nil {
-		return x.AvgHoldBars
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetFinalEquityCents() int64 {
-	if x != nil {
-		return x.FinalEquityCents
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetEquityCurve() []*BacktestEquityPoint {
-	if x != nil {
-		return x.EquityCurve
-	}
-	return nil
-}
-
-func (x *BacktestResponse) GetTrades() []*BacktestTrade {
-	if x != nil {
-		return x.Trades
-	}
-	return nil
-}
-
-func (x *BacktestResponse) GetBarsUsed() int32 {
-	if x != nil {
-		return x.BarsUsed
-	}
-	return 0
-}
-
-func (x *BacktestResponse) GetWarmupBars() int32 {
-	if x != nil {
-		return x.WarmupBars
-	}
-	return 0
-}
-
 type PortfolioResponse struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	CashBalanceCents  int64                  `protobuf:"varint,1,opt,name=cash_balance_cents,json=cashBalanceCents,proto3" json:"cash_balance_cents,omitempty"`
@@ -2236,7 +1240,7 @@ type PortfolioResponse struct {
 
 func (x *PortfolioResponse) Reset() {
 	*x = PortfolioResponse{}
-	mi := &file_user_user_proto_msgTypes[34]
+	mi := &file_user_user_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2248,7 +1252,7 @@ func (x *PortfolioResponse) String() string {
 func (*PortfolioResponse) ProtoMessage() {}
 
 func (x *PortfolioResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[34]
+	mi := &file_user_user_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2261,7 +1265,7 @@ func (x *PortfolioResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PortfolioResponse.ProtoReflect.Descriptor instead.
 func (*PortfolioResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{34}
+	return file_user_user_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *PortfolioResponse) GetCashBalanceCents() int64 {
@@ -2315,7 +1319,7 @@ type Holding struct {
 
 func (x *Holding) Reset() {
 	*x = Holding{}
-	mi := &file_user_user_proto_msgTypes[35]
+	mi := &file_user_user_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2327,7 +1331,7 @@ func (x *Holding) String() string {
 func (*Holding) ProtoMessage() {}
 
 func (x *Holding) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[35]
+	mi := &file_user_user_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2340,7 +1344,7 @@ func (x *Holding) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Holding.ProtoReflect.Descriptor instead.
 func (*Holding) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{35}
+	return file_user_user_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Holding) GetSymbol() string {
@@ -2412,7 +1416,7 @@ type HoldingsResponse struct {
 
 func (x *HoldingsResponse) Reset() {
 	*x = HoldingsResponse{}
-	mi := &file_user_user_proto_msgTypes[36]
+	mi := &file_user_user_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2424,7 +1428,7 @@ func (x *HoldingsResponse) String() string {
 func (*HoldingsResponse) ProtoMessage() {}
 
 func (x *HoldingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[36]
+	mi := &file_user_user_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2437,7 +1441,7 @@ func (x *HoldingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HoldingsResponse.ProtoReflect.Descriptor instead.
 func (*HoldingsResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{36}
+	return file_user_user_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *HoldingsResponse) GetHoldings() []*Holding {
@@ -2489,7 +1493,7 @@ type Position struct {
 
 func (x *Position) Reset() {
 	*x = Position{}
-	mi := &file_user_user_proto_msgTypes[37]
+	mi := &file_user_user_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2501,7 +1505,7 @@ func (x *Position) String() string {
 func (*Position) ProtoMessage() {}
 
 func (x *Position) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[37]
+	mi := &file_user_user_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2514,7 +1518,7 @@ func (x *Position) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Position.ProtoReflect.Descriptor instead.
 func (*Position) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{37}
+	return file_user_user_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *Position) GetSymbol() string {
@@ -2568,7 +1572,7 @@ type PositionsResponse struct {
 
 func (x *PositionsResponse) Reset() {
 	*x = PositionsResponse{}
-	mi := &file_user_user_proto_msgTypes[38]
+	mi := &file_user_user_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2580,7 +1584,7 @@ func (x *PositionsResponse) String() string {
 func (*PositionsResponse) ProtoMessage() {}
 
 func (x *PositionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_user_proto_msgTypes[38]
+	mi := &file_user_user_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2593,7 +1597,7 @@ func (x *PositionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PositionsResponse.ProtoReflect.Descriptor instead.
 func (*PositionsResponse) Descriptor() ([]byte, []int) {
-	return file_user_user_proto_rawDescGZIP(), []int{38}
+	return file_user_user_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PositionsResponse) GetPositions() []*Position {
@@ -2688,106 +1692,7 @@ const file_user_user_proto_rawDesc = "" +
 	"cash_cents\x18\x03 \x01(\x03R\tcashCents\x12,\n" +
 	"\x12market_value_cents\x18\x04 \x01(\x03R\x10marketValueCents\"O\n" +
 	"\x18PortfolioHistoryResponse\x123\n" +
-	"\x06points\x18\x01 \x03(\v2\x1b.user.PortfolioHistoryPointR\x06points\"\xa6\x01\n" +
-	"\bStrategy\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1f\n" +
-	"\vconfig_json\x18\x04 \x01(\tR\n" +
-	"configJson\x12\x1d\n" +
-	"\n" +
-	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"updated_at\x18\x06 \x01(\tR\tupdatedAt\"D\n" +
-	"\x12StrategiesResponse\x12.\n" +
-	"\n" +
-	"strategies\x18\x01 \x03(\v2\x0e.user.StrategyR\n" +
-	"strategies\"e\n" +
-	"\x15CreateStrategyRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
-	"\vconfig_json\x18\x03 \x01(\tR\n" +
-	"configJson\"u\n" +
-	"\x15UpdateStrategyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1f\n" +
-	"\vconfig_json\x18\x04 \x01(\tR\n" +
-	"configJson\"<\n" +
-	"\x11StrategySpecifier\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\"\x99\x01\n" +
-	"\x15DeployStrategyRequest\x12\x1f\n" +
-	"\vstrategy_id\x18\x01 \x01(\tR\n" +
-	"strategyId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06symbol\x18\x03 \x01(\tR\x06symbol\x12.\n" +
-	"\x13position_size_cents\x18\x04 \x01(\x03R\x11positionSizeCents\">\n" +
-	"\x13DeploymentSpecifier\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\"\xf8\x02\n" +
-	"\n" +
-	"Deployment\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
-	"\vstrategy_id\x18\x02 \x01(\tR\n" +
-	"strategyId\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06symbol\x18\x04 \x01(\tR\x06symbol\x12.\n" +
-	"\x13position_size_cents\x18\x05 \x01(\x03R\x11positionSizeCents\x12\x16\n" +
-	"\x06status\x18\x06 \x01(\tR\x06status\x12\x1f\n" +
-	"\vin_position\x18\a \x01(\bR\n" +
-	"inPosition\x12*\n" +
-	"\x11entry_price_cents\x18\b \x01(\x03R\x0fentryPriceCents\x12\x10\n" +
-	"\x03qty\x18\t \x01(\x03R\x03qty\x12#\n" +
-	"\rstrategy_name\x18\n" +
-	" \x01(\tR\fstrategyName\x12\x1d\n" +
-	"\n" +
-	"created_at\x18\v \x01(\tR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"updated_at\x18\f \x01(\tR\tupdatedAt\"I\n" +
-	"\x13DeploymentsResponse\x122\n" +
-	"\vdeployments\x18\x01 \x03(\v2\x10.user.DeploymentR\vdeployments\"\x8d\x02\n" +
-	"\x0fBacktestRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
-	"\vconfig_json\x18\x02 \x01(\tR\n" +
-	"configJson\x12\x16\n" +
-	"\x06symbol\x18\x03 \x01(\tR\x06symbol\x12\x1c\n" +
-	"\ttimeframe\x18\x04 \x01(\tR\ttimeframe\x12\x14\n" +
-	"\x05start\x18\x05 \x01(\tR\x05start\x12\x10\n" +
-	"\x03end\x18\x06 \x01(\tR\x03end\x122\n" +
-	"\x15initial_capital_cents\x18\a \x01(\x03R\x13initialCapitalCents\x12.\n" +
-	"\x13position_size_cents\x18\b \x01(\x03R\x11positionSizeCents\"U\n" +
-	"\x13BacktestEquityPoint\x12\x1b\n" +
-	"\ttime_unix\x18\x01 \x01(\x03R\btimeUnix\x12!\n" +
-	"\fequity_cents\x18\x02 \x01(\x03R\vequityCents\"\xbf\x02\n" +
-	"\rBacktestTrade\x12&\n" +
-	"\x0fentry_time_unix\x18\x01 \x01(\x03R\rentryTimeUnix\x12$\n" +
-	"\x0eexit_time_unix\x18\x02 \x01(\x03R\fexitTimeUnix\x12*\n" +
-	"\x11entry_price_cents\x18\x03 \x01(\x03R\x0fentryPriceCents\x12(\n" +
-	"\x10exit_price_cents\x18\x04 \x01(\x03R\x0eexitPriceCents\x12\x10\n" +
-	"\x03qty\x18\x05 \x01(\x03R\x03qty\x12\x1b\n" +
-	"\tpnl_cents\x18\x06 \x01(\x03R\bpnlCents\x12\x1d\n" +
-	"\n" +
-	"return_pct\x18\a \x01(\x01R\treturnPct\x12\x1b\n" +
-	"\thold_bars\x18\b \x01(\x05R\bholdBars\x12\x1f\n" +
-	"\vexit_reason\x18\t \x01(\tR\n" +
-	"exitReason\"\xd8\x03\n" +
-	"\x10BacktestResponse\x12(\n" +
-	"\x10total_return_pct\x18\x01 \x01(\x01R\x0etotalReturnPct\x12(\n" +
-	"\x10max_drawdown_pct\x18\x02 \x01(\x01R\x0emaxDrawdownPct\x12\x16\n" +
-	"\x06sharpe\x18\x03 \x01(\x01R\x06sharpe\x12\x19\n" +
-	"\bwin_rate\x18\x04 \x01(\x01R\awinRate\x12#\n" +
-	"\rprofit_factor\x18\x05 \x01(\x01R\fprofitFactor\x12\x1d\n" +
-	"\n" +
-	"num_trades\x18\x06 \x01(\x05R\tnumTrades\x12\"\n" +
-	"\ravg_hold_bars\x18\a \x01(\x01R\vavgHoldBars\x12,\n" +
-	"\x12final_equity_cents\x18\b \x01(\x03R\x10finalEquityCents\x12<\n" +
-	"\fequity_curve\x18\t \x03(\v2\x19.user.BacktestEquityPointR\vequityCurve\x12+\n" +
-	"\x06trades\x18\n" +
-	" \x03(\v2\x13.user.BacktestTradeR\x06trades\x12\x1b\n" +
-	"\tbars_used\x18\v \x01(\x05R\bbarsUsed\x12\x1f\n" +
-	"\vwarmup_bars\x18\f \x01(\x05R\n" +
-	"warmupBars\"\xd9\x01\n" +
+	"\x06points\x18\x01 \x03(\v2\x1b.user.PortfolioHistoryPointR\x06points\"\xd9\x01\n" +
 	"\x11PortfolioResponse\x12,\n" +
 	"\x12cash_balance_cents\x18\x01 \x01(\x03R\x10cashBalanceCents\x12.\n" +
 	"\x13reserved_cash_cents\x18\x02 \x01(\x03R\x11reservedCashCents\x12\x1a\n" +
@@ -2844,17 +1749,7 @@ const file_user_user_proto_rawDesc = "" +
 	"\fGetPortfolio\x12\x13.user.UserSpecifier\x1a\x17.user.PortfolioResponse\"\x00\x12<\n" +
 	"\vGetHoldings\x12\x13.user.UserSpecifier\x1a\x16.user.HoldingsResponse\"\x00\x12>\n" +
 	"\fGetPositions\x12\x13.user.UserSpecifier\x1a\x17.user.PositionsResponse\"\x00\x12V\n" +
-	"\x13GetPortfolioHistory\x12\x1d.user.PortfolioHistoryRequest\x1a\x1e.user.PortfolioHistoryResponse\"\x002\xeb\x04\n" +
-	"\x0fStrategyService\x12@\n" +
-	"\rGetStrategies\x12\x13.user.UserSpecifier\x1a\x18.user.StrategiesResponse\"\x00\x12?\n" +
-	"\x0eCreateStrategy\x12\x1b.user.CreateStrategyRequest\x1a\x0e.user.Strategy\"\x00\x12?\n" +
-	"\x0eUpdateStrategy\x12\x1b.user.UpdateStrategyRequest\x1a\x0e.user.Strategy\"\x00\x12C\n" +
-	"\x0eDeleteStrategy\x12\x17.user.StrategySpecifier\x1a\x16.google.protobuf.Empty\"\x00\x12A\n" +
-	"\x0eDeployStrategy\x12\x1b.user.DeployStrategyRequest\x1a\x10.user.Deployment\"\x00\x12?\n" +
-	"\x0eStopDeployment\x12\x19.user.DeploymentSpecifier\x1a\x10.user.Deployment\"\x00\x12G\n" +
-	"\x10DeleteDeployment\x12\x19.user.DeploymentSpecifier\x1a\x16.google.protobuf.Empty\"\x00\x12B\n" +
-	"\x0eGetDeployments\x12\x13.user.UserSpecifier\x1a\x19.user.DeploymentsResponse\"\x00\x12>\n" +
-	"\vRunBacktest\x12\x15.user.BacktestRequest\x1a\x16.user.BacktestResponse\"\x00B7Z5github.com/yash-gadgil/glyph/services/gen/golang/userb\x06proto3"
+	"\x13GetPortfolioHistory\x12\x1d.user.PortfolioHistoryRequest\x1a\x1e.user.PortfolioHistoryResponse\"\x00B7Z5github.com/yash-gadgil/glyph/services/gen/golang/userb\x06proto3"
 
 var (
 	file_user_user_proto_rawDescOnce sync.Once
@@ -2869,7 +1764,7 @@ func file_user_user_proto_rawDescGZIP() []byte {
 }
 
 var file_user_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_user_user_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_user_user_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_user_user_proto_goTypes = []any{
 	(ModifyWatchlistRequest_Action)(0), // 0: user.ModifyWatchlistRequest.Action
 	(*Watchlist)(nil),                  // 1: user.Watchlist
@@ -2893,98 +1788,63 @@ var file_user_user_proto_goTypes = []any{
 	(*PortfolioHistoryRequest)(nil),    // 19: user.PortfolioHistoryRequest
 	(*PortfolioHistoryPoint)(nil),      // 20: user.PortfolioHistoryPoint
 	(*PortfolioHistoryResponse)(nil),   // 21: user.PortfolioHistoryResponse
-	(*Strategy)(nil),                   // 22: user.Strategy
-	(*StrategiesResponse)(nil),         // 23: user.StrategiesResponse
-	(*CreateStrategyRequest)(nil),      // 24: user.CreateStrategyRequest
-	(*UpdateStrategyRequest)(nil),      // 25: user.UpdateStrategyRequest
-	(*StrategySpecifier)(nil),          // 26: user.StrategySpecifier
-	(*DeployStrategyRequest)(nil),      // 27: user.DeployStrategyRequest
-	(*DeploymentSpecifier)(nil),        // 28: user.DeploymentSpecifier
-	(*Deployment)(nil),                 // 29: user.Deployment
-	(*DeploymentsResponse)(nil),        // 30: user.DeploymentsResponse
-	(*BacktestRequest)(nil),            // 31: user.BacktestRequest
-	(*BacktestEquityPoint)(nil),        // 32: user.BacktestEquityPoint
-	(*BacktestTrade)(nil),              // 33: user.BacktestTrade
-	(*BacktestResponse)(nil),           // 34: user.BacktestResponse
-	(*PortfolioResponse)(nil),          // 35: user.PortfolioResponse
-	(*Holding)(nil),                    // 36: user.Holding
-	(*HoldingsResponse)(nil),           // 37: user.HoldingsResponse
-	(*Position)(nil),                   // 38: user.Position
-	(*PositionsResponse)(nil),          // 39: user.PositionsResponse
-	(*emptypb.Empty)(nil),              // 40: google.protobuf.Empty
+	(*PortfolioResponse)(nil),          // 22: user.PortfolioResponse
+	(*Holding)(nil),                    // 23: user.Holding
+	(*HoldingsResponse)(nil),           // 24: user.HoldingsResponse
+	(*Position)(nil),                   // 25: user.Position
+	(*PositionsResponse)(nil),          // 26: user.PositionsResponse
+	(*emptypb.Empty)(nil),              // 27: google.protobuf.Empty
 }
 var file_user_user_proto_depIdxs = []int32{
 	2,  // 0: user.WatchlistsResponse.w_metadata:type_name -> user.WatchlistMetadata
 	1,  // 1: user.WatchlistsResponse.first:type_name -> user.Watchlist
 	0,  // 2: user.ModifyWatchlistRequest.action:type_name -> user.ModifyWatchlistRequest.Action
 	20, // 3: user.PortfolioHistoryResponse.points:type_name -> user.PortfolioHistoryPoint
-	22, // 4: user.StrategiesResponse.strategies:type_name -> user.Strategy
-	29, // 5: user.DeploymentsResponse.deployments:type_name -> user.Deployment
-	32, // 6: user.BacktestResponse.equity_curve:type_name -> user.BacktestEquityPoint
-	33, // 7: user.BacktestResponse.trades:type_name -> user.BacktestTrade
-	36, // 8: user.HoldingsResponse.holdings:type_name -> user.Holding
-	38, // 9: user.PositionsResponse.positions:type_name -> user.Position
-	3,  // 10: user.WatchlistService.GetWatchlists:input_type -> user.UserSpecifier
-	7,  // 11: user.WatchlistService.GetWatchlist:input_type -> user.WatchlistSpecifier
-	5,  // 12: user.WatchlistService.CreateWatchlist:input_type -> user.CreateWatchlistRequest
-	6,  // 13: user.WatchlistService.ModifyWatchlist:input_type -> user.ModifyWatchlistRequest
-	7,  // 14: user.WatchlistService.DeleteWatchlist:input_type -> user.WatchlistSpecifier
-	8,  // 15: user.WatchlistService.DeleteSymbolFromWatchlist:input_type -> user.DeleteSymbolRequest
-	14, // 16: user.AccountService.SignupUser:input_type -> user.SignupUserInfo
-	15, // 17: user.AccountService.SigninUser:input_type -> user.SigninUserInfo
-	16, // 18: user.AccountService.CheckEmailAvailability:input_type -> user.CheckEmailRequest
-	18, // 19: user.AccountService.UpdatePasswordByEmail:input_type -> user.UpdatePasswordRequest
-	3,  // 20: user.AccountService.GetProfile:input_type -> user.UserSpecifier
-	10, // 21: user.AccountService.AddFunds:input_type -> user.AddFundsRequest
-	3,  // 22: user.AccountService.ResetAccount:input_type -> user.UserSpecifier
-	12, // 23: user.AccountService.ReserveForOrder:input_type -> user.ReserveForOrderRequest
-	13, // 24: user.AccountService.ReleaseForOrder:input_type -> user.ReleaseForOrderRequest
-	3,  // 25: user.PortfolioService.GetPortfolio:input_type -> user.UserSpecifier
-	3,  // 26: user.PortfolioService.GetHoldings:input_type -> user.UserSpecifier
-	3,  // 27: user.PortfolioService.GetPositions:input_type -> user.UserSpecifier
-	19, // 28: user.PortfolioService.GetPortfolioHistory:input_type -> user.PortfolioHistoryRequest
-	3,  // 29: user.StrategyService.GetStrategies:input_type -> user.UserSpecifier
-	24, // 30: user.StrategyService.CreateStrategy:input_type -> user.CreateStrategyRequest
-	25, // 31: user.StrategyService.UpdateStrategy:input_type -> user.UpdateStrategyRequest
-	26, // 32: user.StrategyService.DeleteStrategy:input_type -> user.StrategySpecifier
-	27, // 33: user.StrategyService.DeployStrategy:input_type -> user.DeployStrategyRequest
-	28, // 34: user.StrategyService.StopDeployment:input_type -> user.DeploymentSpecifier
-	28, // 35: user.StrategyService.DeleteDeployment:input_type -> user.DeploymentSpecifier
-	3,  // 36: user.StrategyService.GetDeployments:input_type -> user.UserSpecifier
-	31, // 37: user.StrategyService.RunBacktest:input_type -> user.BacktestRequest
-	4,  // 38: user.WatchlistService.GetWatchlists:output_type -> user.WatchlistsResponse
-	1,  // 39: user.WatchlistService.GetWatchlist:output_type -> user.Watchlist
-	7,  // 40: user.WatchlistService.CreateWatchlist:output_type -> user.WatchlistSpecifier
-	40, // 41: user.WatchlistService.ModifyWatchlist:output_type -> google.protobuf.Empty
-	40, // 42: user.WatchlistService.DeleteWatchlist:output_type -> google.protobuf.Empty
-	40, // 43: user.WatchlistService.DeleteSymbolFromWatchlist:output_type -> google.protobuf.Empty
-	3,  // 44: user.AccountService.SignupUser:output_type -> user.UserSpecifier
-	3,  // 45: user.AccountService.SigninUser:output_type -> user.UserSpecifier
-	17, // 46: user.AccountService.CheckEmailAvailability:output_type -> user.CheckEmailResponse
-	40, // 47: user.AccountService.UpdatePasswordByEmail:output_type -> google.protobuf.Empty
-	9,  // 48: user.AccountService.GetProfile:output_type -> user.Profile
-	11, // 49: user.AccountService.AddFunds:output_type -> user.AddFundsResponse
-	40, // 50: user.AccountService.ResetAccount:output_type -> google.protobuf.Empty
-	40, // 51: user.AccountService.ReserveForOrder:output_type -> google.protobuf.Empty
-	40, // 52: user.AccountService.ReleaseForOrder:output_type -> google.protobuf.Empty
-	35, // 53: user.PortfolioService.GetPortfolio:output_type -> user.PortfolioResponse
-	37, // 54: user.PortfolioService.GetHoldings:output_type -> user.HoldingsResponse
-	39, // 55: user.PortfolioService.GetPositions:output_type -> user.PositionsResponse
-	21, // 56: user.PortfolioService.GetPortfolioHistory:output_type -> user.PortfolioHistoryResponse
-	23, // 57: user.StrategyService.GetStrategies:output_type -> user.StrategiesResponse
-	22, // 58: user.StrategyService.CreateStrategy:output_type -> user.Strategy
-	22, // 59: user.StrategyService.UpdateStrategy:output_type -> user.Strategy
-	40, // 60: user.StrategyService.DeleteStrategy:output_type -> google.protobuf.Empty
-	29, // 61: user.StrategyService.DeployStrategy:output_type -> user.Deployment
-	29, // 62: user.StrategyService.StopDeployment:output_type -> user.Deployment
-	40, // 63: user.StrategyService.DeleteDeployment:output_type -> google.protobuf.Empty
-	30, // 64: user.StrategyService.GetDeployments:output_type -> user.DeploymentsResponse
-	34, // 65: user.StrategyService.RunBacktest:output_type -> user.BacktestResponse
-	38, // [38:66] is the sub-list for method output_type
-	10, // [10:38] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	23, // 4: user.HoldingsResponse.holdings:type_name -> user.Holding
+	25, // 5: user.PositionsResponse.positions:type_name -> user.Position
+	3,  // 6: user.WatchlistService.GetWatchlists:input_type -> user.UserSpecifier
+	7,  // 7: user.WatchlistService.GetWatchlist:input_type -> user.WatchlistSpecifier
+	5,  // 8: user.WatchlistService.CreateWatchlist:input_type -> user.CreateWatchlistRequest
+	6,  // 9: user.WatchlistService.ModifyWatchlist:input_type -> user.ModifyWatchlistRequest
+	7,  // 10: user.WatchlistService.DeleteWatchlist:input_type -> user.WatchlistSpecifier
+	8,  // 11: user.WatchlistService.DeleteSymbolFromWatchlist:input_type -> user.DeleteSymbolRequest
+	14, // 12: user.AccountService.SignupUser:input_type -> user.SignupUserInfo
+	15, // 13: user.AccountService.SigninUser:input_type -> user.SigninUserInfo
+	16, // 14: user.AccountService.CheckEmailAvailability:input_type -> user.CheckEmailRequest
+	18, // 15: user.AccountService.UpdatePasswordByEmail:input_type -> user.UpdatePasswordRequest
+	3,  // 16: user.AccountService.GetProfile:input_type -> user.UserSpecifier
+	10, // 17: user.AccountService.AddFunds:input_type -> user.AddFundsRequest
+	3,  // 18: user.AccountService.ResetAccount:input_type -> user.UserSpecifier
+	12, // 19: user.AccountService.ReserveForOrder:input_type -> user.ReserveForOrderRequest
+	13, // 20: user.AccountService.ReleaseForOrder:input_type -> user.ReleaseForOrderRequest
+	3,  // 21: user.PortfolioService.GetPortfolio:input_type -> user.UserSpecifier
+	3,  // 22: user.PortfolioService.GetHoldings:input_type -> user.UserSpecifier
+	3,  // 23: user.PortfolioService.GetPositions:input_type -> user.UserSpecifier
+	19, // 24: user.PortfolioService.GetPortfolioHistory:input_type -> user.PortfolioHistoryRequest
+	4,  // 25: user.WatchlistService.GetWatchlists:output_type -> user.WatchlistsResponse
+	1,  // 26: user.WatchlistService.GetWatchlist:output_type -> user.Watchlist
+	7,  // 27: user.WatchlistService.CreateWatchlist:output_type -> user.WatchlistSpecifier
+	27, // 28: user.WatchlistService.ModifyWatchlist:output_type -> google.protobuf.Empty
+	27, // 29: user.WatchlistService.DeleteWatchlist:output_type -> google.protobuf.Empty
+	27, // 30: user.WatchlistService.DeleteSymbolFromWatchlist:output_type -> google.protobuf.Empty
+	3,  // 31: user.AccountService.SignupUser:output_type -> user.UserSpecifier
+	3,  // 32: user.AccountService.SigninUser:output_type -> user.UserSpecifier
+	17, // 33: user.AccountService.CheckEmailAvailability:output_type -> user.CheckEmailResponse
+	27, // 34: user.AccountService.UpdatePasswordByEmail:output_type -> google.protobuf.Empty
+	9,  // 35: user.AccountService.GetProfile:output_type -> user.Profile
+	11, // 36: user.AccountService.AddFunds:output_type -> user.AddFundsResponse
+	27, // 37: user.AccountService.ResetAccount:output_type -> google.protobuf.Empty
+	27, // 38: user.AccountService.ReserveForOrder:output_type -> google.protobuf.Empty
+	27, // 39: user.AccountService.ReleaseForOrder:output_type -> google.protobuf.Empty
+	22, // 40: user.PortfolioService.GetPortfolio:output_type -> user.PortfolioResponse
+	24, // 41: user.PortfolioService.GetHoldings:output_type -> user.HoldingsResponse
+	26, // 42: user.PortfolioService.GetPositions:output_type -> user.PositionsResponse
+	21, // 43: user.PortfolioService.GetPortfolioHistory:output_type -> user.PortfolioHistoryResponse
+	25, // [25:44] is the sub-list for method output_type
+	6,  // [6:25] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_user_user_proto_init() }
@@ -3001,9 +1861,9 @@ func file_user_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_user_proto_rawDesc), len(file_user_user_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   39,
+			NumMessages:   26,
 			NumExtensions: 0,
-			NumServices:   4,
+			NumServices:   3,
 		},
 		GoTypes:           file_user_user_proto_goTypes,
 		DependencyIndexes: file_user_user_proto_depIdxs,

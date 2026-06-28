@@ -136,18 +136,6 @@ service PortfolioService {
     rpc GetPortfolioHistory(PortfolioHistoryRequest) returns (PortfolioHistoryResponse) {}
 }
 
-service StrategyService {
-    rpc GetStrategies(UserSpecifier) returns (StrategiesResponse) {}
-    rpc CreateStrategy(CreateStrategyRequest) returns (Strategy) {}
-    rpc UpdateStrategy(UpdateStrategyRequest) returns (Strategy) {}
-    rpc DeleteStrategy(StrategySpecifier) returns (google.protobuf.Empty) {}
-    rpc DeployStrategy(DeployStrategyRequest) returns (Deployment) {}
-    rpc StopDeployment(DeploymentSpecifier) returns (Deployment) {}
-    rpc DeleteDeployment(DeploymentSpecifier) returns (google.protobuf.Empty) {}
-    rpc GetDeployments(UserSpecifier) returns (DeploymentsResponse) {}
-    rpc RunBacktest(BacktestRequest) returns (BacktestResponse) {}
-}
-
 message PortfolioHistoryRequest {
     string user_id = 1;
     int32 hours = 2;
@@ -162,111 +150,6 @@ message PortfolioHistoryPoint {
 
 message PortfolioHistoryResponse {
     repeated PortfolioHistoryPoint points = 1;
-}
-
-message Strategy {
-    string id = 1;
-    string user_id = 2;
-    string name = 3;
-    string config_json = 4;
-    string created_at = 5;
-    string updated_at = 6;
-}
-
-message StrategiesResponse {
-    repeated Strategy strategies = 1;
-}
-
-message CreateStrategyRequest {
-    string user_id = 1;
-    string name = 2;
-    string config_json = 3;
-}
-
-message UpdateStrategyRequest {
-    string id = 1;
-    string user_id = 2;
-    string name = 3;
-    string config_json = 4;
-}
-
-message StrategySpecifier {
-    string id = 1;
-    string user_id = 2;
-}
-
-message DeployStrategyRequest {
-    string strategy_id = 1;
-    string user_id = 2;
-    string symbol = 3;
-    int64 position_size_cents = 4;
-}
-
-message DeploymentSpecifier {
-    string id = 1;
-    string user_id = 2;
-}
-
-message Deployment {
-    string id = 1;
-    string strategy_id = 2;
-    string user_id = 3;
-    string symbol = 4;
-    int64 position_size_cents = 5;
-    string status = 6;
-    bool in_position = 7;
-    int64 entry_price_cents = 8;
-    int64 qty = 9;
-    string strategy_name = 10;
-    string created_at = 11;
-    string updated_at = 12;
-}
-
-message DeploymentsResponse {
-    repeated Deployment deployments = 1;
-}
-
-message BacktestRequest {
-    string user_id = 1;
-    string config_json = 2;
-    string symbol = 3;
-    string timeframe = 4;
-    string start = 5;
-    string end = 6;
-    int64 initial_capital_cents = 7;
-    int64 position_size_cents = 8;
-}
-
-message BacktestEquityPoint {
-    int64 time_unix = 1;
-    int64 equity_cents = 2;
-}
-
-message BacktestTrade {
-    int64 entry_time_unix = 1;
-    int64 exit_time_unix = 2;
-    int64 entry_price_cents = 3;
-    int64 exit_price_cents = 4;
-    int64 qty = 5;
-    int64 pnl_cents = 6;
-    double return_pct = 7;
-    int32 hold_bars = 8;
-    string exit_reason = 9;
-}
-
-message BacktestResponse {
-    double total_return_pct = 1;
-    double max_drawdown_pct = 2;
-    double sharpe = 3;
-    double win_rate = 4;
-    double profit_factor = 5;
-    int32 num_trades = 6;
-    double avg_hold_bars = 7;
-    int64 final_equity_cents = 8;
-    repeated BacktestEquityPoint equity_curve = 9;
-    repeated BacktestTrade trades = 10;
-    int32 bars_used = 11;
-    int32 warmup_bars = 12;
 }
 
 message PortfolioResponse {
