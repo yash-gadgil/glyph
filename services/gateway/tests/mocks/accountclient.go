@@ -69,6 +69,14 @@ func (m *MockAccountClient) ResetAccount(ctx context.Context, req *userpb.UserSp
 	return args.Get(0).(*emptypb.Empty), args.Error(1)
 }
 
+func (m *MockAccountClient) DeleteAccount(ctx context.Context, req *userpb.UserSpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*emptypb.Empty), args.Error(1)
+}
+
 func (m *MockAccountClient) ReserveForOrder(ctx context.Context, req *userpb.ReserveForOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {

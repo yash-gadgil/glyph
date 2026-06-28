@@ -19,6 +19,7 @@ func (cfg *Config) LoadAccountRoutes(r chi.Router) {
 	r.Use(cfg.AuthMiddleware)
 
 	r.Get("/", cfg.GetAccount)
+	r.Delete("/", cfg.DeleteAccount)
 	r.Post("/reset", cfg.ResetAccount)
 	r.Get("/profile", cfg.GetProfile)
 	r.Get("/trades", cfg.GetTrades)
@@ -103,6 +104,35 @@ func (cfg *Config) ResetAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("account_reset", logger.KV("user_id", userID))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"success": true})
+}
+
+func (cfg *Config) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	log := logger.WithContextFields(r.Context(), cfg.log).With(logger.Action("delete_account"))
+
+	userID, ok := r.Context().Value(userIDKey).(string)
+	if !ok || userID == "" {
+		utils.ReturnErrorJSON(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	if cfg.accountClient == nil {
+		utils.ReturnErrorJSON(w, "Account service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	if _, err := cfg.accountClient.DeleteAccount(ctx, &userpb.UserSpecifier{UserId: userID}); err != nil {
+		log.Error("delete_account_error", zap.Error(err))
+		utils.ReturnErrorJSON(w, "Unable to delete account", statusFromGrpc(err, http.StatusInternalServerError))
+		return
+	}
+
+	log.Info("account_deleted", logger.KV("user_id", userID))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"success": true})
