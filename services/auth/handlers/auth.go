@@ -176,6 +176,16 @@ func (s *AuthHandler) RefreshToken(ctx context.Context, req *authpb.RefreshToken
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid refresh token")
 	}
+
+	if s.userClient != nil {
+		if _, err := s.userClient.GetProfile(ctx, &userpb.UserSpecifier{UserId: userID}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, status.Error(codes.Unauthenticated, "user no longer exists")
+			}
+			s.log.Warn("refresh_user_check_failed", zap.String("user_id", userID), zap.Error(err))
+		}
+	}
+
 	return s.issueTokens(userID, time.Hour, 30*24*time.Hour)
 }
 

@@ -47,6 +47,17 @@ func (m *mockAccountClient) UpdatePasswordByEmail(ctx context.Context, in *userp
 	return args.Get(0).(*emptypb.Empty), args.Error(1)
 }
 
+func (m *mockAccountClient) GetProfile(ctx context.Context, in *userpb.UserSpecifier, opts ...grpc.CallOption) (*userpb.Profile, error) {
+	for _, c := range m.ExpectedCalls {
+		if c.Method == "GetProfile" {
+			args := m.Called(ctx, in)
+			profile, _ := args.Get(0).(*userpb.Profile)
+			return profile, args.Error(1)
+		}
+	}
+	return &userpb.Profile{UserId: in.UserId}, nil
+}
+
 func newAuthHandler(t *testing.T) (*AuthHandler, *mockAccountClient, *miniredis.Miniredis) {
 	t.Helper()
 	mr := miniredis.RunT(t)
@@ -172,6 +183,18 @@ func TestRefreshTokenRotates(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.AccessToken)
 	assert.NotEmpty(t, resp.RefreshToken)
+}
+
+func TestRefreshTokenRejectsDeletedUser(t *testing.T) {
+	h, client, _ := newAuthHandler(t)
+	client.On("GetProfile", mock.Anything, mock.Anything).
+		Return(nil, status.Error(codes.NotFound, "user not found"))
+
+	refresh, err := utils.CreateToken("user-1", time.Now().Add(24*time.Hour), h.keyStore.GetCurrentKey())
+	require.NoError(t, err)
+
+	_, err = h.RefreshToken(context.Background(), &authpb.RefreshTokenRequest{RefreshToken: refresh})
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 }
 
 func TestRefreshTokenInvalid(t *testing.T) {
