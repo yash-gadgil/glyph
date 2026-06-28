@@ -16,3 +16,5 @@ data:
   MRKTDATA_SVC_PORT: "mrktdata:50052"
 
   ORDER_SVC_PORT: "order:50055"
+
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq.glyph.svc.cluster.local:5672/%2f"

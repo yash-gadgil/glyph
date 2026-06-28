@@ -21,3 +21,7 @@ RETURNING *;
 -- name: DeleteStrategy :exec
 DELETE FROM strategies
 WHERE id = $1 AND user_id = $2;
+
+-- name: DeleteStrategiesForUser :execrows
+DELETE FROM strategies
+WHERE user_id = $1;

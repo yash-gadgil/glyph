@@ -38,6 +38,19 @@ func (q *Queries) CreateStrategy(ctx context.Context, arg CreateStrategyParams) 
 	return i, err
 }
 
+const deleteStrategiesForUser = `-- name: DeleteStrategiesForUser :execrows
+DELETE FROM strategies
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteStrategiesForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteStrategiesForUser, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteStrategy = `-- name: DeleteStrategy :exec
 DELETE FROM strategies
 WHERE id = $1 AND user_id = $2
