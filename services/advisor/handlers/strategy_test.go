@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
-	se "github.com/yash-gadgil/glyph/services/user/strategyengine"
+	se "github.com/yash-gadgil/glyph/services/strategy/engine"
 	"go.uber.org/zap"
 )
 

@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/services/gateway/server/utils"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +36,7 @@ type strategyJSON struct {
 	UpdatedAt  string `json:"updated_at"`
 }
 
-func strategyToJSON(s *userpb.Strategy) strategyJSON {
+func strategyToJSON(s *strategypb.Strategy) strategyJSON {
 	return strategyJSON{
 		ID:         s.Id,
 		Name:       s.Name,
@@ -63,7 +63,7 @@ func (cfg *Config) GetStrategies(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	resp, err := cfg.strategyClient.GetStrategies(ctx, &userpb.UserSpecifier{UserId: userID})
+	resp, err := cfg.strategyClient.GetStrategies(ctx, &strategypb.UserSpecifier{UserId: userID})
 	if err != nil {
 		log.Error("strategies_fetch_error", zap.Error(err))
 		utils.ReturnErrorJSON(w, "Unable to fetch strategies", http.StatusInternalServerError)
@@ -109,7 +109,7 @@ func (cfg *Config) CreateStrategy(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	resp, err := cfg.strategyClient.CreateStrategy(ctx, &userpb.CreateStrategyRequest{
+	resp, err := cfg.strategyClient.CreateStrategy(ctx, &strategypb.CreateStrategyRequest{
 		UserId:     userID,
 		Name:       body.Name,
 		ConfigJson: string(body.ConfigJSON),
@@ -157,7 +157,7 @@ func (cfg *Config) UpdateStrategy(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	resp, err := cfg.strategyClient.UpdateStrategy(ctx, &userpb.UpdateStrategyRequest{
+	resp, err := cfg.strategyClient.UpdateStrategy(ctx, &strategypb.UpdateStrategyRequest{
 		Id:         strategyID,
 		UserId:     userID,
 		Name:       body.Name,
@@ -196,7 +196,7 @@ func (cfg *Config) DeleteStrategy(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	if _, err := cfg.strategyClient.DeleteStrategy(ctx, &userpb.StrategySpecifier{
+	if _, err := cfg.strategyClient.DeleteStrategy(ctx, &strategypb.StrategySpecifier{
 		Id:     strategyID,
 		UserId: userID,
 	}); err != nil {

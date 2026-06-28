@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/stretchr/testify/mock"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -13,31 +13,31 @@ type MockStrategyClient struct {
 	mock.Mock
 }
 
-func (m *MockStrategyClient) GetStrategies(ctx context.Context, req *userpb.UserSpecifier, opts ...grpc.CallOption) (*userpb.StrategiesResponse, error) {
+func (m *MockStrategyClient) GetStrategies(ctx context.Context, req *strategypb.UserSpecifier, opts ...grpc.CallOption) (*strategypb.StrategiesResponse, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*userpb.StrategiesResponse), args.Error(1)
+	return args.Get(0).(*strategypb.StrategiesResponse), args.Error(1)
 }
 
-func (m *MockStrategyClient) CreateStrategy(ctx context.Context, req *userpb.CreateStrategyRequest, opts ...grpc.CallOption) (*userpb.Strategy, error) {
+func (m *MockStrategyClient) CreateStrategy(ctx context.Context, req *strategypb.CreateStrategyRequest, opts ...grpc.CallOption) (*strategypb.Strategy, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*userpb.Strategy), args.Error(1)
+	return args.Get(0).(*strategypb.Strategy), args.Error(1)
 }
 
-func (m *MockStrategyClient) UpdateStrategy(ctx context.Context, req *userpb.UpdateStrategyRequest, opts ...grpc.CallOption) (*userpb.Strategy, error) {
+func (m *MockStrategyClient) UpdateStrategy(ctx context.Context, req *strategypb.UpdateStrategyRequest, opts ...grpc.CallOption) (*strategypb.Strategy, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*userpb.Strategy), args.Error(1)
+	return args.Get(0).(*strategypb.Strategy), args.Error(1)
 }
 
-func (m *MockStrategyClient) DeleteStrategy(ctx context.Context, req *userpb.StrategySpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (m *MockStrategyClient) DeleteStrategy(ctx context.Context, req *strategypb.StrategySpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -45,23 +45,23 @@ func (m *MockStrategyClient) DeleteStrategy(ctx context.Context, req *userpb.Str
 	return args.Get(0).(*emptypb.Empty), args.Error(1)
 }
 
-func (m *MockStrategyClient) DeployStrategy(ctx context.Context, req *userpb.DeployStrategyRequest, opts ...grpc.CallOption) (*userpb.Deployment, error) {
+func (m *MockStrategyClient) DeployStrategy(ctx context.Context, req *strategypb.DeployStrategyRequest, opts ...grpc.CallOption) (*strategypb.Deployment, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*userpb.Deployment), args.Error(1)
+	return args.Get(0).(*strategypb.Deployment), args.Error(1)
 }
 
-func (m *MockStrategyClient) StopDeployment(ctx context.Context, req *userpb.DeploymentSpecifier, opts ...grpc.CallOption) (*userpb.Deployment, error) {
+func (m *MockStrategyClient) StopDeployment(ctx context.Context, req *strategypb.DeploymentSpecifier, opts ...grpc.CallOption) (*strategypb.Deployment, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*userpb.Deployment), args.Error(1)
+	return args.Get(0).(*strategypb.Deployment), args.Error(1)
 }
 
-func (m *MockStrategyClient) DeleteDeployment(ctx context.Context, req *userpb.DeploymentSpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (m *MockStrategyClient) DeleteDeployment(ctx context.Context, req *strategypb.DeploymentSpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -69,18 +69,18 @@ func (m *MockStrategyClient) DeleteDeployment(ctx context.Context, req *userpb.D
 	return args.Get(0).(*emptypb.Empty), args.Error(1)
 }
 
-func (m *MockStrategyClient) GetDeployments(ctx context.Context, req *userpb.UserSpecifier, opts ...grpc.CallOption) (*userpb.DeploymentsResponse, error) {
+func (m *MockStrategyClient) GetDeployments(ctx context.Context, req *strategypb.UserSpecifier, opts ...grpc.CallOption) (*strategypb.DeploymentsResponse, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*userpb.DeploymentsResponse), args.Error(1)
+	return args.Get(0).(*strategypb.DeploymentsResponse), args.Error(1)
 }
 
-func (m *MockStrategyClient) RunBacktest(ctx context.Context, req *userpb.BacktestRequest, opts ...grpc.CallOption) (*userpb.BacktestResponse, error) {
+func (m *MockStrategyClient) RunBacktest(ctx context.Context, req *strategypb.BacktestRequest, opts ...grpc.CallOption) (*strategypb.BacktestResponse, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*userpb.BacktestResponse), args.Error(1)
+	return args.Get(0).(*strategypb.BacktestResponse), args.Error(1)
 }

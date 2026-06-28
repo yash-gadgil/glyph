@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/yash-gadgil/glyph/services/gateway/server/handlers"
 	"github.com/yash-gadgil/glyph/services/gateway/tests/mocks"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -32,9 +32,9 @@ func withURLParam(r *http.Request, key, val string) *http.Request {
 
 func TestGetStrategiesReturnsList(t *testing.T) {
 	strategy := new(mocks.MockStrategyClient)
-	strategy.On("GetStrategies", mock.Anything, &userpb.UserSpecifier{UserId: "user-1"}).
-		Return(&userpb.StrategiesResponse{
-			Strategies: []*userpb.Strategy{{Id: "s1", Name: "SMA cross"}},
+	strategy.On("GetStrategies", mock.Anything, &strategypb.UserSpecifier{UserId: "user-1"}).
+		Return(&strategypb.StrategiesResponse{
+			Strategies: []*strategypb.Strategy{{Id: "s1", Name: "SMA cross"}},
 		}, nil)
 
 	cfg := strategyConfig(strategy)
@@ -68,7 +68,7 @@ func TestCreateStrategyRequiresConfig(t *testing.T) {
 func TestCreateStrategySuccess(t *testing.T) {
 	strategy := new(mocks.MockStrategyClient)
 	strategy.On("CreateStrategy", mock.Anything, mock.Anything).
-		Return(&userpb.Strategy{Id: "s1", Name: "SMA"}, nil)
+		Return(&strategypb.Strategy{Id: "s1", Name: "SMA"}, nil)
 
 	cfg := strategyConfig(strategy)
 	body, _ := json.Marshal(map[string]any{"name": "SMA", "config_json": map[string]any{"k": 1}})

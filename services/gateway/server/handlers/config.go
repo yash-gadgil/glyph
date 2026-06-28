@@ -10,6 +10,7 @@ import (
 	authpb "github.com/yash-gadgil/glyph/services/gen/golang/auth"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	ordrpb "github.com/yash-gadgil/glyph/services/gen/golang/order"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -22,7 +23,9 @@ type Config struct {
 	accountClient   userpb.AccountServiceClient
 	watchlistClient userpb.WatchlistServiceClient
 	portfolioClient userpb.PortfolioServiceClient
-	strategyClient  userpb.StrategyServiceClient
+
+	strategyConn   *grpc.ClientConn
+	strategyClient strategypb.StrategyServiceClient
 
 	authConn   *grpc.ClientConn
 	AuthClient authpb.AuthServiceClient
@@ -57,7 +60,6 @@ func NewFromEnv() *Config {
 			cfg.accountClient = userpb.NewAccountServiceClient(conn)
 			cfg.watchlistClient = userpb.NewWatchlistServiceClient(conn)
 			cfg.portfolioClient = userpb.NewPortfolioServiceClient(conn)
-			cfg.strategyClient = userpb.NewStrategyServiceClient(conn)
 		}
 	}
 
@@ -106,6 +108,18 @@ func NewFromEnv() *Config {
 		cfg.log.Warn("advisor_service_unconfigured", zap.String("reason", "ADVISOR_SVC_PORT not set"))
 	}
 
+	if v := os.Getenv("STRATEGY_SVC_PORT"); v != "" {
+		conn, err := utils.GetGrpcClient(v)
+		if err != nil {
+			cfg.log.Error("strategy_service_dial_failed", zap.String("addr", v), zap.Error(err))
+		} else {
+			cfg.strategyConn = conn
+			cfg.strategyClient = strategypb.NewStrategyServiceClient(conn)
+		}
+	} else {
+		cfg.log.Warn("strategy_service_unconfigured", zap.String("reason", "STRATEGY_SVC_PORT not set"))
+	}
+
 	return cfg
 }
 
@@ -148,7 +162,7 @@ func (cfg *Config) WithMrktdataClient(c mrktpb.MrktdataServiceClient) *Config {
 	return cfg
 }
 
-func (cfg *Config) WithStrategyClient(c userpb.StrategyServiceClient) *Config {
+func (cfg *Config) WithStrategyClient(c strategypb.StrategyServiceClient) *Config {
 	cfg.strategyClient = c
 	return cfg
 }
@@ -160,7 +174,7 @@ func (cfg *Config) WithAdvisorClient(c advisorpb.AdvisorServiceClient) *Config {
 
 func (cfg *Config) Close() error {
 	var errs []error
-	for _, conn := range []*grpc.ClientConn{cfg.userConn, cfg.authConn, cfg.mrktdataConn, cfg.orderConn, cfg.advisorConn} {
+	for _, conn := range []*grpc.ClientConn{cfg.userConn, cfg.authConn, cfg.mrktdataConn, cfg.orderConn, cfg.advisorConn, cfg.strategyConn} {
 		if conn != nil {
 			if err := conn.Close(); err != nil {
 				errs = append(errs, err)

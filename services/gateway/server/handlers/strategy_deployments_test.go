@@ -12,16 +12,16 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/yash-gadgil/glyph/services/gateway/server/handlers"
 	"github.com/yash-gadgil/glyph/services/gateway/tests/mocks"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 func TestDeployStrategyCreated(t *testing.T) {
 	strategy := new(mocks.MockStrategyClient)
-	strategy.On("DeployStrategy", mock.Anything, mock.MatchedBy(func(req *userpb.DeployStrategyRequest) bool {
+	strategy.On("DeployStrategy", mock.Anything, mock.MatchedBy(func(req *strategypb.DeployStrategyRequest) bool {
 		return req.StrategyId == "s1" && req.Symbol == "AAPL"
-	})).Return(&userpb.Deployment{Id: "d1", StrategyId: "s1", Symbol: "AAPL", Status: "RUNNING"}, nil)
+	})).Return(&strategypb.Deployment{Id: "d1", StrategyId: "s1", Symbol: "AAPL", Status: "RUNNING"}, nil)
 
 	cfg := strategyConfig(strategy)
 	body, _ := json.Marshal(map[string]any{"symbol": "AAPL", "position_size_cents": 1_000_000})
@@ -36,9 +36,9 @@ func TestDeployStrategyCreated(t *testing.T) {
 
 func TestGetDeploymentsReturnsList(t *testing.T) {
 	strategy := new(mocks.MockStrategyClient)
-	strategy.On("GetDeployments", mock.Anything, &userpb.UserSpecifier{UserId: "user-1"}).
-		Return(&userpb.DeploymentsResponse{
-			Deployments: []*userpb.Deployment{{Id: "d1", Symbol: "AAPL"}},
+	strategy.On("GetDeployments", mock.Anything, &strategypb.UserSpecifier{UserId: "user-1"}).
+		Return(&strategypb.DeploymentsResponse{
+			Deployments: []*strategypb.Deployment{{Id: "d1", Symbol: "AAPL"}},
 		}, nil)
 
 	cfg := strategyConfig(strategy)
@@ -69,9 +69,9 @@ func TestBacktestRequiresSymbol(t *testing.T) {
 
 func TestBacktestSuccessAppliesDefaults(t *testing.T) {
 	strategy := new(mocks.MockStrategyClient)
-	strategy.On("RunBacktest", mock.Anything, mock.MatchedBy(func(req *userpb.BacktestRequest) bool {
+	strategy.On("RunBacktest", mock.Anything, mock.MatchedBy(func(req *strategypb.BacktestRequest) bool {
 		return req.Timeframe == "DAY" && req.InitialCapitalCents == 10_000_000 && req.Start != "" && req.End != ""
-	})).Return(&userpb.BacktestResponse{NumTrades: 3}, nil)
+	})).Return(&strategypb.BacktestResponse{NumTrades: 3}, nil)
 
 	cfg := strategyConfig(strategy)
 	body, _ := json.Marshal(map[string]any{"config_json": map[string]any{"k": 1}, "symbol": "AAPL"})

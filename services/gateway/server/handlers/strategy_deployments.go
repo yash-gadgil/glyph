@@ -11,7 +11,7 @@ import (
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/services/gateway/server/utils"
 	ordrpb "github.com/yash-gadgil/glyph/services/gen/golang/order"
-	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,7 +31,7 @@ type deploymentJSON struct {
 	UpdatedAt         string `json:"updated_at"`
 }
 
-func deploymentToJSON(d *userpb.Deployment) deploymentJSON {
+func deploymentToJSON(d *strategypb.Deployment) deploymentJSON {
 	return deploymentJSON{
 		ID:                d.Id,
 		StrategyID:        d.StrategyId,
@@ -74,7 +74,7 @@ func (cfg *Config) DeployStrategy(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	resp, err := cfg.strategyClient.DeployStrategy(ctx, &userpb.DeployStrategyRequest{
+	resp, err := cfg.strategyClient.DeployStrategy(ctx, &strategypb.DeployStrategyRequest{
 		StrategyId:        strategyID,
 		UserId:            userID,
 		Symbol:            body.Symbol,
@@ -112,7 +112,7 @@ func (cfg *Config) StopDeployment(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	resp, err := cfg.strategyClient.StopDeployment(ctx, &userpb.DeploymentSpecifier{
+	resp, err := cfg.strategyClient.StopDeployment(ctx, &strategypb.DeploymentSpecifier{
 		Id:     chi.URLParam(r, "id"),
 		UserId: userID,
 	})
@@ -147,7 +147,7 @@ func (cfg *Config) DeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	if _, err := cfg.strategyClient.DeleteDeployment(ctx, &userpb.DeploymentSpecifier{
+	if _, err := cfg.strategyClient.DeleteDeployment(ctx, &strategypb.DeploymentSpecifier{
 		Id:     chi.URLParam(r, "id"),
 		UserId: userID,
 	}); err != nil {
@@ -181,7 +181,7 @@ func (cfg *Config) GetDeployments(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	resp, err := cfg.strategyClient.GetDeployments(ctx, &userpb.UserSpecifier{UserId: userID})
+	resp, err := cfg.strategyClient.GetDeployments(ctx, &strategypb.UserSpecifier{UserId: userID})
 	if err != nil {
 		log.Error("deployments_fetch_error", zap.Error(err))
 		utils.ReturnErrorJSON(w, "Unable to fetch deployments", http.StatusInternalServerError)
@@ -208,7 +208,7 @@ func defaultBacktestWindow(tf string) time.Duration {
 	}
 }
 
-func backtestToJSON(resp *userpb.BacktestResponse) map[string]any {
+func backtestToJSON(resp *strategypb.BacktestResponse) map[string]any {
 	type eqJSON struct {
 		TimeUnix    int64 `json:"time_unix"`
 		EquityCents int64 `json:"equity_cents"`
@@ -321,7 +321,7 @@ func (cfg *Config) BacktestStrategy(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 
-	resp, err := cfg.strategyClient.RunBacktest(ctx, &userpb.BacktestRequest{
+	resp, err := cfg.strategyClient.RunBacktest(ctx, &strategypb.BacktestRequest{
 		UserId:              userID,
 		ConfigJson:          string(body.ConfigJSON),
 		Symbol:              body.Symbol,
