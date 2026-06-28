@@ -1,4 +1,4 @@
-package strategyengine
+package engine
 
 import (
 	"fmt"

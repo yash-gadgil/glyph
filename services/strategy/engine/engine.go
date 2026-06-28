@@ -1,4 +1,4 @@
-package strategyengine
+package engine
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/yash-gadgil/glyph/pkg/telemetry"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	ordrpb "github.com/yash-gadgil/glyph/services/gen/golang/order"
-	db "github.com/yash-gadgil/glyph/services/user/db/gen"
+	db "github.com/yash-gadgil/glyph/services/strategy/db/gen"
 	"go.uber.org/zap"
 )
 
