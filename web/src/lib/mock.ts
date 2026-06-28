@@ -456,6 +456,21 @@ export async function mockApi(
     persistFills();
     return { success: true };
   }
+  if (pathname === "account" && method === "DELETE") {
+    account = { ...DEFAULT_ACCOUNT };
+    positions = [];
+    orders = [];
+    fills = [];
+    strategies = [];
+    watchlists = DEFAULT_WATCHLISTS.map((w) => ({ ...w }));
+    persistAccount();
+    persistPositions();
+    persistOrders();
+    persistFills();
+    persistStrategies();
+    persistWatchlists();
+    return { success: true };
+  }
   if (pathname === "account/profile" && method === "GET") {
     return { user_id: "mock_user", user_name: "mock_user", email: "mock@example.com" };
   }

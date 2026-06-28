@@ -12,3 +12,22 @@ export function useResetAccount() {
     },
   });
 }
+
+export function useDeleteAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api("account", { method: "DELETE" }),
+    onSuccess: async () => {
+      try {
+        await api("auth/signout", { method: "POST" });
+      } catch {
+      }
+      try {
+        await fetch("/api/signout", { method: "POST" });
+      } catch {
+      }
+      qc.clear();
+      window.location.assign("/");
+    },
+  });
+}

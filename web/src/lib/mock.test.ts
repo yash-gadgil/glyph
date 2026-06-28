@@ -60,6 +60,22 @@ describe("mockApi auth + account", () => {
     expect(positions.positions).toHaveLength(0);
   });
 
+  it("deletes the account and clears strategies", async () => {
+    const { mockApi } = await freshMock();
+
+    await mockApi("strategies", {
+      method: "POST",
+      body: JSON.stringify({ name: "to delete", config_json: JSON.stringify({ rules: [] }) }),
+    });
+    expect((await mockApi("strategies", {})).strategies.length).toBeGreaterThan(0);
+
+    expect(await mockApi("account", { method: "DELETE" })).toEqual({ success: true });
+
+    expect((await mockApi("strategies", {})).strategies).toHaveLength(0);
+    const positions = await mockApi("portfolio/positions", {});
+    expect(positions.positions).toHaveLength(0);
+  });
+
   it("returns null for unknown routes", async () => {
     const { mockApi } = await freshMock();
     expect(await mockApi("nope/nothing", {})).toBeNull();

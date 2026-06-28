@@ -1,9 +1,9 @@
 'use client';
 import GlassButton from "@/components/ui/GlassButton";
 import { getAccount, getTrades } from "@/services/account/queries";
-import { useResetAccount } from "@/services/account/mutations";
+import { useResetAccount, useDeleteAccount } from "@/services/account/mutations";
 import { useSignout } from "@/services/auth/mutations";
-import { User, Wallet, LogOut, History, RotateCcw } from "lucide-react";
+import { User, Wallet, LogOut, History, RotateCcw, Trash2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { TextEffect } from "@/components/primitives/TextEffect";
 import { PageEnter, RevealStagger, RevealItem } from "@/components/primitives/Reveal";
@@ -36,6 +36,7 @@ export default function Account() {
   const { data: account, isLoading } = getAccount();
   const { data: tradesData } = getTrades();
   const resetAccount = useResetAccount();
+  const deleteAccount = useDeleteAccount();
 
   const userName: string = account?.user_name || "Trader";
   const email: string = account?.email || "-";
@@ -51,6 +52,11 @@ export default function Account() {
   const handleReset = () => {
     if (!window.confirm("Reset your paper account back to $100,000? This wipes positions, open orders' reservations, and trade history.")) return;
     resetAccount.mutate();
+  };
+
+  const handleDelete = () => {
+    if (!window.confirm("Permanently delete your account? This removes your profile, positions, orders, trade history, and all strategies. This cannot be undone.")) return;
+    deleteAccount.mutate();
   };
 
   return (
@@ -167,6 +173,20 @@ export default function Account() {
                       <span className="text-xs text-white/40 leading-snug">Securely sign out of your account on this device.</span>
                     </div>
                     <GlassButton onClick={() => signout.mutate()} text="Sign out" icon={<LogOut size={14} />} />
+                  </div>
+
+                  <div className="flex items-start justify-between pt-4 mt-2 border-t border-white/10">
+                    <div className="flex flex-col gap-y-1 max-w-[65%]">
+                      <span className="text-sm font-medium text-white/80 shrink-0">Delete Account</span>
+                      <span className="text-xs text-white/40 leading-snug">Permanently delete your account, including all positions, trades, and strategies.</span>
+                    </div>
+                    <GlassButton
+                      text={deleteAccount.isPending ? "Deleting…" : "Delete"}
+                      icon={<Trash2 size={14} />}
+                      onClick={handleDelete}
+                      disabled={deleteAccount.isPending}
+                      className="border-red-500/30 text-red-400"
+                    />
                   </div>
                 </div>
               </GlassCard>
