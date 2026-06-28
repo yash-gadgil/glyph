@@ -1,7 +1,7 @@
 -- +goose Up
 CREATE TABLE strategy_deployments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
     strategy_id UUID NOT NULL REFERENCES strategies(id) ON DELETE CASCADE,
     symbol VARCHAR(10) NOT NULL,
     position_size_cents BIGINT NOT NULL,
