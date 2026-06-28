@@ -23,11 +23,12 @@ import (
 type gRPCServer struct {
 	db   *sql.DB
 	addr string
+	pub  handlers.UserEventPublisher
 	log  *zap.Logger
 }
 
-func NewGrpcServer(addr string, db *sql.DB) *gRPCServer {
-	return &gRPCServer{db: db, addr: addr, log: logger.New("user-service")}
+func NewGrpcServer(addr string, db *sql.DB, pub handlers.UserEventPublisher) *gRPCServer {
+	return &gRPCServer{db: db, addr: addr, pub: pub, log: logger.New("user-service")}
 }
 
 func (s *gRPCServer) Run(ctx context.Context) error {
@@ -62,7 +63,7 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 	}
 
 	userpb.RegisterWatchlistServiceServer(grpcServer, handlers.NewWatchlistHandler(s.db, s.log))
-	userpb.RegisterAccountServiceServer(grpcServer, handlers.NewAccountHandler(s.db, s.log))
+	userpb.RegisterAccountServiceServer(grpcServer, handlers.NewAccountHandler(s.db, s.pub, s.log))
 	userpb.RegisterPortfolioServiceServer(grpcServer, handlers.NewPortfolioHandler(s.db, prices, s.log))
 
 	grpc_prometheus.Register(grpcServer)

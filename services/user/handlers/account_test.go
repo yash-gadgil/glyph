@@ -23,7 +23,7 @@ func newAccountHandler(t *testing.T) (*AccountHandler, sqlmock.Sqlmock) {
 	sdb, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sdb.Close() })
-	return NewAccountHandler(sdb, zap.NewNop()), mock
+	return NewAccountHandler(sdb, nil, zap.NewNop()), mock
 }
 
 func strPtr(s string) *string { return &s }
@@ -287,6 +287,63 @@ func TestResetAccountRollsBackOnError(t *testing.T) {
 
 	_, err := h.ResetAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
 	assert.Equal(t, codes.Internal, status.Code(err))
+}
+
+type fakePublisher struct {
+	deleted []string
+	err     error
+}
+
+func (f *fakePublisher) PublishUserDeleted(_ context.Context, userID string) error {
+	f.deleted = append(f.deleted, userID)
+	return f.err
+}
+
+func TestDeleteAccountDeletesUserAndPublishes(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	fp := &fakePublisher{}
+	h.pub = fp
+	userID := uuid.New()
+
+	mock.ExpectExec(`DELETE FROM users`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
+
+	_, err := h.DeleteAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	assert.Equal(t, []string{userID.String()}, fp.deleted)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteAccountNotFound(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	fp := &fakePublisher{}
+	h.pub = fp
+	userID := uuid.New()
+
+	mock.ExpectExec(`DELETE FROM users`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 0))
+
+	_, err := h.DeleteAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+	assert.Empty(t, fp.deleted, "must not publish when no row was deleted")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteAccountInvalidID(t *testing.T) {
+	h, _ := newAccountHandler(t)
+
+	_, err := h.DeleteAccount(context.Background(), &userpb.UserSpecifier{UserId: "bad"})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestDeleteAccountSucceedsWhenPublishFails(t *testing.T) {
+	h, mock := newAccountHandler(t)
+	h.pub = &fakePublisher{err: fmt.Errorf("broker down")}
+	userID := uuid.New()
+
+	mock.ExpectExec(`DELETE FROM users`).WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
+
+	_, err := h.DeleteAccount(context.Background(), &userpb.UserSpecifier{UserId: userID.String()})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestReserveForOrderBuyHoldsCash(t *testing.T) {

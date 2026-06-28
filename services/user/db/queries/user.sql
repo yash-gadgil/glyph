@@ -24,3 +24,7 @@ UPDATE users SET password_hash = $1 WHERE id = $2;
 -- name: GetUserById :one
 SELECT id, email, user_name FROM users
 WHERE id = $1;
+
+-- name: DeleteUser :execrows
+DELETE FROM users
+WHERE id = $1;

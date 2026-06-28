@@ -21,15 +21,20 @@ const (
 	SideSell int16 = 1
 )
 
+type UserEventPublisher interface {
+	PublishUserDeleted(ctx context.Context, userID string) error
+}
+
 type AccountHandler struct {
 	userpb.UnimplementedAccountServiceServer
 	db  *sql.DB
 	q   *db.Queries
+	pub UserEventPublisher
 	log *zap.Logger
 }
 
-func NewAccountHandler(sdb *sql.DB, log *zap.Logger) *AccountHandler {
-	return &AccountHandler{db: sdb, q: db.New(sdb), log: log}
+func NewAccountHandler(sdb *sql.DB, pub UserEventPublisher, log *zap.Logger) *AccountHandler {
+	return &AccountHandler{db: sdb, q: db.New(sdb), pub: pub, log: log}
 }
 
 func (s *AccountHandler) SignupUser(ctx context.Context, req *userpb.SignupUserInfo) (*userpb.UserSpecifier, error) {
@@ -165,6 +170,33 @@ func (s *AccountHandler) ResetAccount(ctx context.Context, req *userpb.UserSpeci
 	}
 
 	log.Info("account_reset", logger.KV("user_id", req.UserId))
+	return &emptypb.Empty{}, nil
+}
+
+func (s *AccountHandler) DeleteAccount(ctx context.Context, req *userpb.UserSpecifier) (*emptypb.Empty, error) {
+	log := logger.WithContextFields(ctx, s.log).With(logger.Action("delete_account"))
+
+	userUUID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	rows, err := s.q.DeleteUser(ctx, userUUID)
+	if err != nil {
+		log.Error("delete_user_failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to delete account")
+	}
+	if rows == 0 {
+		return nil, status.Errorf(codes.NotFound, "user not found")
+	}
+
+	if s.pub != nil {
+		if err := s.pub.PublishUserDeleted(ctx, req.UserId); err != nil {
+			log.Error("publish_user_deleted_failed", logger.KV("user_id", req.UserId), zap.Error(err))
+		}
+	}
+
+	log.Info("account_deleted", logger.KV("user_id", req.UserId))
 	return &emptypb.Empty{}, nil
 }
 
