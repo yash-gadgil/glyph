@@ -337,6 +337,11 @@ class AccountServiceStub(object):
                 request_serializer=user_dot_user__pb2.UserSpecifier.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
+        self.DeleteAccount = channel.unary_unary(
+                '/user.AccountService/DeleteAccount',
+                request_serializer=user_dot_user__pb2.UserSpecifier.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.ReserveForOrder = channel.unary_unary(
                 '/user.AccountService/ReserveForOrder',
                 request_serializer=user_dot_user__pb2.ReserveForOrderRequest.SerializeToString,
@@ -394,6 +399,12 @@ class AccountServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DeleteAccount(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ReserveForOrder(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -441,6 +452,11 @@ def add_AccountServiceServicer_to_server(servicer, server):
             ),
             'ResetAccount': grpc.unary_unary_rpc_method_handler(
                     servicer.ResetAccount,
+                    request_deserializer=user_dot_user__pb2.UserSpecifier.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'DeleteAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteAccount,
                     request_deserializer=user_dot_user__pb2.UserSpecifier.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
@@ -642,6 +658,33 @@ class AccountService(object):
             request,
             target,
             '/user.AccountService/ResetAccount',
+            user_dot_user__pb2.UserSpecifier.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/user.AccountService/DeleteAccount',
             user_dot_user__pb2.UserSpecifier.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,

@@ -73,6 +73,7 @@ service AccountService {
     rpc GetProfile(UserSpecifier) returns (Profile) {}
     rpc AddFunds(AddFundsRequest) returns (AddFundsResponse) {}
     rpc ResetAccount(UserSpecifier) returns (google.protobuf.Empty) {}
+    rpc DeleteAccount(UserSpecifier) returns (google.protobuf.Empty) {}
     rpc ReserveForOrder(ReserveForOrderRequest) returns (google.protobuf.Empty) {}
     rpc ReleaseForOrder(ReleaseForOrderRequest) returns (google.protobuf.Empty) {}
 }

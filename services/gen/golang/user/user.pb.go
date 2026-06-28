@@ -1731,7 +1731,7 @@ const file_user_user_proto_rawDesc = "" +
 	"\x0fCreateWatchlist\x12\x1c.user.CreateWatchlistRequest\x1a\x18.user.WatchlistSpecifier\"\x00\x12I\n" +
 	"\x0fModifyWatchlist\x12\x1c.user.ModifyWatchlistRequest\x1a\x16.google.protobuf.Empty\"\x00\x12E\n" +
 	"\x0fDeleteWatchlist\x12\x18.user.WatchlistSpecifier\x1a\x16.google.protobuf.Empty\"\x00\x12P\n" +
-	"\x19DeleteSymbolFromWatchlist\x12\x19.user.DeleteSymbolRequest\x1a\x16.google.protobuf.Empty\"\x002\xeb\x04\n" +
+	"\x19DeleteSymbolFromWatchlist\x12\x19.user.DeleteSymbolRequest\x1a\x16.google.protobuf.Empty\"\x002\xab\x05\n" +
 	"\x0eAccountService\x129\n" +
 	"\n" +
 	"SignupUser\x12\x14.user.SignupUserInfo\x1a\x13.user.UserSpecifier\"\x00\x129\n" +
@@ -1742,7 +1742,8 @@ const file_user_user_proto_rawDesc = "" +
 	"\n" +
 	"GetProfile\x12\x13.user.UserSpecifier\x1a\r.user.Profile\"\x00\x12;\n" +
 	"\bAddFunds\x12\x15.user.AddFundsRequest\x1a\x16.user.AddFundsResponse\"\x00\x12=\n" +
-	"\fResetAccount\x12\x13.user.UserSpecifier\x1a\x16.google.protobuf.Empty\"\x00\x12I\n" +
+	"\fResetAccount\x12\x13.user.UserSpecifier\x1a\x16.google.protobuf.Empty\"\x00\x12>\n" +
+	"\rDeleteAccount\x12\x13.user.UserSpecifier\x1a\x16.google.protobuf.Empty\"\x00\x12I\n" +
 	"\x0fReserveForOrder\x12\x1c.user.ReserveForOrderRequest\x1a\x16.google.protobuf.Empty\"\x00\x12I\n" +
 	"\x0fReleaseForOrder\x12\x1c.user.ReleaseForOrderRequest\x1a\x16.google.protobuf.Empty\"\x002\xa8\x02\n" +
 	"\x10PortfolioService\x12>\n" +
@@ -1815,33 +1816,35 @@ var file_user_user_proto_depIdxs = []int32{
 	3,  // 16: user.AccountService.GetProfile:input_type -> user.UserSpecifier
 	10, // 17: user.AccountService.AddFunds:input_type -> user.AddFundsRequest
 	3,  // 18: user.AccountService.ResetAccount:input_type -> user.UserSpecifier
-	12, // 19: user.AccountService.ReserveForOrder:input_type -> user.ReserveForOrderRequest
-	13, // 20: user.AccountService.ReleaseForOrder:input_type -> user.ReleaseForOrderRequest
-	3,  // 21: user.PortfolioService.GetPortfolio:input_type -> user.UserSpecifier
-	3,  // 22: user.PortfolioService.GetHoldings:input_type -> user.UserSpecifier
-	3,  // 23: user.PortfolioService.GetPositions:input_type -> user.UserSpecifier
-	19, // 24: user.PortfolioService.GetPortfolioHistory:input_type -> user.PortfolioHistoryRequest
-	4,  // 25: user.WatchlistService.GetWatchlists:output_type -> user.WatchlistsResponse
-	1,  // 26: user.WatchlistService.GetWatchlist:output_type -> user.Watchlist
-	7,  // 27: user.WatchlistService.CreateWatchlist:output_type -> user.WatchlistSpecifier
-	27, // 28: user.WatchlistService.ModifyWatchlist:output_type -> google.protobuf.Empty
-	27, // 29: user.WatchlistService.DeleteWatchlist:output_type -> google.protobuf.Empty
-	27, // 30: user.WatchlistService.DeleteSymbolFromWatchlist:output_type -> google.protobuf.Empty
-	3,  // 31: user.AccountService.SignupUser:output_type -> user.UserSpecifier
-	3,  // 32: user.AccountService.SigninUser:output_type -> user.UserSpecifier
-	17, // 33: user.AccountService.CheckEmailAvailability:output_type -> user.CheckEmailResponse
-	27, // 34: user.AccountService.UpdatePasswordByEmail:output_type -> google.protobuf.Empty
-	9,  // 35: user.AccountService.GetProfile:output_type -> user.Profile
-	11, // 36: user.AccountService.AddFunds:output_type -> user.AddFundsResponse
-	27, // 37: user.AccountService.ResetAccount:output_type -> google.protobuf.Empty
-	27, // 38: user.AccountService.ReserveForOrder:output_type -> google.protobuf.Empty
-	27, // 39: user.AccountService.ReleaseForOrder:output_type -> google.protobuf.Empty
-	22, // 40: user.PortfolioService.GetPortfolio:output_type -> user.PortfolioResponse
-	24, // 41: user.PortfolioService.GetHoldings:output_type -> user.HoldingsResponse
-	26, // 42: user.PortfolioService.GetPositions:output_type -> user.PositionsResponse
-	21, // 43: user.PortfolioService.GetPortfolioHistory:output_type -> user.PortfolioHistoryResponse
-	25, // [25:44] is the sub-list for method output_type
-	6,  // [6:25] is the sub-list for method input_type
+	3,  // 19: user.AccountService.DeleteAccount:input_type -> user.UserSpecifier
+	12, // 20: user.AccountService.ReserveForOrder:input_type -> user.ReserveForOrderRequest
+	13, // 21: user.AccountService.ReleaseForOrder:input_type -> user.ReleaseForOrderRequest
+	3,  // 22: user.PortfolioService.GetPortfolio:input_type -> user.UserSpecifier
+	3,  // 23: user.PortfolioService.GetHoldings:input_type -> user.UserSpecifier
+	3,  // 24: user.PortfolioService.GetPositions:input_type -> user.UserSpecifier
+	19, // 25: user.PortfolioService.GetPortfolioHistory:input_type -> user.PortfolioHistoryRequest
+	4,  // 26: user.WatchlistService.GetWatchlists:output_type -> user.WatchlistsResponse
+	1,  // 27: user.WatchlistService.GetWatchlist:output_type -> user.Watchlist
+	7,  // 28: user.WatchlistService.CreateWatchlist:output_type -> user.WatchlistSpecifier
+	27, // 29: user.WatchlistService.ModifyWatchlist:output_type -> google.protobuf.Empty
+	27, // 30: user.WatchlistService.DeleteWatchlist:output_type -> google.protobuf.Empty
+	27, // 31: user.WatchlistService.DeleteSymbolFromWatchlist:output_type -> google.protobuf.Empty
+	3,  // 32: user.AccountService.SignupUser:output_type -> user.UserSpecifier
+	3,  // 33: user.AccountService.SigninUser:output_type -> user.UserSpecifier
+	17, // 34: user.AccountService.CheckEmailAvailability:output_type -> user.CheckEmailResponse
+	27, // 35: user.AccountService.UpdatePasswordByEmail:output_type -> google.protobuf.Empty
+	9,  // 36: user.AccountService.GetProfile:output_type -> user.Profile
+	11, // 37: user.AccountService.AddFunds:output_type -> user.AddFundsResponse
+	27, // 38: user.AccountService.ResetAccount:output_type -> google.protobuf.Empty
+	27, // 39: user.AccountService.DeleteAccount:output_type -> google.protobuf.Empty
+	27, // 40: user.AccountService.ReserveForOrder:output_type -> google.protobuf.Empty
+	27, // 41: user.AccountService.ReleaseForOrder:output_type -> google.protobuf.Empty
+	22, // 42: user.PortfolioService.GetPortfolio:output_type -> user.PortfolioResponse
+	24, // 43: user.PortfolioService.GetHoldings:output_type -> user.HoldingsResponse
+	26, // 44: user.PortfolioService.GetPositions:output_type -> user.PositionsResponse
+	21, // 45: user.PortfolioService.GetPortfolioHistory:output_type -> user.PortfolioHistoryResponse
+	26, // [26:46] is the sub-list for method output_type
+	6,  // [6:26] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name

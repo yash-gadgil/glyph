@@ -319,6 +319,7 @@ const (
 	AccountService_GetProfile_FullMethodName             = "/user.AccountService/GetProfile"
 	AccountService_AddFunds_FullMethodName               = "/user.AccountService/AddFunds"
 	AccountService_ResetAccount_FullMethodName           = "/user.AccountService/ResetAccount"
+	AccountService_DeleteAccount_FullMethodName          = "/user.AccountService/DeleteAccount"
 	AccountService_ReserveForOrder_FullMethodName        = "/user.AccountService/ReserveForOrder"
 	AccountService_ReleaseForOrder_FullMethodName        = "/user.AccountService/ReleaseForOrder"
 )
@@ -334,6 +335,7 @@ type AccountServiceClient interface {
 	GetProfile(ctx context.Context, in *UserSpecifier, opts ...grpc.CallOption) (*Profile, error)
 	AddFunds(ctx context.Context, in *AddFundsRequest, opts ...grpc.CallOption) (*AddFundsResponse, error)
 	ResetAccount(ctx context.Context, in *UserSpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeleteAccount(ctx context.Context, in *UserSpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ReserveForOrder(ctx context.Context, in *ReserveForOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ReleaseForOrder(ctx context.Context, in *ReleaseForOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -416,6 +418,16 @@ func (c *accountServiceClient) ResetAccount(ctx context.Context, in *UserSpecifi
 	return out, nil
 }
 
+func (c *accountServiceClient) DeleteAccount(ctx context.Context, in *UserSpecifier, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AccountService_DeleteAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *accountServiceClient) ReserveForOrder(ctx context.Context, in *ReserveForOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -447,6 +459,7 @@ type AccountServiceServer interface {
 	GetProfile(context.Context, *UserSpecifier) (*Profile, error)
 	AddFunds(context.Context, *AddFundsRequest) (*AddFundsResponse, error)
 	ResetAccount(context.Context, *UserSpecifier) (*emptypb.Empty, error)
+	DeleteAccount(context.Context, *UserSpecifier) (*emptypb.Empty, error)
 	ReserveForOrder(context.Context, *ReserveForOrderRequest) (*emptypb.Empty, error)
 	ReleaseForOrder(context.Context, *ReleaseForOrderRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAccountServiceServer()
@@ -479,6 +492,9 @@ func (UnimplementedAccountServiceServer) AddFunds(context.Context, *AddFundsRequ
 }
 func (UnimplementedAccountServiceServer) ResetAccount(context.Context, *UserSpecifier) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetAccount not implemented")
+}
+func (UnimplementedAccountServiceServer) DeleteAccount(context.Context, *UserSpecifier) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteAccount not implemented")
 }
 func (UnimplementedAccountServiceServer) ReserveForOrder(context.Context, *ReserveForOrderRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReserveForOrder not implemented")
@@ -633,6 +649,24 @@ func _AccountService_ResetAccount_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountService_DeleteAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserSpecifier)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).DeleteAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_DeleteAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).DeleteAccount(ctx, req.(*UserSpecifier))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AccountService_ReserveForOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReserveForOrderRequest)
 	if err := dec(in); err != nil {
@@ -703,6 +737,10 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResetAccount",
 			Handler:    _AccountService_ResetAccount_Handler,
+		},
+		{
+			MethodName: "DeleteAccount",
+			Handler:    _AccountService_DeleteAccount_Handler,
 		},
 		{
 			MethodName: "ReserveForOrder",
