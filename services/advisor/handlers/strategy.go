@@ -35,9 +35,10 @@ type indicatorRef struct {
 }
 
 type ruleRHS struct {
-	Kind      string        `json:"kind"`
-	Value     float64       `json:"value,omitempty"`
-	Indicator *indicatorRef `json:"indicator,omitempty"`
+	Kind      string             `json:"kind"`
+	Value     float64            `json:"value,omitempty"`
+	Indicator *indicatorRef      `json:"indicator,omitempty"`
+	Params    map[string]float64 `json:"params,omitempty"`
 }
 
 type rule struct {
@@ -262,6 +263,7 @@ func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, snapshot st
 			log.Warn("strategy_parse_rejected", zap.Int("attempt", attempt), zap.Error(perr))
 			continue
 		}
+		normalizeStrategy(&gs)
 		if verr := validate(gs); verr != nil {
 			lastErr, feedback = verr, verr.Error()
 			log.Warn("strategy_validation_rejected", zap.Int("attempt", attempt), zap.Error(verr))
@@ -343,6 +345,34 @@ func parseGenStrategy(out string) (genStrategy, error) {
 		return genStrategy{}, fmt.Errorf("model output was not valid strategy JSON: %v", err)
 	}
 	return gs, nil
+}
+
+func normalizeStrategy(gs *genStrategy) {
+	for i := range gs.Entry.Rules {
+		normalizeRHS(&gs.Entry.Rules[i].RHS)
+	}
+	for i := range gs.Exit.Rules {
+		normalizeRHS(&gs.Exit.Rules[i].RHS)
+	}
+}
+
+func normalizeRHS(r *ruleRHS) {
+	if r.Indicator != nil {
+		r.Kind = "indicator"
+		r.Params = nil
+		return
+	}
+	switch r.Kind {
+	case "", "value":
+		r.Kind = "value"
+	case "indicator":
+	default:
+		if validIndicators[r.Kind] {
+			r.Indicator = &indicatorRef{Kind: r.Kind, Params: r.Params}
+			r.Kind = "indicator"
+			r.Params = nil
+		}
+	}
 }
 
 func validate(gs genStrategy) error {
@@ -448,6 +478,11 @@ A <rhs> is either { "kind": "value", "value": <number> } or { "kind": "indicator
 Allowed indicator kinds: price, sma, ema, rsi, macd_line, macd_signal, macd_histogram, bbands_upper, bbands_middle, bbands_lower, atr, volume, vwap, stoch_k, stoch_d.
 Params: sma/ema/rsi/atr/stoch_k/stoch_d use {"period": N}; macd_* use {"fast":12,"slow":26,"signal":9}; bbands_* use {"period":20,"stddev":2}; price/volume/vwap take no params.
 Allowed operators: >, <, >=, <=, crosses_above, crosses_below.
+
+To compare against a number use {"kind":"value","value":N}. To compare against another indicator you MUST wrap it: {"kind":"indicator","indicator":{"kind":"sma","params":{"period":50}}}. Never put an indicator kind directly in the rhs "kind" field.
+
+Complete example:
+{"name":"SMA Crossover","description":"Rides established uptrends.","risk":"medium","tags":["Trend"],"entry":{"combinator":"AND","rules":[{"lhs":{"kind":"sma","params":{"period":20}},"op":"crosses_above","rhs":{"kind":"indicator","indicator":{"kind":"sma","params":{"period":50}}}}]},"exit":{"combinator":"OR","rules":[{"lhs":{"kind":"rsi","params":{"period":14}},"op":">","rhs":{"kind":"value","value":70}}]},"stopLossPct":3,"takeProfitPct":6}
 
 Constraints: entry has 1 to 3 rules; always provide an exit via exit rules or a non-zero stopLossPct/takeProfitPct; keep it simple and tradeable.`
 

@@ -73,6 +73,28 @@ func TestValidateRejectsBadStrategies(t *testing.T) {
 	}
 }
 
+func TestNormalizeStrategyRewritesInlinedIndicatorRHS(t *testing.T) {
+	raw := `{"name":"x","entry":{"combinator":"AND","rules":[{"lhs":{"kind":"sma","params":{"period":20}},"op":"crosses_above","rhs":{"kind":"sma","params":{"period":50}}}]},"stopLossPct":2}`
+
+	gs, err := parseGenStrategy(raw)
+	require.NoError(t, err)
+	normalizeStrategy(&gs)
+
+	require.NoError(t, validate(gs))
+	rhs := gs.Entry.Rules[0].RHS
+	assert.Equal(t, "indicator", rhs.Kind)
+	require.NotNil(t, rhs.Indicator)
+	assert.Equal(t, "sma", rhs.Indicator.Kind)
+	assert.Equal(t, float64(50), rhs.Indicator.Params["period"])
+	assert.Nil(t, rhs.Params)
+
+	out, err := json.Marshal(gs)
+	require.NoError(t, err)
+	cfg, err := se.ParseConfig(out)
+	require.NoError(t, err)
+	assert.Equal(t, "indicator", cfg.Entry.Rules[0].RHS.Kind)
+}
+
 func TestAuthorStrategyRetriesOnInvalidThenSucceeds(t *testing.T) {
 	broken := `here you go: {"name":"Bad","entry":{"combinator":"AND","rules":[{"lhs":{"kind":"unicorn"},"op":"<","rhs":{"kind":"value","value":30}}]}}`
 	good := `{"name":"RSI Reversion","description":"Buys oversold dips.","risk":"medium","entry":{"combinator":"AND","rules":[{"lhs":{"kind":"rsi","params":{"period":14}},"op":"<","rhs":{"kind":"value","value":35}}]},"exit":{"combinator":"OR","rules":[{"lhs":{"kind":"rsi","params":{"period":14}},"op":">","rhs":{"kind":"value","value":65}}]},"stopLossPct":2,"takeProfitPct":4}`
