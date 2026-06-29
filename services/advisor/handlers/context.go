@@ -6,35 +6,27 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yash-gadgil/glyph/services/advisor/cache"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 )
 
-func buildSnapshot(ctx context.Context, portfolio userpb.PortfolioServiceClient, userID string) (string, cache.Fingerprint, error) {
-	var fp cache.Fingerprint
+func buildSnapshot(ctx context.Context, portfolio userpb.PortfolioServiceClient, userID string) (string, error) {
 	if portfolio == nil {
-		return "", fp, fmt.Errorf("portfolio service unavailable")
+		return "", fmt.Errorf("portfolio service unavailable")
 	}
 
 	acct, err := portfolio.GetPortfolio(ctx, &userpb.UserSpecifier{UserId: userID})
 	if err != nil {
-		return "", fp, fmt.Errorf("get portfolio: %w", err)
+		return "", fmt.Errorf("get portfolio: %w", err)
 	}
 
 	holdings, err := portfolio.GetHoldings(ctx, &userpb.UserSpecifier{UserId: userID})
 	if err != nil {
-		return "", fp, fmt.Errorf("get holdings: %w", err)
+		return "", fmt.Errorf("get holdings: %w", err)
 	}
 
 	cash := acct.CashBalanceCents
 	marketValue := holdings.TotalMarketValueCents
 	equity := cash + marketValue
-
-	fp = cache.Fingerprint{
-		CashCents:   cash,
-		EquityCents: equity,
-		Positions:   make(map[string]cache.PosPrint, len(holdings.Holdings)),
-	}
 
 	var b strings.Builder
 	b.WriteString("PORTFOLIO SNAPSHOT\n")
@@ -57,7 +49,7 @@ func buildSnapshot(ctx context.Context, portfolio userpb.PortfolioServiceClient,
 
 	if len(rows) == 0 {
 		b.WriteString("\nThe account holds no positions. It is entirely in cash.\n")
-		return b.String(), fp, nil
+		return b.String(), nil
 	}
 
 	sort.Slice(rows, func(i, j int) bool {
@@ -78,17 +70,12 @@ func buildSnapshot(ctx context.Context, portfolio userpb.PortfolioServiceClient,
 			h.Symbol, h.Qty, dollars(h.AvgPriceCents), dollars(h.LastPriceCents),
 			dollars(h.MarketValueCents), weight, dollars(h.UnrealizedPnlCents),
 		)
-		fp.Positions[h.Symbol] = cache.PosPrint{
-			Qty:            h.Qty,
-			CostBasisCents: h.CostBasisCents,
-			AvgPriceCents:  h.AvgPriceCents,
-		}
 	}
 
 	top := rows[0]
 	fmt.Fprintf(&b, "\nLargest single position: %s at %.1f%% of equity.\n", top.Symbol, pct(top.MarketValueCents, equity))
 
-	return b.String(), fp, nil
+	return b.String(), nil
 }
 
 func dollars(cents int64) string {

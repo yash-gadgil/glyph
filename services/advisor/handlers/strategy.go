@@ -222,7 +222,7 @@ func (h *AdvisorHandler) GetStrategyJob(ctx context.Context, req *advisorpb.GetS
 func (h *AdvisorHandler) generateOnce(ctx context.Context, userID, symbol string, log *zap.Logger) *cache.StratJob {
 	started := time.Now().UTC()
 
-	snapshot, _, err := buildSnapshot(ctx, h.portfolio, userID)
+	snapshot, err := buildSnapshot(ctx, h.portfolio, userID)
 	if err != nil {
 		log.Warn("snapshot_unavailable_using_generic_context", zap.Error(err))
 		snapshot = "No portfolio snapshot available."

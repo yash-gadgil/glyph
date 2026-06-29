@@ -14,10 +14,15 @@ class AdvisorServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.AnalyzePortfolio = channel.unary_stream(
-                '/advisor.AdvisorService/AnalyzePortfolio',
-                request_serializer=advisor_dot_advisor__pb2.AnalyzeRequest.SerializeToString,
+        self.ChatWithAdvisor = channel.unary_stream(
+                '/advisor.AdvisorService/ChatWithAdvisor',
+                request_serializer=advisor_dot_advisor__pb2.ChatRequest.SerializeToString,
                 response_deserializer=advisor_dot_advisor__pb2.AnalysisChunk.FromString,
+                _registered_method=True)
+        self.GetChatSession = channel.unary_unary(
+                '/advisor.AdvisorService/GetChatSession',
+                request_serializer=advisor_dot_advisor__pb2.GetChatSessionRequest.SerializeToString,
+                response_deserializer=advisor_dot_advisor__pb2.ChatSession.FromString,
                 _registered_method=True)
         self.StartStrategyGeneration = channel.unary_unary(
                 '/advisor.AdvisorService/StartStrategyGeneration',
@@ -34,7 +39,13 @@ class AdvisorServiceStub(object):
 class AdvisorServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def AnalyzePortfolio(self, request, context):
+    def ChatWithAdvisor(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetChatSession(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -55,10 +66,15 @@ class AdvisorServiceServicer(object):
 
 def add_AdvisorServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'AnalyzePortfolio': grpc.unary_stream_rpc_method_handler(
-                    servicer.AnalyzePortfolio,
-                    request_deserializer=advisor_dot_advisor__pb2.AnalyzeRequest.FromString,
+            'ChatWithAdvisor': grpc.unary_stream_rpc_method_handler(
+                    servicer.ChatWithAdvisor,
+                    request_deserializer=advisor_dot_advisor__pb2.ChatRequest.FromString,
                     response_serializer=advisor_dot_advisor__pb2.AnalysisChunk.SerializeToString,
+            ),
+            'GetChatSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetChatSession,
+                    request_deserializer=advisor_dot_advisor__pb2.GetChatSessionRequest.FromString,
+                    response_serializer=advisor_dot_advisor__pb2.ChatSession.SerializeToString,
             ),
             'StartStrategyGeneration': grpc.unary_unary_rpc_method_handler(
                     servicer.StartStrategyGeneration,
@@ -82,7 +98,7 @@ class AdvisorService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def AnalyzePortfolio(request,
+    def ChatWithAdvisor(request,
             target,
             options=(),
             channel_credentials=None,
@@ -95,9 +111,36 @@ class AdvisorService(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/advisor.AdvisorService/AnalyzePortfolio',
-            advisor_dot_advisor__pb2.AnalyzeRequest.SerializeToString,
+            '/advisor.AdvisorService/ChatWithAdvisor',
+            advisor_dot_advisor__pb2.ChatRequest.SerializeToString,
             advisor_dot_advisor__pb2.AnalysisChunk.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetChatSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/advisor.AdvisorService/GetChatSession',
+            advisor_dot_advisor__pb2.GetChatSessionRequest.SerializeToString,
+            advisor_dot_advisor__pb2.ChatSession.FromString,
             options,
             channel_credentials,
             insecure,

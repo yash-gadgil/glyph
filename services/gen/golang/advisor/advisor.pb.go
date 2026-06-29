@@ -21,50 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type AnalyzeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AnalyzeRequest) Reset() {
-	*x = AnalyzeRequest{}
-	mi := &file_advisor_advisor_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AnalyzeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AnalyzeRequest) ProtoMessage() {}
-
-func (x *AnalyzeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_advisor_advisor_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AnalyzeRequest.ProtoReflect.Descriptor instead.
-func (*AnalyzeRequest) Descriptor() ([]byte, []int) {
-	return file_advisor_advisor_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *AnalyzeRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
 type AnalysisChunk struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
@@ -75,7 +31,7 @@ type AnalysisChunk struct {
 
 func (x *AnalysisChunk) Reset() {
 	*x = AnalysisChunk{}
-	mi := &file_advisor_advisor_proto_msgTypes[1]
+	mi := &file_advisor_advisor_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +43,7 @@ func (x *AnalysisChunk) String() string {
 func (*AnalysisChunk) ProtoMessage() {}
 
 func (x *AnalysisChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_advisor_advisor_proto_msgTypes[1]
+	mi := &file_advisor_advisor_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +56,7 @@ func (x *AnalysisChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnalysisChunk.ProtoReflect.Descriptor instead.
 func (*AnalysisChunk) Descriptor() ([]byte, []int) {
-	return file_advisor_advisor_proto_rawDescGZIP(), []int{1}
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *AnalysisChunk) GetText() string {
@@ -117,6 +73,214 @@ func (x *AnalysisChunk) GetDone() bool {
 	return false
 }
 
+type ChatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatRequest) Reset() {
+	*x = ChatRequest{}
+	mi := &file_advisor_advisor_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatRequest) ProtoMessage() {}
+
+func (x *ChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_advisor_advisor_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatRequest.ProtoReflect.Descriptor instead.
+func (*ChatRequest) Descriptor() ([]byte, []int) {
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ChatRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ChatRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type GetChatSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetChatSessionRequest) Reset() {
+	*x = GetChatSessionRequest{}
+	mi := &file_advisor_advisor_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChatSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChatSessionRequest) ProtoMessage() {}
+
+func (x *GetChatSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_advisor_advisor_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChatSessionRequest.ProtoReflect.Descriptor instead.
+func (*GetChatSessionRequest) Descriptor() ([]byte, []int) {
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetChatSessionRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type ChatTurn struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Role          string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatTurn) Reset() {
+	*x = ChatTurn{}
+	mi := &file_advisor_advisor_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatTurn) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatTurn) ProtoMessage() {}
+
+func (x *ChatTurn) ProtoReflect() protoreflect.Message {
+	mi := &file_advisor_advisor_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatTurn.ProtoReflect.Descriptor instead.
+func (*ChatTurn) Descriptor() ([]byte, []int) {
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ChatTurn) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *ChatTurn) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+type ChatSession struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Turns         []*ChatTurn            `protobuf:"bytes,1,rep,name=turns,proto3" json:"turns,omitempty"`
+	InFlight      bool                   `protobuf:"varint,2,opt,name=in_flight,json=inFlight,proto3" json:"in_flight,omitempty"`
+	PartialText   string                 `protobuf:"bytes,3,opt,name=partial_text,json=partialText,proto3" json:"partial_text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatSession) Reset() {
+	*x = ChatSession{}
+	mi := &file_advisor_advisor_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatSession) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatSession) ProtoMessage() {}
+
+func (x *ChatSession) ProtoReflect() protoreflect.Message {
+	mi := &file_advisor_advisor_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatSession.ProtoReflect.Descriptor instead.
+func (*ChatSession) Descriptor() ([]byte, []int) {
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ChatSession) GetTurns() []*ChatTurn {
+	if x != nil {
+		return x.Turns
+	}
+	return nil
+}
+
+func (x *ChatSession) GetInFlight() bool {
+	if x != nil {
+		return x.InFlight
+	}
+	return false
+}
+
+func (x *ChatSession) GetPartialText() string {
+	if x != nil {
+		return x.PartialText
+	}
+	return ""
+}
+
 type StartStrategyGenerationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -127,7 +291,7 @@ type StartStrategyGenerationRequest struct {
 
 func (x *StartStrategyGenerationRequest) Reset() {
 	*x = StartStrategyGenerationRequest{}
-	mi := &file_advisor_advisor_proto_msgTypes[2]
+	mi := &file_advisor_advisor_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -139,7 +303,7 @@ func (x *StartStrategyGenerationRequest) String() string {
 func (*StartStrategyGenerationRequest) ProtoMessage() {}
 
 func (x *StartStrategyGenerationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_advisor_advisor_proto_msgTypes[2]
+	mi := &file_advisor_advisor_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -152,7 +316,7 @@ func (x *StartStrategyGenerationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartStrategyGenerationRequest.ProtoReflect.Descriptor instead.
 func (*StartStrategyGenerationRequest) Descriptor() ([]byte, []int) {
-	return file_advisor_advisor_proto_rawDescGZIP(), []int{2}
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *StartStrategyGenerationRequest) GetUserId() string {
@@ -178,7 +342,7 @@ type GetStrategyJobRequest struct {
 
 func (x *GetStrategyJobRequest) Reset() {
 	*x = GetStrategyJobRequest{}
-	mi := &file_advisor_advisor_proto_msgTypes[3]
+	mi := &file_advisor_advisor_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -190,7 +354,7 @@ func (x *GetStrategyJobRequest) String() string {
 func (*GetStrategyJobRequest) ProtoMessage() {}
 
 func (x *GetStrategyJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_advisor_advisor_proto_msgTypes[3]
+	mi := &file_advisor_advisor_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -203,7 +367,7 @@ func (x *GetStrategyJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStrategyJobRequest.ProtoReflect.Descriptor instead.
 func (*GetStrategyJobRequest) Descriptor() ([]byte, []int) {
-	return file_advisor_advisor_proto_rawDescGZIP(), []int{3}
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetStrategyJobRequest) GetUserId() string {
@@ -227,7 +391,7 @@ type BacktestSummary struct {
 
 func (x *BacktestSummary) Reset() {
 	*x = BacktestSummary{}
-	mi := &file_advisor_advisor_proto_msgTypes[4]
+	mi := &file_advisor_advisor_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -239,7 +403,7 @@ func (x *BacktestSummary) String() string {
 func (*BacktestSummary) ProtoMessage() {}
 
 func (x *BacktestSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_advisor_advisor_proto_msgTypes[4]
+	mi := &file_advisor_advisor_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -252,7 +416,7 @@ func (x *BacktestSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BacktestSummary.ProtoReflect.Descriptor instead.
 func (*BacktestSummary) Descriptor() ([]byte, []int) {
-	return file_advisor_advisor_proto_rawDescGZIP(), []int{4}
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *BacktestSummary) GetTotalReturnPct() float64 {
@@ -313,7 +477,7 @@ type StrategyJob struct {
 
 func (x *StrategyJob) Reset() {
 	*x = StrategyJob{}
-	mi := &file_advisor_advisor_proto_msgTypes[5]
+	mi := &file_advisor_advisor_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +489,7 @@ func (x *StrategyJob) String() string {
 func (*StrategyJob) ProtoMessage() {}
 
 func (x *StrategyJob) ProtoReflect() protoreflect.Message {
-	mi := &file_advisor_advisor_proto_msgTypes[5]
+	mi := &file_advisor_advisor_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +502,7 @@ func (x *StrategyJob) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StrategyJob.ProtoReflect.Descriptor instead.
 func (*StrategyJob) Descriptor() ([]byte, []int) {
-	return file_advisor_advisor_proto_rawDescGZIP(), []int{5}
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StrategyJob) GetState() string {
@@ -401,12 +565,22 @@ var File_advisor_advisor_proto protoreflect.FileDescriptor
 
 const file_advisor_advisor_proto_rawDesc = "" +
 	"\n" +
-	"\x15advisor/advisor.proto\x12\aadvisor\")\n" +
-	"\x0eAnalyzeRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"7\n" +
+	"\x15advisor/advisor.proto\x12\aadvisor\"7\n" +
 	"\rAnalysisChunk\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x12\n" +
-	"\x04done\x18\x02 \x01(\bR\x04done\"Q\n" +
+	"\x04done\x18\x02 \x01(\bR\x04done\"@\n" +
+	"\vChatRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"0\n" +
+	"\x15GetChatSessionRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"8\n" +
+	"\bChatTurn\x12\x12\n" +
+	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\"v\n" +
+	"\vChatSession\x12'\n" +
+	"\x05turns\x18\x01 \x03(\v2\x11.advisor.ChatTurnR\x05turns\x12\x1b\n" +
+	"\tin_flight\x18\x02 \x01(\bR\binFlight\x12!\n" +
+	"\fpartial_text\x18\x03 \x01(\tR\vpartialText\"Q\n" +
 	"\x1eStartStrategyGenerationRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
 	"\x06symbol\x18\x02 \x01(\tR\x06symbol\"0\n" +
@@ -431,9 +605,10 @@ const file_advisor_advisor_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\a \x01(\tR\tstartedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\tR\tupdatedAt2\xff\x01\n" +
-	"\x0eAdvisorService\x12G\n" +
-	"\x10AnalyzePortfolio\x12\x17.advisor.AnalyzeRequest\x1a\x16.advisor.AnalysisChunk\"\x000\x01\x12Z\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt2\xc5\x02\n" +
+	"\x0eAdvisorService\x12C\n" +
+	"\x0fChatWithAdvisor\x12\x14.advisor.ChatRequest\x1a\x16.advisor.AnalysisChunk\"\x000\x01\x12H\n" +
+	"\x0eGetChatSession\x12\x1e.advisor.GetChatSessionRequest\x1a\x14.advisor.ChatSession\"\x00\x12Z\n" +
 	"\x17StartStrategyGeneration\x12'.advisor.StartStrategyGenerationRequest\x1a\x14.advisor.StrategyJob\"\x00\x12H\n" +
 	"\x0eGetStrategyJob\x12\x1e.advisor.GetStrategyJobRequest\x1a\x14.advisor.StrategyJob\"\x00B:Z8github.com/yash-gadgil/glyph/services/gen/golang/advisorb\x06proto3"
 
@@ -449,28 +624,34 @@ func file_advisor_advisor_proto_rawDescGZIP() []byte {
 	return file_advisor_advisor_proto_rawDescData
 }
 
-var file_advisor_advisor_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_advisor_advisor_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_advisor_advisor_proto_goTypes = []any{
-	(*AnalyzeRequest)(nil),                 // 0: advisor.AnalyzeRequest
-	(*AnalysisChunk)(nil),                  // 1: advisor.AnalysisChunk
-	(*StartStrategyGenerationRequest)(nil), // 2: advisor.StartStrategyGenerationRequest
-	(*GetStrategyJobRequest)(nil),          // 3: advisor.GetStrategyJobRequest
-	(*BacktestSummary)(nil),                // 4: advisor.BacktestSummary
-	(*StrategyJob)(nil),                    // 5: advisor.StrategyJob
+	(*AnalysisChunk)(nil),                  // 0: advisor.AnalysisChunk
+	(*ChatRequest)(nil),                    // 1: advisor.ChatRequest
+	(*GetChatSessionRequest)(nil),          // 2: advisor.GetChatSessionRequest
+	(*ChatTurn)(nil),                       // 3: advisor.ChatTurn
+	(*ChatSession)(nil),                    // 4: advisor.ChatSession
+	(*StartStrategyGenerationRequest)(nil), // 5: advisor.StartStrategyGenerationRequest
+	(*GetStrategyJobRequest)(nil),          // 6: advisor.GetStrategyJobRequest
+	(*BacktestSummary)(nil),                // 7: advisor.BacktestSummary
+	(*StrategyJob)(nil),                    // 8: advisor.StrategyJob
 }
 var file_advisor_advisor_proto_depIdxs = []int32{
-	4, // 0: advisor.StrategyJob.backtest:type_name -> advisor.BacktestSummary
-	0, // 1: advisor.AdvisorService.AnalyzePortfolio:input_type -> advisor.AnalyzeRequest
-	2, // 2: advisor.AdvisorService.StartStrategyGeneration:input_type -> advisor.StartStrategyGenerationRequest
-	3, // 3: advisor.AdvisorService.GetStrategyJob:input_type -> advisor.GetStrategyJobRequest
-	1, // 4: advisor.AdvisorService.AnalyzePortfolio:output_type -> advisor.AnalysisChunk
-	5, // 5: advisor.AdvisorService.StartStrategyGeneration:output_type -> advisor.StrategyJob
-	5, // 6: advisor.AdvisorService.GetStrategyJob:output_type -> advisor.StrategyJob
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3, // 0: advisor.ChatSession.turns:type_name -> advisor.ChatTurn
+	7, // 1: advisor.StrategyJob.backtest:type_name -> advisor.BacktestSummary
+	1, // 2: advisor.AdvisorService.ChatWithAdvisor:input_type -> advisor.ChatRequest
+	2, // 3: advisor.AdvisorService.GetChatSession:input_type -> advisor.GetChatSessionRequest
+	5, // 4: advisor.AdvisorService.StartStrategyGeneration:input_type -> advisor.StartStrategyGenerationRequest
+	6, // 5: advisor.AdvisorService.GetStrategyJob:input_type -> advisor.GetStrategyJobRequest
+	0, // 6: advisor.AdvisorService.ChatWithAdvisor:output_type -> advisor.AnalysisChunk
+	4, // 7: advisor.AdvisorService.GetChatSession:output_type -> advisor.ChatSession
+	8, // 8: advisor.AdvisorService.StartStrategyGeneration:output_type -> advisor.StrategyJob
+	8, // 9: advisor.AdvisorService.GetStrategyJob:output_type -> advisor.StrategyJob
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_advisor_advisor_proto_init() }
@@ -484,7 +665,7 @@ func file_advisor_advisor_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_advisor_advisor_proto_rawDesc), len(file_advisor_advisor_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

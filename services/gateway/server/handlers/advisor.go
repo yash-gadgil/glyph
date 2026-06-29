@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -21,7 +22,8 @@ import (
 func (cfg *Config) LoadAdvisorRoutes(r chi.Router) {
 	r.Use(cfg.AuthMiddleware)
 
-	r.Get("/analyze", cfg.AnalyzePortfolio)
+	r.Post("/chat", cfg.ChatWithAdvisor)
+	r.Get("/chat/session", cfg.GetChatSession)
 	r.Post("/strategy", cfg.StartStrategyGeneration)
 	r.Get("/strategy/status", cfg.GetStrategyJob)
 }
@@ -114,9 +116,9 @@ func writeStrategyJob(w http.ResponseWriter, job *advisorpb.StrategyJob) {
 	json.NewEncoder(w).Encode(out)
 }
 
-func (cfg *Config) AnalyzePortfolio(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) ChatWithAdvisor(w http.ResponseWriter, r *http.Request) {
 	log := logger.WithContextFields(r.Context(), cfg.log).With(
-		logger.Action("analyze_portfolio"),
+		logger.Action("chat_with_advisor"),
 	)
 
 	userID, ok := r.Context().Value(userIDKey).(string)
@@ -129,21 +131,30 @@ func (cfg *Config) AnalyzePortfolio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var body struct {
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Message) == "" {
+		utils.ReturnErrorJSON(w, "A message is required", http.StatusBadRequest)
+		return
+	}
+
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		utils.ReturnErrorJSON(w, "Streaming unsupported", http.StatusInternalServerError)
 		return
 	}
 
-	streamCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Minute)
+	streamCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 2*time.Minute)
 	defer cancel()
 
-	stream, err := cfg.advisorClient.AnalyzePortfolio(streamCtx, &advisorpb.AnalyzeRequest{
-		UserId: userID,
+	stream, err := cfg.advisorClient.ChatWithAdvisor(streamCtx, &advisorpb.ChatRequest{
+		UserId:  userID,
+		Message: body.Message,
 	})
 	if err != nil {
-		log.Error("analyze_start_error", logger.Stage("open_stream"), zap.Error(err))
-		utils.ReturnErrorJSON(w, "Unable to start analysis", http.StatusInternalServerError)
+		log.Error("chat_start_error", logger.Stage("open_stream"), zap.Error(err))
+		utils.ReturnErrorJSON(w, "Unable to start chat", http.StatusInternalServerError)
 		return
 	}
 
@@ -161,8 +172,13 @@ func (cfg *Config) AnalyzePortfolio(w http.ResponseWriter, r *http.Request) {
 			if status.Code(err) == codes.Canceled {
 				return
 			}
-			log.Error("analyze_stream_error", logger.Stage("recv"), zap.Error(err))
-			fmt.Fprint(w, "event: error\ndata: analysis interrupted\n\n")
+			if status.Code(err) == codes.FailedPrecondition {
+				fmt.Fprint(w, "event: busy\ndata: a previous message is still being answered\n\n")
+				flusher.Flush()
+				return
+			}
+			log.Error("chat_stream_error", logger.Stage("recv"), zap.Error(err))
+			fmt.Fprint(w, "event: error\ndata: chat interrupted\n\n")
 			flusher.Flush()
 			return
 		}
@@ -179,6 +195,44 @@ func (cfg *Config) AnalyzePortfolio(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, "event: done\ndata: end\n\n")
 	flusher.Flush()
+}
+
+func (cfg *Config) GetChatSession(w http.ResponseWriter, r *http.Request) {
+	log := logger.WithContextFields(r.Context(), cfg.log).With(
+		logger.Action("get_chat_session"),
+	)
+
+	userID, ok := r.Context().Value(userIDKey).(string)
+	if !ok || userID == "" {
+		utils.ReturnErrorJSON(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+	if cfg.advisorClient == nil {
+		utils.ReturnErrorJSON(w, "Advisor service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Second)
+	defer cancel()
+
+	session, err := cfg.advisorClient.GetChatSession(ctx, &advisorpb.GetChatSessionRequest{UserId: userID})
+	if err != nil {
+		log.Error("get_chat_session_error", logger.Stage("rpc"), zap.Error(err))
+		utils.ReturnErrorJSON(w, "Unable to load chat", http.StatusInternalServerError)
+		return
+	}
+
+	turns := make([]map[string]string, 0, len(session.Turns))
+	for _, t := range session.Turns {
+		turns = append(turns, map[string]string{"role": t.Role, "content": t.Content})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"turns":        turns,
+		"in_flight":    session.InFlight,
+		"partial_text": session.PartialText,
+	})
 }
 
 func sseEscape(s string) string {

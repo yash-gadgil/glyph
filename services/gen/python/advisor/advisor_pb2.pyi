@@ -1,14 +1,9 @@
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
-
-class AnalyzeRequest(_message.Message):
-    __slots__ = ("user_id",)
-    USER_ID_FIELD_NUMBER: _ClassVar[int]
-    user_id: str
-    def __init__(self, user_id: _Optional[str] = ...) -> None: ...
 
 class AnalysisChunk(_message.Message):
     __slots__ = ("text", "done")
@@ -17,6 +12,38 @@ class AnalysisChunk(_message.Message):
     text: str
     done: bool
     def __init__(self, text: _Optional[str] = ..., done: bool = ...) -> None: ...
+
+class ChatRequest(_message.Message):
+    __slots__ = ("user_id", "message")
+    USER_ID_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    user_id: str
+    message: str
+    def __init__(self, user_id: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+
+class GetChatSessionRequest(_message.Message):
+    __slots__ = ("user_id",)
+    USER_ID_FIELD_NUMBER: _ClassVar[int]
+    user_id: str
+    def __init__(self, user_id: _Optional[str] = ...) -> None: ...
+
+class ChatTurn(_message.Message):
+    __slots__ = ("role", "content")
+    ROLE_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    role: str
+    content: str
+    def __init__(self, role: _Optional[str] = ..., content: _Optional[str] = ...) -> None: ...
+
+class ChatSession(_message.Message):
+    __slots__ = ("turns", "in_flight", "partial_text")
+    TURNS_FIELD_NUMBER: _ClassVar[int]
+    IN_FLIGHT_FIELD_NUMBER: _ClassVar[int]
+    PARTIAL_TEXT_FIELD_NUMBER: _ClassVar[int]
+    turns: _containers.RepeatedCompositeFieldContainer[ChatTurn]
+    in_flight: bool
+    partial_text: str
+    def __init__(self, turns: _Optional[_Iterable[_Union[ChatTurn, _Mapping]]] = ..., in_flight: bool = ..., partial_text: _Optional[str] = ...) -> None: ...
 
 class StartStrategyGenerationRequest(_message.Message):
     __slots__ = ("user_id", "symbol")

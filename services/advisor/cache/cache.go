@@ -11,25 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type PosPrint struct {
-	Qty            int64 `json:"qty"`
-	CostBasisCents int64 `json:"cost_basis_cents"`
-	AvgPriceCents  int64 `json:"avg_price_cents"`
-}
-
-type Fingerprint struct {
-	CashCents   int64               `json:"cash_cents"`
-	EquityCents int64               `json:"equity_cents"`
-	Positions   map[string]PosPrint `json:"positions"`
-}
-
-type Entry struct {
-	Snapshot    string      `json:"snapshot"`
-	Analysis    string      `json:"analysis"`
-	Fingerprint Fingerprint `json:"fingerprint"`
-	GeneratedAt time.Time   `json:"generated_at"`
-}
-
 type Cache struct {
 	rdb *redis.Client
 	log *zap.Logger
@@ -59,39 +40,6 @@ func Init(ctx context.Context, log *zap.Logger) *Cache {
 
 func (c *Cache) Enabled() bool {
 	return c.rdb != nil
-}
-
-func key(userID string) string {
-	return fmt.Sprintf("advisor:analysis:%s", userID)
-}
-
-func (c *Cache) Get(ctx context.Context, userID string) (*Entry, error) {
-	if c.rdb == nil {
-		return nil, nil
-	}
-	raw, err := c.rdb.Get(ctx, key(userID)).Bytes()
-	if err == redis.Nil {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var entry Entry
-	if err := json.Unmarshal(raw, &entry); err != nil {
-		return nil, err
-	}
-	return &entry, nil
-}
-
-func (c *Cache) Set(ctx context.Context, userID string, entry *Entry) error {
-	if c.rdb == nil {
-		return nil
-	}
-	payload, err := json.Marshal(entry)
-	if err != nil {
-		return err
-	}
-	return c.rdb.Set(ctx, key(userID), payload, 7*24*time.Hour).Err()
 }
 
 type BacktestSummary struct {
@@ -164,4 +112,68 @@ func (c *Cache) ReleaseJobLock(ctx context.Context, userID string) {
 		return
 	}
 	c.rdb.Del(ctx, stratLockKey(userID))
+}
+
+type ChatTurn struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type ChatSession struct {
+	Turns     []ChatTurn `json:"turns"`
+	InFlight  bool       `json:"in_flight"`
+	Partial   string     `json:"partial"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+func chatKey(userID string) string {
+	return fmt.Sprintf("advisor:chat:%s", userID)
+}
+
+func chatLockKey(userID string) string {
+	return fmt.Sprintf("advisor:chatlock:%s", userID)
+}
+
+func (c *Cache) AcquireChatLock(ctx context.Context, userID string, ttl time.Duration) (bool, error) {
+	if c.rdb == nil {
+		return true, nil
+	}
+	return c.rdb.SetNX(ctx, chatLockKey(userID), "1", ttl).Result()
+}
+
+func (c *Cache) ReleaseChatLock(ctx context.Context, userID string) {
+	if c.rdb == nil {
+		return
+	}
+	c.rdb.Del(ctx, chatLockKey(userID))
+}
+
+func (c *Cache) GetChatSession(ctx context.Context, userID string) (*ChatSession, error) {
+	if c.rdb == nil {
+		return nil, nil
+	}
+	raw, err := c.rdb.Get(ctx, chatKey(userID)).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var session ChatSession
+	if err := json.Unmarshal(raw, &session); err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (c *Cache) SetChatSession(ctx context.Context, userID string, session *ChatSession) error {
+	if c.rdb == nil {
+		return nil
+	}
+	session.UpdatedAt = time.Now().UTC()
+	payload, err := json.Marshal(session)
+	if err != nil {
+		return err
+	}
+	return c.rdb.Set(ctx, chatKey(userID), payload, 12*time.Hour).Err()
 }

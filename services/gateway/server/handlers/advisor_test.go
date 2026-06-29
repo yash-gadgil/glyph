@@ -16,13 +16,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-type fakeAnalyzeStream struct {
+type fakeChatStream struct {
 	grpc.ClientStream
 	chunks []*advisorpb.AnalysisChunk
 	i      int
 }
 
-func (f *fakeAnalyzeStream) Recv() (*advisorpb.AnalysisChunk, error) {
+func (f *fakeChatStream) Recv() (*advisorpb.AnalysisChunk, error) {
 	if f.i >= len(f.chunks) {
 		return nil, io.EOF
 	}
@@ -35,8 +35,12 @@ type fakeAdvisorClient struct {
 	chunks []*advisorpb.AnalysisChunk
 }
 
-func (f *fakeAdvisorClient) AnalyzePortfolio(ctx context.Context, in *advisorpb.AnalyzeRequest, opts ...grpc.CallOption) (advisorpb.AdvisorService_AnalyzePortfolioClient, error) {
-	return &fakeAnalyzeStream{chunks: f.chunks}, nil
+func (f *fakeAdvisorClient) ChatWithAdvisor(ctx context.Context, in *advisorpb.ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[advisorpb.AnalysisChunk], error) {
+	return &fakeChatStream{chunks: f.chunks}, nil
+}
+
+func (f *fakeAdvisorClient) GetChatSession(ctx context.Context, in *advisorpb.GetChatSessionRequest, opts ...grpc.CallOption) (*advisorpb.ChatSession, error) {
+	return &advisorpb.ChatSession{}, nil
 }
 
 func (f *fakeAdvisorClient) StartStrategyGeneration(ctx context.Context, in *advisorpb.StartStrategyGenerationRequest, opts ...grpc.CallOption) (*advisorpb.StrategyJob, error) {
@@ -47,7 +51,7 @@ func (f *fakeAdvisorClient) GetStrategyJob(ctx context.Context, in *advisorpb.Ge
 	return &advisorpb.StrategyJob{}, nil
 }
 
-func TestAnalyzePortfolioStreamsSSE(t *testing.T) {
+func TestChatWithAdvisorStreamsSSE(t *testing.T) {
 	client := &fakeAdvisorClient{chunks: []*advisorpb.AnalysisChunk{
 		{Text: "Your "},
 		{Text: "book "},
@@ -56,10 +60,13 @@ func TestAnalyzePortfolioStreamsSSE(t *testing.T) {
 	}}
 
 	cfg := handlers.NewTestConfig(new(mocks.MockAuthClient)).WithAdvisorClient(client)
-	req := handlers.WithUserID(httptest.NewRequest(http.MethodGet, "/advisor/analyze", nil), "user-1")
+	req := handlers.WithUserID(
+		httptest.NewRequest(http.MethodPost, "/advisor/chat", strings.NewReader(`{"message":"how is my book?"}`)),
+		"user-1",
+	)
 	w := httptest.NewRecorder()
 
-	cfg.AnalyzePortfolio(w, req)
+	cfg.ChatWithAdvisor(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "text/event-stream", w.Header().Get("Content-Type"))

@@ -5,18 +5,35 @@ package advisor;
 option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/advisor";
 
 service AdvisorService {
-    rpc AnalyzePortfolio(AnalyzeRequest) returns (stream AnalysisChunk) {}
+    rpc ChatWithAdvisor(ChatRequest) returns (stream AnalysisChunk) {}
+    rpc GetChatSession(GetChatSessionRequest) returns (ChatSession) {}
     rpc StartStrategyGeneration(StartStrategyGenerationRequest) returns (StrategyJob) {}
     rpc GetStrategyJob(GetStrategyJobRequest) returns (StrategyJob) {}
-}
-
-message AnalyzeRequest {
-    string user_id = 1;
 }
 
 message AnalysisChunk {
     string text = 1;
     bool done = 2;
+}
+
+message ChatRequest {
+    string user_id = 1;
+    string message = 2;
+}
+
+message GetChatSessionRequest {
+    string user_id = 1;
+}
+
+message ChatTurn {
+    string role = 1;
+    string content = 2;
+}
+
+message ChatSession {
+    repeated ChatTurn turns = 1;
+    bool in_flight = 2;
+    string partial_text = 3;
 }
 
 message StartStrategyGenerationRequest {

@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AdvisorService_AnalyzePortfolio_FullMethodName        = "/advisor.AdvisorService/AnalyzePortfolio"
+	AdvisorService_ChatWithAdvisor_FullMethodName         = "/advisor.AdvisorService/ChatWithAdvisor"
+	AdvisorService_GetChatSession_FullMethodName          = "/advisor.AdvisorService/GetChatSession"
 	AdvisorService_StartStrategyGeneration_FullMethodName = "/advisor.AdvisorService/StartStrategyGeneration"
 	AdvisorService_GetStrategyJob_FullMethodName          = "/advisor.AdvisorService/GetStrategyJob"
 )
@@ -28,7 +29,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdvisorServiceClient interface {
-	AnalyzePortfolio(ctx context.Context, in *AnalyzeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnalysisChunk], error)
+	ChatWithAdvisor(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnalysisChunk], error)
+	GetChatSession(ctx context.Context, in *GetChatSessionRequest, opts ...grpc.CallOption) (*ChatSession, error)
 	StartStrategyGeneration(ctx context.Context, in *StartStrategyGenerationRequest, opts ...grpc.CallOption) (*StrategyJob, error)
 	GetStrategyJob(ctx context.Context, in *GetStrategyJobRequest, opts ...grpc.CallOption) (*StrategyJob, error)
 }
@@ -41,13 +43,13 @@ func NewAdvisorServiceClient(cc grpc.ClientConnInterface) AdvisorServiceClient {
 	return &advisorServiceClient{cc}
 }
 
-func (c *advisorServiceClient) AnalyzePortfolio(ctx context.Context, in *AnalyzeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnalysisChunk], error) {
+func (c *advisorServiceClient) ChatWithAdvisor(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnalysisChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &AdvisorService_ServiceDesc.Streams[0], AdvisorService_AnalyzePortfolio_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &AdvisorService_ServiceDesc.Streams[0], AdvisorService_ChatWithAdvisor_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[AnalyzeRequest, AnalysisChunk]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ChatRequest, AnalysisChunk]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -58,7 +60,17 @@ func (c *advisorServiceClient) AnalyzePortfolio(ctx context.Context, in *Analyze
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AdvisorService_AnalyzePortfolioClient = grpc.ServerStreamingClient[AnalysisChunk]
+type AdvisorService_ChatWithAdvisorClient = grpc.ServerStreamingClient[AnalysisChunk]
+
+func (c *advisorServiceClient) GetChatSession(ctx context.Context, in *GetChatSessionRequest, opts ...grpc.CallOption) (*ChatSession, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatSession)
+	err := c.cc.Invoke(ctx, AdvisorService_GetChatSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *advisorServiceClient) StartStrategyGeneration(ctx context.Context, in *StartStrategyGenerationRequest, opts ...grpc.CallOption) (*StrategyJob, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -84,7 +96,8 @@ func (c *advisorServiceClient) GetStrategyJob(ctx context.Context, in *GetStrate
 // All implementations must embed UnimplementedAdvisorServiceServer
 // for forward compatibility.
 type AdvisorServiceServer interface {
-	AnalyzePortfolio(*AnalyzeRequest, grpc.ServerStreamingServer[AnalysisChunk]) error
+	ChatWithAdvisor(*ChatRequest, grpc.ServerStreamingServer[AnalysisChunk]) error
+	GetChatSession(context.Context, *GetChatSessionRequest) (*ChatSession, error)
 	StartStrategyGeneration(context.Context, *StartStrategyGenerationRequest) (*StrategyJob, error)
 	GetStrategyJob(context.Context, *GetStrategyJobRequest) (*StrategyJob, error)
 	mustEmbedUnimplementedAdvisorServiceServer()
@@ -97,8 +110,11 @@ type AdvisorServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAdvisorServiceServer struct{}
 
-func (UnimplementedAdvisorServiceServer) AnalyzePortfolio(*AnalyzeRequest, grpc.ServerStreamingServer[AnalysisChunk]) error {
-	return status.Error(codes.Unimplemented, "method AnalyzePortfolio not implemented")
+func (UnimplementedAdvisorServiceServer) ChatWithAdvisor(*ChatRequest, grpc.ServerStreamingServer[AnalysisChunk]) error {
+	return status.Error(codes.Unimplemented, "method ChatWithAdvisor not implemented")
+}
+func (UnimplementedAdvisorServiceServer) GetChatSession(context.Context, *GetChatSessionRequest) (*ChatSession, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetChatSession not implemented")
 }
 func (UnimplementedAdvisorServiceServer) StartStrategyGeneration(context.Context, *StartStrategyGenerationRequest) (*StrategyJob, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartStrategyGeneration not implemented")
@@ -127,16 +143,34 @@ func RegisterAdvisorServiceServer(s grpc.ServiceRegistrar, srv AdvisorServiceSer
 	s.RegisterService(&AdvisorService_ServiceDesc, srv)
 }
 
-func _AdvisorService_AnalyzePortfolio_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(AnalyzeRequest)
+func _AdvisorService_ChatWithAdvisor_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ChatRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(AdvisorServiceServer).AnalyzePortfolio(m, &grpc.GenericServerStream[AnalyzeRequest, AnalysisChunk]{ServerStream: stream})
+	return srv.(AdvisorServiceServer).ChatWithAdvisor(m, &grpc.GenericServerStream[ChatRequest, AnalysisChunk]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AdvisorService_AnalyzePortfolioServer = grpc.ServerStreamingServer[AnalysisChunk]
+type AdvisorService_ChatWithAdvisorServer = grpc.ServerStreamingServer[AnalysisChunk]
+
+func _AdvisorService_GetChatSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChatSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdvisorServiceServer).GetChatSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdvisorService_GetChatSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdvisorServiceServer).GetChatSession(ctx, req.(*GetChatSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 func _AdvisorService_StartStrategyGeneration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StartStrategyGenerationRequest)
@@ -182,6 +216,10 @@ var AdvisorService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AdvisorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetChatSession",
+			Handler:    _AdvisorService_GetChatSession_Handler,
+		},
+		{
 			MethodName: "StartStrategyGeneration",
 			Handler:    _AdvisorService_StartStrategyGeneration_Handler,
 		},
@@ -192,8 +230,8 @@ var AdvisorService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "AnalyzePortfolio",
-			Handler:       _AdvisorService_AnalyzePortfolio_Handler,
+			StreamName:    "ChatWithAdvisor",
+			Handler:       _AdvisorService_ChatWithAdvisor_Handler,
 			ServerStreams: true,
 		},
 	},
