@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Send, X, Square, MessageSquare } from "lucide-react";
+import PixelHover from "@/components/ui/PixelHover";
 import {
   getChatSession,
   pollChatSession,
@@ -11,6 +13,8 @@ import {
 } from "@/services/advisor/chat";
 
 const ACCENT = "#5600a2";
+
+const VISIBLE_ON = ["/dashboard", "/portfolio", "/explore", "/watchlist", "/strategies", "/orders"];
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -23,6 +27,9 @@ export default function ChatWidget() {
   const accumRef = useRef("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const pathname = usePathname();
+  const visible = VISIBLE_ON.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   useEffect(() => {
     let active = true;
@@ -106,6 +113,8 @@ export default function ChatWidget() {
 
   const empty = messages.length === 0 && !streaming;
 
+  if (!visible) return null;
+
   return (
     <>
       <AnimatePresence>
@@ -185,17 +194,28 @@ export default function ChatWidget() {
         )}
       </AnimatePresence>
 
-      <motion.button
+      <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         whileTap={{ scale: 0.94 }}
-        onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 shadow-xl shadow-black/30 text-white"
-        style={{ background: `linear-gradient(135deg, ${ACCENT}, #7d34c4)` }}
-        aria-label="Open assistant"
+        className="fixed bottom-6 right-6 z-50"
       >
-        {open ? <X size={22} /> : <Sparkles size={22} />}
-      </motion.button>
+        <PixelHover
+          gap={3}
+          speed={40}
+          colors="#a06cd5,#7d34c4,#5600a2"
+          active={streaming}
+          className="rounded-full border border-white/15 bg-white/5 backdrop-blur-md shadow-xl shadow-black/30"
+        >
+          <button
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Open assistant"
+            className="flex h-14 w-14 items-center justify-center rounded-full text-white transition-colors hover:text-[#c9a6f0]"
+          >
+            {open ? <X size={22} /> : <Sparkles size={22} />}
+          </button>
+        </PixelHover>
+      </motion.div>
     </>
   );
 }
