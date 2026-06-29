@@ -6,7 +6,7 @@ import (
 
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/services/advisor/cache"
-	"github.com/yash-gadgil/glyph/services/advisor/llm"
+	"github.com/yash-gadgil/glyph/services/advisor/types"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"go.uber.org/zap"
@@ -17,12 +17,12 @@ import (
 type AdvisorHandler struct {
 	advisorpb.UnimplementedAdvisorServiceServer
 	portfolio userpb.PortfolioServiceClient
-	llm       *llm.Client
+	llm       types.Provider
 	cache     *cache.Cache
 	log       *zap.Logger
 }
 
-func NewAdvisorHandler(portfolio userpb.PortfolioServiceClient, model *llm.Client, c *cache.Cache, log *zap.Logger) *AdvisorHandler {
+func NewAdvisorHandler(portfolio userpb.PortfolioServiceClient, model types.Provider, c *cache.Cache, log *zap.Logger) *AdvisorHandler {
 	return &AdvisorHandler{portfolio: portfolio, llm: model, cache: c, log: log}
 }
 

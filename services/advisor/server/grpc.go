@@ -11,6 +11,7 @@ import (
 	"github.com/yash-gadgil/glyph/services/advisor/cache"
 	"github.com/yash-gadgil/glyph/services/advisor/handlers"
 	"github.com/yash-gadgil/glyph/services/advisor/llm"
+	"github.com/yash-gadgil/glyph/services/advisor/types"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
 	inferpb "github.com/yash-gadgil/glyph/services/gen/golang/inference"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
@@ -61,14 +62,14 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 		s.log.Warn("user_svc_port_unset")
 	}
 
-	var model *llm.Client
+	var model types.Provider
 	if addr := os.Getenv("INFERENCE_SVC_PORT"); addr != "" {
 		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			s.log.Warn("inference_service_unavailable", zap.Error(err))
 		} else {
 			defer conn.Close()
-			model = llm.New(inferpb.NewInferenceServiceClient(conn))
+			model = llm.NewInference(inferpb.NewInferenceServiceClient(conn))
 		}
 	} else {
 		s.log.Warn("inference_svc_port_unset")
