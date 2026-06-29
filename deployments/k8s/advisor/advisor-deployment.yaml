@@ -18,6 +18,8 @@ spec:
           image: glyph/advisor:latest
           imagePullPolicy: IfNotPresent
           envFrom:
+            - secretRef:
+                name: advisor-secrets
             - configMapRef:
                 name: advisor-config
           ports:

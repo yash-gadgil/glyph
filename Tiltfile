@@ -153,6 +153,7 @@ docker_build(
 )
 
 k8s_yaml([
+    'deployments/k8s/advisor/advisor-secrets.yaml',
     'deployments/k8s/advisor/advisor-config.yaml',
     'deployments/k8s/advisor/advisor-deployment.yaml',
     'deployments/k8s/advisor/advisor-service.yaml',

@@ -10,4 +10,7 @@ data:
   USER_SVC_PORT: "user:50053"
   INFERENCE_SVC_PORT: "inference:50057"
 
+  LLM_PROVIDER: "gemini"
+  GEMINI_MODEL: "gemini-2.5-flash"
+
   CACHE_ADDR: "auth-cache:6379"
