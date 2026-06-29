@@ -312,6 +312,90 @@ function DeployModal({
 }
 
 
+function GenerateModal({
+  busy,
+  onClose,
+  onGenerate,
+}: {
+  busy: boolean;
+  onClose: () => void;
+  onGenerate: (symbol: string) => void;
+}) {
+  const [symbol, setSymbol] = useState("AAPL");
+  const [error, setError] = useState("");
+
+  function handleGenerate() {
+    if (!symbol.trim()) { setError("Symbol is required"); return; }
+    setError("");
+    onGenerate(symbol.toUpperCase().trim());
+  }
+
+  return (
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-neutral-950/95 shadow-2xl overflow-hidden">
+          <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-widest mb-1 font-semibold" style={{ color: "#8b3fd6" }}>Generate with AI</p>
+              <h2 className="text-xl font-bold text-white">Author a strategy</h2>
+              <p className="text-xs text-white/50 mt-1">Pick a stock. The model reads its current trend, momentum and volatility, then designs and backtests a strategy that fits.</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors mt-0.5 shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="px-6 py-5 space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">Symbol</label>
+              <SymbolCombobox
+                value={symbol}
+                onChange={(v) => setSymbol(v.toUpperCase())}
+                placeholder="AAPL"
+                inputClassName="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#5600a2]/60 focus:ring-1 focus:ring-[#5600a2]/40 transition-all"
+              />
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-medium flex items-center gap-2">
+                <AlertTriangle size={13} /> {error}
+              </div>
+            )}
+          </div>
+
+          <div className="px-6 py-4 border-t border-white/10 flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold uppercase tracking-wider text-white/50 border border-white/10 hover:bg-white/5 transition-all"
+            >
+              Cancel
+            </button>
+            <PixelHover
+              gap={3}
+              speed={40}
+              colors="#a06cd5,#7d34c4,#5600a2"
+              className="group flex-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#5600a2]/60 transition-all active:scale-[0.98]"
+            >
+              <button
+                onClick={handleGenerate}
+                disabled={busy}
+                className="w-full py-3 rounded-xl text-sm font-bold uppercase tracking-wider text-white bg-transparent group-hover:text-[#c9a6f0] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                <Sparkles size={14} />
+                {busy ? "Generating…" : "Generate"}
+              </button>
+            </PixelHover>
+          </div>
+        </div>
+      </div>
+    </ModalPortal>
+  );
+}
+
+
 type DeployTarget =
   | { kind: "custom"; strategy: CustomStrategy }
   | { kind: "preset"; preset: StrategyPreset };
@@ -339,6 +423,7 @@ export default function Strategies() {
   const [genError, setGenError] = useState("");
   const [genRationale, setGenRationale] = useState("");
   const [genBacktest, setGenBacktest] = useState<BacktestSummary | null>(null);
+  const [genModalOpen, setGenModalOpen] = useState(false);
 
   const { data: deployments = [] } = useDeployments();
   const deployMutation = useDeployStrategy();
@@ -388,14 +473,15 @@ export default function Strategies() {
     setGenBacktest(generated.backtest ?? null);
   }
 
-  async function handleGenerate() {
+  async function handleGenerate(symbol: string) {
     if (genBusy) return;
+    setGenModalOpen(false);
     setGenBusy(true);
     setGenError("");
     setGenRationale("");
     setGenBacktest(null);
     try {
-      const generated = await generateStrategy();
+      const generated = await generateStrategy(symbol);
       await applyGenerated(generated);
     } catch {
       setGenError("Could not generate a strategy right now. Try again in a moment.");
@@ -590,7 +676,7 @@ export default function Strategies() {
                   className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#5600a2]/60 transition-colors"
                 >
                   <button
-                    onClick={handleGenerate}
+                    onClick={() => setGenModalOpen(true)}
                     disabled={genBusy}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-transparent transition-colors group-hover:text-[#c9a6f0] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -1070,6 +1156,14 @@ export default function Strategies() {
         </motion.section>
 
       </RevealStagger>
+
+      {genModalOpen && (
+        <GenerateModal
+          busy={genBusy}
+          onClose={() => setGenModalOpen(false)}
+          onGenerate={handleGenerate}
+        />
+      )}
 
       {deployTarget && (
         <DeployModal
