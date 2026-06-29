@@ -31,6 +31,13 @@ func NewGrpcServer(addr string) *gRPCServer {
 	return &gRPCServer{addr: addr, log: logger.New("advisor-service")}
 }
 
+func geminiModel() string {
+	if m := os.Getenv("GEMINI_MODEL"); m != "" {
+		return m
+	}
+	return "gemini-2.5-flash"
+}
+
 func (s *gRPCServer) Run(ctx context.Context) error {
 	lis, err := net.Listen("tcp", s.addr)
 	if err != nil {
@@ -63,16 +70,30 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 	}
 
 	var model types.Provider
-	if addr := os.Getenv("INFERENCE_SVC_PORT"); addr != "" {
-		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			s.log.Warn("inference_service_unavailable", zap.Error(err))
+	switch os.Getenv("LLM_PROVIDER") {
+	case "inference":
+		if addr := os.Getenv("INFERENCE_SVC_PORT"); addr != "" {
+			conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				s.log.Warn("inference_service_unavailable", zap.Error(err))
+			} else {
+				defer conn.Close()
+				model = llm.NewInference(inferpb.NewInferenceServiceClient(conn))
+			}
 		} else {
-			defer conn.Close()
-			model = llm.NewInference(inferpb.NewInferenceServiceClient(conn))
+			s.log.Warn("inference_svc_port_unset")
 		}
-	} else {
-		s.log.Warn("inference_svc_port_unset")
+	default:
+		if key := os.Getenv("GEMINI_API_KEY"); key != "" {
+			provider, err := llm.NewGemini(ctx, key, geminiModel())
+			if err != nil {
+				s.log.Warn("gemini_unavailable", zap.Error(err))
+			} else {
+				model = provider
+			}
+		} else {
+			s.log.Warn("gemini_api_key_unset")
+		}
 	}
 
 	analysisCache := cache.Init(ctx, s.log)
