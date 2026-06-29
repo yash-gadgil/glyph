@@ -7,7 +7,6 @@ import { TextEffect } from "@/components/primitives/TextEffect";
 import { PageEnter, RevealStagger, RevealItem } from "@/components/primitives/Reveal";
 import { SlidingNumber } from "@/components/primitives/SlidingNumber";
 import PortfolioValueChart from "@/components/portfolio/PortfolioValueChart";
-import PortfolioAdvisor from "@/components/portfolio/PortfolioAdvisor";
 import { formatCents, dollarsFromCents } from "@/lib/utils";
 import { motion } from "motion/react";
 
@@ -190,10 +189,6 @@ export default function Portfolio() {
 
         <RevealItem>
           <PortfolioValueChart />
-        </RevealItem>
-
-        <RevealItem>
-          <PortfolioAdvisor />
         </RevealItem>
 
         <RevealItem>
