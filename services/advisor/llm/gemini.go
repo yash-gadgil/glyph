@@ -55,6 +55,7 @@ func (p *geminiProvider) Stream(ctx context.Context, system, prompt string, emit
 
 func (p *geminiProvider) CompleteShort(ctx context.Context, system, prompt string, maxTokens int32) (string, error) {
 	config := systemConfig(system, 0.2, maxTokens)
+	config.ThinkingConfig = &genai.ThinkingConfig{ThinkingBudget: genai.Ptr(int32(0))}
 	result, err := p.client.Models.GenerateContent(ctx, p.model, genai.Text(prompt), config)
 	if err != nil {
 		return "", err
