@@ -38,7 +38,13 @@ import SymbolCombobox from "@/components/ui/SymbolCombobox";
 import { TextEffect } from "@/components/primitives/TextEffect";
 import { PageEnter, RevealStagger, RevealItem } from "@/components/primitives/Reveal";
 import { motion, AnimatePresence } from "motion/react";
-import { generateStrategy } from "@/services/advisor/strategy";
+import {
+  generateStrategy,
+  resumeStrategyGeneration,
+  isStrategyGenerationRunning,
+  type GeneratedStrategy,
+  type BacktestSummary,
+} from "@/services/advisor/strategy";
 import { useDeployments, type Deployment } from "@/services/strategies/queries";
 import { useDeployStrategy, useStopDeployment, useDeleteDeployment } from "@/services/strategies/mutations";
 import { formatCents } from "@/lib/utils";
@@ -332,6 +338,7 @@ export default function Strategies() {
   const [genBusy, setGenBusy] = useState(false);
   const [genError, setGenError] = useState("");
   const [genRationale, setGenRationale] = useState("");
+  const [genBacktest, setGenBacktest] = useState<BacktestSummary | null>(null);
 
   const { data: deployments = [] } = useDeployments();
   const deployMutation = useDeployStrategy();
@@ -345,23 +352,51 @@ export default function Strategies() {
       .catch(() => setCustomStrategies([]));
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    isStrategyGenerationRunning().then((running) => {
+      if (!running || !active) return;
+      setGenBusy(true);
+      setGenError("");
+      resumeStrategyGeneration()
+        .then((generated) => {
+          if (active) return applyGenerated(generated);
+        })
+        .catch(() => {
+          if (active) setGenError("Could not finish the strategy that was generating. Try again.");
+        })
+        .finally(() => {
+          if (active) setGenBusy(false);
+        });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function applyGenerated(generated: GeneratedStrategy) {
+    const cs: CustomStrategy = {
+      ...generated.config,
+      name: generated.name,
+      description: generated.rationale,
+      createdAt: new Date().toISOString(),
+    };
+    await createCustomStrategy(cs);
+    const list = await loadCustomStrategies();
+    setCustomStrategies(list);
+    setGenRationale(generated.rationale);
+    setGenBacktest(generated.backtest ?? null);
+  }
+
   async function handleGenerate() {
     if (genBusy) return;
     setGenBusy(true);
     setGenError("");
     setGenRationale("");
+    setGenBacktest(null);
     try {
       const generated = await generateStrategy();
-      const cs: CustomStrategy = {
-        ...generated.config,
-        name: generated.name,
-        description: generated.rationale,
-        createdAt: new Date().toISOString(),
-      };
-      await createCustomStrategy(cs);
-      const list = await loadCustomStrategies();
-      setCustomStrategies(list);
-      setGenRationale(generated.rationale);
+      await applyGenerated(generated);
     } catch {
       setGenError("Could not generate a strategy right now. Try again in a moment.");
     } finally {
@@ -567,7 +602,7 @@ export default function Strategies() {
           </header>
         </RevealItem>
 
-        {(genRationale || genError) && (
+        {(genBusy || genRationale || genError) && (
           <RevealItem>
             <GlassSurface borderRadius={16} order="start" alignItems="stretch" flexDirection="col" innerClassName="p-4">
               {genError ? (
@@ -575,10 +610,36 @@ export default function Strategies() {
                   <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                   <p>{genError}</p>
                 </div>
-              ) : (
+              ) : genBusy ? (
                 <div className="flex items-start gap-3 text-sm text-neutral-300">
-                  <Sparkles size={16} className="mt-0.5 shrink-0" style={{ color: "#5600a2" }} />
-                  <p><span className="font-medium" style={{ color: "#8b3fd6" }}>Added a strategy: </span>{genRationale}</p>
+                  <Sparkles size={16} className="mt-0.5 shrink-0 animate-pulse" style={{ color: "#5600a2" }} />
+                  <p><span className="font-medium" style={{ color: "#8b3fd6" }}>Authoring a strategy… </span>the model is drafting, validating and backtesting rules. This survives a refresh.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 text-sm text-neutral-300">
+                    <Sparkles size={16} className="mt-0.5 shrink-0" style={{ color: "#5600a2" }} />
+                    <p><span className="font-medium" style={{ color: "#8b3fd6" }}>Added a strategy: </span>{genRationale}</p>
+                  </div>
+                  {genBacktest && genBacktest.num_trades > 0 && (
+                    <div className="flex flex-wrap gap-2 pl-7">
+                      <span className="px-2 py-1 rounded-md text-[10px] font-semibold bg-white/5 border border-white/10 text-white/60 tracking-wider">
+                        Return {genBacktest.total_return_pct.toFixed(1)}%
+                      </span>
+                      <span className="px-2 py-1 rounded-md text-[10px] font-semibold bg-white/5 border border-white/10 text-white/60 tracking-wider">
+                        Max DD {genBacktest.max_drawdown_pct.toFixed(1)}%
+                      </span>
+                      <span className="px-2 py-1 rounded-md text-[10px] font-semibold bg-white/5 border border-white/10 text-white/60 tracking-wider">
+                        Sharpe {genBacktest.sharpe.toFixed(2)}
+                      </span>
+                      <span className="px-2 py-1 rounded-md text-[10px] font-semibold bg-white/5 border border-white/10 text-white/60 tracking-wider">
+                        Win {(genBacktest.win_rate * 100).toFixed(0)}%
+                      </span>
+                      <span className="px-2 py-1 rounded-md text-[10px] font-semibold bg-white/5 border border-white/10 text-white/60 tracking-wider">
+                        {genBacktest.num_trades} trades
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </GlassSurface>
