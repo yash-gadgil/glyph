@@ -19,10 +19,12 @@ class AnalysisChunk(_message.Message):
     def __init__(self, text: _Optional[str] = ..., done: bool = ...) -> None: ...
 
 class StartStrategyGenerationRequest(_message.Message):
-    __slots__ = ("user_id",)
+    __slots__ = ("user_id", "symbol")
     USER_ID_FIELD_NUMBER: _ClassVar[int]
+    SYMBOL_FIELD_NUMBER: _ClassVar[int]
     user_id: str
-    def __init__(self, user_id: _Optional[str] = ...) -> None: ...
+    symbol: str
+    def __init__(self, user_id: _Optional[str] = ..., symbol: _Optional[str] = ...) -> None: ...
 
 class GetStrategyJobRequest(_message.Message):
     __slots__ = ("user_id",)

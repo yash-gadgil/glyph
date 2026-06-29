@@ -10,6 +10,7 @@ data:
   USER_SVC_PORT: "user:50053"
   INFERENCE_SVC_PORT: "inference:50057"
   STRATEGY_SVC_PORT: "strategy:50059"
+  MRKTDATA_SVC_PORT: "mrktdata:50052"
 
   LLM_PROVIDER: "gemini"
   GEMINI_MODEL: "gemini-2.5-flash"

@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/services/advisor/cache"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
+	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -26,7 +28,7 @@ const (
 
 	maxGenAttempts    = 2
 	generationTimeout = 90 * time.Second
-	backtestSymbol    = "AAPL"
+	defaultSymbol     = "AAPL"
 )
 
 type indicatorRef struct {
@@ -158,6 +160,11 @@ func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advis
 		return nil, status.Error(codes.InvalidArgument, "user id is required")
 	}
 
+	symbol := strings.ToUpper(strings.TrimSpace(req.Symbol))
+	if symbol == "" {
+		symbol = defaultSymbol
+	}
+
 	if h.cache != nil && h.cache.Enabled() {
 		if job, err := h.cache.GetJob(ctx, req.UserId); err == nil && job != nil && job.State == jobRunning {
 			return jobToProto(job), nil
@@ -183,7 +190,7 @@ func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advis
 		go func() {
 			defer cancel()
 			defer h.cache.ReleaseJobLock(context.Background(), req.UserId)
-			result := h.generateOnce(genCtx, req.UserId, log)
+			result := h.generateOnce(genCtx, req.UserId, symbol, log)
 			if err := h.cache.SetJob(context.Background(), req.UserId, result); err != nil {
 				log.Error("job_result_persist_error", zap.Error(err))
 			}
@@ -192,7 +199,7 @@ func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advis
 		return jobToProto(job), nil
 	}
 
-	return jobToProto(h.generateOnce(ctx, req.UserId, log)), nil
+	return jobToProto(h.generateOnce(ctx, req.UserId, symbol, log)), nil
 }
 
 func (h *AdvisorHandler) GetStrategyJob(ctx context.Context, req *advisorpb.GetStrategyJobRequest) (*advisorpb.StrategyJob, error) {
@@ -212,7 +219,7 @@ func (h *AdvisorHandler) GetStrategyJob(ctx context.Context, req *advisorpb.GetS
 	return jobToProto(job), nil
 }
 
-func (h *AdvisorHandler) generateOnce(ctx context.Context, userID string, log *zap.Logger) *cache.StratJob {
+func (h *AdvisorHandler) generateOnce(ctx context.Context, userID, symbol string, log *zap.Logger) *cache.StratJob {
 	started := time.Now().UTC()
 
 	snapshot, _, err := buildSnapshot(ctx, h.portfolio, userID)
@@ -221,7 +228,9 @@ func (h *AdvisorHandler) generateOnce(ctx context.Context, userID string, log *z
 		snapshot = "No portfolio snapshot available."
 	}
 
-	gs, summary, err := h.authorStrategy(ctx, userID, snapshot, log)
+	market := h.marketConditions(ctx, symbol, log)
+
+	gs, summary, err := h.authorStrategy(ctx, userID, symbol, snapshot, market, log)
 	if err != nil {
 		log.Warn("strategy_generation_failed", zap.Error(err))
 		return &cache.StratJob{State: jobFailed, Error: err.Error(), StartedAt: started, UpdatedAt: time.Now().UTC()}
@@ -244,7 +253,7 @@ func (h *AdvisorHandler) generateOnce(ctx context.Context, userID string, log *z
 	}
 }
 
-func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, snapshot string, log *zap.Logger) (genStrategy, *cache.BacktestSummary, error) {
+func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, symbol, snapshot, market string, log *zap.Logger) (genStrategy, *cache.BacktestSummary, error) {
 	if h.llm == nil {
 		return h.fallbackStrategy(), nil, nil
 	}
@@ -252,7 +261,7 @@ func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, snapshot st
 	var lastErr error
 	feedback := ""
 	for attempt := 0; attempt < maxGenAttempts; attempt++ {
-		out, err := h.llm.CompleteShort(ctx, authorSystem, buildAuthorPrompt(snapshot, feedback), 1024)
+		out, err := h.llm.CompleteShort(ctx, authorSystem, buildAuthorPrompt(symbol, snapshot, market, feedback), 1024)
 		if err != nil {
 			return genStrategy{}, nil, fmt.Errorf("model error: %w", err)
 		}
@@ -272,7 +281,7 @@ func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, snapshot st
 
 		gs.Name = fmt.Sprintf("%s %s", strings.TrimSpace(gs.Name), shortID())
 
-		summary, retryReason, infraErr := h.backtestGuard(ctx, userID, gs)
+		summary, retryReason, infraErr := h.backtestGuard(ctx, userID, symbol, gs)
 		if retryReason != "" {
 			lastErr, feedback = errors.New(retryReason), retryReason
 			log.Warn("strategy_backtest_rejected", zap.Int("attempt", attempt), zap.String("reason", retryReason))
@@ -287,7 +296,7 @@ func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, snapshot st
 	return genStrategy{}, nil, fmt.Errorf("strategy failed validation after %d attempts: %w", maxGenAttempts, lastErr)
 }
 
-func (h *AdvisorHandler) backtestGuard(ctx context.Context, userID string, gs genStrategy) (*cache.BacktestSummary, string, error) {
+func (h *AdvisorHandler) backtestGuard(ctx context.Context, userID, symbol string, gs genStrategy) (*cache.BacktestSummary, string, error) {
 	if h.strategy == nil {
 		return nil, "", nil
 	}
@@ -302,7 +311,7 @@ func (h *AdvisorHandler) backtestGuard(ctx context.Context, userID string, gs ge
 	resp, err := h.strategy.RunBacktest(ctx, &strategypb.BacktestRequest{
 		UserId:              userID,
 		ConfigJson:          string(configJSON),
-		Symbol:              backtestSymbol,
+		Symbol:              symbol,
 		Timeframe:           "DAY",
 		Start:               start.Format("2006-01-02"),
 		End:                 end.Format("2006-01-02"),
@@ -457,7 +466,7 @@ func jobToProto(j *cache.StratJob) *advisorpb.StrategyJob {
 	return out
 }
 
-const authorSystem = `You are a quantitative strategy author. You design one rule-based trading strategy and return it as JSON only, no markdown.
+const authorSystem = `You are a quantitative strategy author. You design one rule-based trading strategy for a specific stock, matched to its current market conditions, and return it as JSON only, no markdown. Read the market conditions and pick an approach that fits the regime: trend-following or breakouts when the stock is trending, mean-reversion (rsi/stochastic/bands) when it is range-bound or stretched, and respect the stated volatility when sizing stops and targets.
 
 Return ONLY a JSON object in exactly this shape:
 {
@@ -486,15 +495,176 @@ Complete example:
 
 Constraints: entry has 1 to 3 rules; always provide an exit via exit rules or a non-zero stopLossPct/takeProfitPct; keep it simple and tradeable.`
 
-func buildAuthorPrompt(snapshot, feedback string) string {
+func buildAuthorPrompt(symbol, snapshot, market, feedback string) string {
 	var b strings.Builder
+	fmt.Fprintf(&b, "Author one trading strategy for %s.\n\n", symbol)
+	if market != "" {
+		b.WriteString(market)
+		b.WriteString("\n\n")
+	}
 	b.WriteString(snapshot)
-	b.WriteString("\n\nAuthor one strategy tailored to this portfolio. Respond with only the JSON object.")
+	fmt.Fprintf(&b, "\n\nDesign the strategy for %s and match it to the market conditions above. Respond with only the JSON object.", symbol)
 	if feedback != "" {
 		b.WriteString("\n\nYour previous attempt was rejected for this reason, fix it: ")
 		b.WriteString(feedback)
 	}
 	return b.String()
+}
+
+func (h *AdvisorHandler) marketConditions(ctx context.Context, symbol string, log *zap.Logger) string {
+	if h.mrkt == nil {
+		return ""
+	}
+
+	start := time.Now().UTC().AddDate(0, 0, -200)
+	resp, err := h.mrkt.GetHistoricalStockData(ctx, &mrktpb.HistoricalStockDataRequest{
+		Symbols:   []string{symbol},
+		Timeframe: mrktpb.Timeframe_DAY,
+		Start: &mrktpb.Date{
+			Year:  int32(start.Year()),
+			Month: int32(start.Month()),
+			Day:   int32(start.Day()),
+		},
+	})
+	if err != nil || len(resp.SymbolBars) == 0 {
+		if err != nil {
+			log.Warn("market_conditions_unavailable", zap.Error(err))
+		}
+		return ""
+	}
+
+	bars := resp.SymbolBars[0].Bars
+	closes := make([]float64, 0, len(bars))
+	for _, b := range bars {
+		closes = append(closes, float64(b.Close))
+	}
+	if len(closes) < 30 {
+		return ""
+	}
+
+	last := closes[len(closes)-1]
+	sma20 := smaLast(closes, 20)
+	sma50 := smaLast(closes, 50)
+	rsi14 := rsiLast(closes, 14)
+	ret1m := pctChange(closes, 21)
+	ret3m := pctChange(closes, 63)
+	vol := dailyVolPct(closes, 20)
+
+	trend := "mixed"
+	if !math.IsNaN(sma20) && !math.IsNaN(sma50) {
+		if last > sma20 && sma20 > sma50 {
+			trend = "uptrend (price above a rising 20/50-day SMA stack)"
+		} else if last < sma20 && sma20 < sma50 {
+			trend = "downtrend (price below a falling 20/50-day SMA stack)"
+		} else {
+			trend = "range-bound / mixed (SMAs not aligned)"
+		}
+	}
+
+	momentum := "neutral"
+	if rsi14 >= 70 {
+		momentum = "overbought"
+	} else if rsi14 <= 30 {
+		momentum = "oversold"
+	}
+
+	volLabel := "moderate"
+	if vol >= 3 {
+		volLabel = "high"
+	} else if vol < 1 {
+		volLabel = "low"
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "Current market conditions for %s (daily bars):\n", symbol)
+	fmt.Fprintf(&b, "- Last close: $%.2f\n", last)
+	fmt.Fprintf(&b, "- Trend: %s\n", trend)
+	if !math.IsNaN(sma20) {
+		fmt.Fprintf(&b, "- 20-day SMA: $%.2f", sma20)
+		if !math.IsNaN(sma50) {
+			fmt.Fprintf(&b, ", 50-day SMA: $%.2f", sma50)
+		}
+		b.WriteString("\n")
+	}
+	fmt.Fprintf(&b, "- RSI(14): %.0f (%s)\n", rsi14, momentum)
+	if !math.IsNaN(ret1m) {
+		fmt.Fprintf(&b, "- 1-month return: %+.1f%%", ret1m)
+		if !math.IsNaN(ret3m) {
+			fmt.Fprintf(&b, ", 3-month return: %+.1f%%", ret3m)
+		}
+		b.WriteString("\n")
+	}
+	fmt.Fprintf(&b, "- Recent daily volatility: ~%.1f%% (%s)", vol, volLabel)
+	return b.String()
+}
+
+func smaLast(closes []float64, period int) float64 {
+	if period <= 0 || len(closes) < period {
+		return math.NaN()
+	}
+	var sum float64
+	for _, v := range closes[len(closes)-period:] {
+		sum += v
+	}
+	return sum / float64(period)
+}
+
+func rsiLast(closes []float64, period int) float64 {
+	if len(closes) <= period {
+		return math.NaN()
+	}
+	var gain, loss float64
+	for i := len(closes) - period; i < len(closes); i++ {
+		d := closes[i] - closes[i-1]
+		if d >= 0 {
+			gain += d
+		} else {
+			loss -= d
+		}
+	}
+	if loss == 0 {
+		return 100
+	}
+	rs := (gain / float64(period)) / (loss / float64(period))
+	return 100 - 100/(1+rs)
+}
+
+func pctChange(closes []float64, n int) float64 {
+	if len(closes) <= n {
+		return math.NaN()
+	}
+	prev := closes[len(closes)-1-n]
+	if prev == 0 {
+		return math.NaN()
+	}
+	return (closes[len(closes)-1] - prev) / prev * 100
+}
+
+func dailyVolPct(closes []float64, period int) float64 {
+	if len(closes) <= period {
+		return math.NaN()
+	}
+	rets := make([]float64, 0, period)
+	for i := len(closes) - period; i < len(closes); i++ {
+		if closes[i-1] == 0 {
+			continue
+		}
+		rets = append(rets, (closes[i]-closes[i-1])/closes[i-1])
+	}
+	if len(rets) == 0 {
+		return math.NaN()
+	}
+	var mean float64
+	for _, r := range rets {
+		mean += r
+	}
+	mean /= float64(len(rets))
+	var variance float64
+	for _, r := range rets {
+		variance += (r - mean) * (r - mean)
+	}
+	variance /= float64(len(rets))
+	return math.Sqrt(variance) * 100
 }
 
 func shortID() string {

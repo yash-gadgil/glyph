@@ -100,9 +100,9 @@ func TestAuthorStrategyRetriesOnInvalidThenSucceeds(t *testing.T) {
 	good := `{"name":"RSI Reversion","description":"Buys oversold dips.","risk":"medium","entry":{"combinator":"AND","rules":[{"lhs":{"kind":"rsi","params":{"period":14}},"op":"<","rhs":{"kind":"value","value":35}}]},"exit":{"combinator":"OR","rules":[{"lhs":{"kind":"rsi","params":{"period":14}},"op":">","rhs":{"kind":"value","value":65}}]},"stopLossPct":2,"takeProfitPct":4}`
 
 	provider := &scriptedProvider{replies: []string{broken, good}}
-	h := NewAdvisorHandler(nil, nil, provider, nil, zap.NewNop())
+	h := NewAdvisorHandler(nil, nil, nil, provider, nil, zap.NewNop())
 
-	gs, summary, err := h.authorStrategy(context.Background(), "user-1", "No portfolio snapshot.", zap.NewNop())
+	gs, summary, err := h.authorStrategy(context.Background(), "user-1", "AAPL", "No portfolio snapshot.", "", zap.NewNop())
 	require.NoError(t, err)
 	assert.Equal(t, 2, provider.calls, "should retry once after the broken attempt")
 	assert.Nil(t, summary)
@@ -116,17 +116,17 @@ func TestAuthorStrategyRetriesOnInvalidThenSucceeds(t *testing.T) {
 
 func TestAuthorStrategyFailsWhenAlwaysInvalid(t *testing.T) {
 	provider := &scriptedProvider{replies: []string{"not json at all"}}
-	h := NewAdvisorHandler(nil, nil, provider, nil, zap.NewNop())
+	h := NewAdvisorHandler(nil, nil, nil, provider, nil, zap.NewNop())
 
-	_, _, err := h.authorStrategy(context.Background(), "user-1", "snapshot", zap.NewNop())
+	_, _, err := h.authorStrategy(context.Background(), "user-1", "AAPL", "snapshot", "", zap.NewNop())
 	require.Error(t, err)
 	assert.Equal(t, maxGenAttempts, provider.calls)
 }
 
 func TestStartStrategyGenerationFallbackIsDeployable(t *testing.T) {
-	h := NewAdvisorHandler(nil, nil, nil, nil, zap.NewNop())
+	h := NewAdvisorHandler(nil, nil, nil, nil, nil, zap.NewNop())
 
-	job, err := h.StartStrategyGeneration(context.Background(), &advisorpb.StartStrategyGenerationRequest{UserId: "user-1"})
+	job, err := h.StartStrategyGeneration(context.Background(), &advisorpb.StartStrategyGenerationRequest{UserId: "user-1", Symbol: "AAPL"})
 	require.NoError(t, err)
 	assert.Equal(t, jobSucceeded, job.State)
 	assert.NotEmpty(t, job.Name)

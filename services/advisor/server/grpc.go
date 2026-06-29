@@ -14,6 +14,7 @@ import (
 	"github.com/yash-gadgil/glyph/services/advisor/types"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
 	inferpb "github.com/yash-gadgil/glyph/services/gen/golang/inference"
+	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"go.uber.org/zap"
@@ -110,9 +111,22 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 		s.log.Warn("strategy_svc_port_unset")
 	}
 
+	var mrktClient mrktpb.MrktdataServiceClient
+	if addr := os.Getenv("MRKTDATA_SVC_PORT"); addr != "" {
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			s.log.Warn("mrktdata_service_unavailable", zap.Error(err))
+		} else {
+			defer conn.Close()
+			mrktClient = mrktpb.NewMrktdataServiceClient(conn)
+		}
+	} else {
+		s.log.Warn("mrktdata_svc_port_unset")
+	}
+
 	analysisCache := cache.Init(ctx, s.log)
 
-	advisorpb.RegisterAdvisorServiceServer(grpcServer, handlers.NewAdvisorHandler(portfolio, strategyClient, model, analysisCache, s.log))
+	advisorpb.RegisterAdvisorServiceServer(grpcServer, handlers.NewAdvisorHandler(portfolio, strategyClient, mrktClient, model, analysisCache, s.log))
 
 	grpc_prometheus.Register(grpcServer)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)

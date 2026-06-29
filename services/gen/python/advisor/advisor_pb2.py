@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x61\x64visor/advisor.proto\x12\x07\x61\x64visor\")\n\x0e\x41nalyzeRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\"7\n\rAnalysisChunk\x12\x12\n\x04text\x18\x01 \x01(\tR\x04text\x12\x12\n\x04\x64one\x18\x02 \x01(\x08R\x04\x64one\"9\n\x1eStartStrategyGenerationRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\"0\n\x15GetStrategyJobRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\"\xdc\x01\n\x0f\x42\x61\x63ktestSummary\x12(\n\x10total_return_pct\x18\x01 \x01(\x01R\x0etotalReturnPct\x12(\n\x10max_drawdown_pct\x18\x02 \x01(\x01R\x0emaxDrawdownPct\x12\x16\n\x06sharpe\x18\x03 \x01(\x01R\x06sharpe\x12\x19\n\x08win_rate\x18\x04 \x01(\x01R\x07winRate\x12#\n\rprofit_factor\x18\x05 \x01(\x01R\x0cprofitFactor\x12\x1d\n\nnum_trades\x18\x06 \x01(\x05R\tnumTrades\"\x80\x02\n\x0bStrategyJob\x12\x14\n\x05state\x18\x01 \x01(\tR\x05state\x12\x12\n\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n\x0b\x63onfig_json\x18\x03 \x01(\tR\nconfigJson\x12\x1c\n\trationale\x18\x04 \x01(\tR\trationale\x12\x34\n\x08\x62\x61\x63ktest\x18\x05 \x01(\x0b\x32\x18.advisor.BacktestSummaryR\x08\x62\x61\x63ktest\x12\x14\n\x05\x65rror\x18\x06 \x01(\tR\x05\x65rror\x12\x1d\n\nstarted_at\x18\x07 \x01(\tR\tstartedAt\x12\x1d\n\nupdated_at\x18\x08 \x01(\tR\tupdatedAt2\xff\x01\n\x0e\x41\x64visorService\x12G\n\x10\x41nalyzePortfolio\x12\x17.advisor.AnalyzeRequest\x1a\x16.advisor.AnalysisChunk\"\x00\x30\x01\x12Z\n\x17StartStrategyGeneration\x12\'.advisor.StartStrategyGenerationRequest\x1a\x14.advisor.StrategyJob\"\x00\x12H\n\x0eGetStrategyJob\x12\x1e.advisor.GetStrategyJobRequest\x1a\x14.advisor.StrategyJob\"\x00\x42:Z8github.com/yash-gadgil/glyph/services/gen/golang/advisorb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x61\x64visor/advisor.proto\x12\x07\x61\x64visor\")\n\x0e\x41nalyzeRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\"7\n\rAnalysisChunk\x12\x12\n\x04text\x18\x01 \x01(\tR\x04text\x12\x12\n\x04\x64one\x18\x02 \x01(\x08R\x04\x64one\"Q\n\x1eStartStrategyGenerationRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\x12\x16\n\x06symbol\x18\x02 \x01(\tR\x06symbol\"0\n\x15GetStrategyJobRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\"\xdc\x01\n\x0f\x42\x61\x63ktestSummary\x12(\n\x10total_return_pct\x18\x01 \x01(\x01R\x0etotalReturnPct\x12(\n\x10max_drawdown_pct\x18\x02 \x01(\x01R\x0emaxDrawdownPct\x12\x16\n\x06sharpe\x18\x03 \x01(\x01R\x06sharpe\x12\x19\n\x08win_rate\x18\x04 \x01(\x01R\x07winRate\x12#\n\rprofit_factor\x18\x05 \x01(\x01R\x0cprofitFactor\x12\x1d\n\nnum_trades\x18\x06 \x01(\x05R\tnumTrades\"\x80\x02\n\x0bStrategyJob\x12\x14\n\x05state\x18\x01 \x01(\tR\x05state\x12\x12\n\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n\x0b\x63onfig_json\x18\x03 \x01(\tR\nconfigJson\x12\x1c\n\trationale\x18\x04 \x01(\tR\trationale\x12\x34\n\x08\x62\x61\x63ktest\x18\x05 \x01(\x0b\x32\x18.advisor.BacktestSummaryR\x08\x62\x61\x63ktest\x12\x14\n\x05\x65rror\x18\x06 \x01(\tR\x05\x65rror\x12\x1d\n\nstarted_at\x18\x07 \x01(\tR\tstartedAt\x12\x1d\n\nupdated_at\x18\x08 \x01(\tR\tupdatedAt2\xff\x01\n\x0e\x41\x64visorService\x12G\n\x10\x41nalyzePortfolio\x12\x17.advisor.AnalyzeRequest\x1a\x16.advisor.AnalysisChunk\"\x00\x30\x01\x12Z\n\x17StartStrategyGeneration\x12\'.advisor.StartStrategyGenerationRequest\x1a\x14.advisor.StrategyJob\"\x00\x12H\n\x0eGetStrategyJob\x12\x1e.advisor.GetStrategyJobRequest\x1a\x14.advisor.StrategyJob\"\x00\x42:Z8github.com/yash-gadgil/glyph/services/gen/golang/advisorb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,13 +37,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ANALYSISCHUNK']._serialized_start=77
   _globals['_ANALYSISCHUNK']._serialized_end=132
   _globals['_STARTSTRATEGYGENERATIONREQUEST']._serialized_start=134
-  _globals['_STARTSTRATEGYGENERATIONREQUEST']._serialized_end=191
-  _globals['_GETSTRATEGYJOBREQUEST']._serialized_start=193
-  _globals['_GETSTRATEGYJOBREQUEST']._serialized_end=241
-  _globals['_BACKTESTSUMMARY']._serialized_start=244
-  _globals['_BACKTESTSUMMARY']._serialized_end=464
-  _globals['_STRATEGYJOB']._serialized_start=467
-  _globals['_STRATEGYJOB']._serialized_end=723
-  _globals['_ADVISORSERVICE']._serialized_start=726
-  _globals['_ADVISORSERVICE']._serialized_end=981
+  _globals['_STARTSTRATEGYGENERATIONREQUEST']._serialized_end=215
+  _globals['_GETSTRATEGYJOBREQUEST']._serialized_start=217
+  _globals['_GETSTRATEGYJOBREQUEST']._serialized_end=265
+  _globals['_BACKTESTSUMMARY']._serialized_start=268
+  _globals['_BACKTESTSUMMARY']._serialized_end=488
+  _globals['_STRATEGYJOB']._serialized_start=491
+  _globals['_STRATEGYJOB']._serialized_end=747
+  _globals['_ADVISORSERVICE']._serialized_start=750
+  _globals['_ADVISORSERVICE']._serialized_end=1005
 # @@protoc_insertion_point(module_scope)

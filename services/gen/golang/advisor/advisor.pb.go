@@ -120,6 +120,7 @@ func (x *AnalysisChunk) GetDone() bool {
 type StartStrategyGenerationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Symbol        string                 `protobuf:"bytes,2,opt,name=symbol,proto3" json:"symbol,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -157,6 +158,13 @@ func (*StartStrategyGenerationRequest) Descriptor() ([]byte, []int) {
 func (x *StartStrategyGenerationRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
+	}
+	return ""
+}
+
+func (x *StartStrategyGenerationRequest) GetSymbol() string {
+	if x != nil {
+		return x.Symbol
 	}
 	return ""
 }
@@ -398,9 +406,10 @@ const file_advisor_advisor_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"7\n" +
 	"\rAnalysisChunk\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x12\n" +
-	"\x04done\x18\x02 \x01(\bR\x04done\"9\n" +
+	"\x04done\x18\x02 \x01(\bR\x04done\"Q\n" +
 	"\x1eStartStrategyGenerationRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"0\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06symbol\x18\x02 \x01(\tR\x06symbol\"0\n" +
 	"\x15GetStrategyJobRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xdc\x01\n" +
 	"\x0fBacktestSummary\x12(\n" +

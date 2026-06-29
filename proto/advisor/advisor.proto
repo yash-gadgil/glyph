@@ -21,6 +21,7 @@ message AnalysisChunk {
 
 message StartStrategyGenerationRequest {
     string user_id = 1;
+    string symbol = 2;
 }
 
 message GetStrategyJobRequest {

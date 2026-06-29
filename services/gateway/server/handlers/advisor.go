@@ -41,10 +41,15 @@ func (cfg *Config) StartStrategyGeneration(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	var body struct {
+		Symbol string `json:"symbol"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
 	defer cancel()
 
-	job, err := cfg.advisorClient.StartStrategyGeneration(ctx, &advisorpb.StartStrategyGenerationRequest{UserId: userID})
+	job, err := cfg.advisorClient.StartStrategyGeneration(ctx, &advisorpb.StartStrategyGenerationRequest{UserId: userID, Symbol: body.Symbol})
 	if err != nil {
 		log.Error("start_strategy_generation_error", logger.Stage("rpc"), zap.Error(err))
 		utils.ReturnErrorJSON(w, "Unable to start strategy generation", http.StatusInternalServerError)
