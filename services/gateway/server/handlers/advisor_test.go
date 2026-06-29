@@ -39,8 +39,12 @@ func (f *fakeAdvisorClient) AnalyzePortfolio(ctx context.Context, in *advisorpb.
 	return &fakeAnalyzeStream{chunks: f.chunks}, nil
 }
 
-func (f *fakeAdvisorClient) GenerateStrategy(ctx context.Context, in *advisorpb.GenerateStrategyRequest, opts ...grpc.CallOption) (*advisorpb.StrategySuggestion, error) {
-	return &advisorpb.StrategySuggestion{}, nil
+func (f *fakeAdvisorClient) StartStrategyGeneration(ctx context.Context, in *advisorpb.StartStrategyGenerationRequest, opts ...grpc.CallOption) (*advisorpb.StrategyJob, error) {
+	return &advisorpb.StrategyJob{State: "running"}, nil
+}
+
+func (f *fakeAdvisorClient) GetStrategyJob(ctx context.Context, in *advisorpb.GetStrategyJobRequest, opts ...grpc.CallOption) (*advisorpb.StrategyJob, error) {
+	return &advisorpb.StrategyJob{}, nil
 }
 
 func TestAnalyzePortfolioStreamsSSE(t *testing.T) {

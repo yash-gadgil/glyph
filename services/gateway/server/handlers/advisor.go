@@ -22,12 +22,13 @@ func (cfg *Config) LoadAdvisorRoutes(r chi.Router) {
 	r.Use(cfg.AuthMiddleware)
 
 	r.Get("/analyze", cfg.AnalyzePortfolio)
-	r.Post("/strategy", cfg.GenerateStrategy)
+	r.Post("/strategy", cfg.StartStrategyGeneration)
+	r.Get("/strategy/status", cfg.GetStrategyJob)
 }
 
-func (cfg *Config) GenerateStrategy(w http.ResponseWriter, r *http.Request) {
+func (cfg *Config) StartStrategyGeneration(w http.ResponseWriter, r *http.Request) {
 	log := logger.WithContextFields(r.Context(), cfg.log).With(
-		logger.Action("generate_strategy"),
+		logger.Action("start_strategy_generation"),
 	)
 
 	userID, ok := r.Context().Value(userIDKey).(string)
@@ -40,23 +41,72 @@ func (cfg *Config) GenerateStrategy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
 	defer cancel()
 
-	res, err := cfg.advisorClient.GenerateStrategy(ctx, &advisorpb.GenerateStrategyRequest{UserId: userID})
+	job, err := cfg.advisorClient.StartStrategyGeneration(ctx, &advisorpb.StartStrategyGenerationRequest{UserId: userID})
 	if err != nil {
-		log.Error("generate_strategy_error", logger.Stage("rpc"), zap.Error(err))
-		utils.ReturnErrorJSON(w, "Unable to generate a strategy", http.StatusInternalServerError)
+		log.Error("start_strategy_generation_error", logger.Stage("rpc"), zap.Error(err))
+		utils.ReturnErrorJSON(w, "Unable to start strategy generation", http.StatusInternalServerError)
 		return
 	}
 
+	writeStrategyJob(w, job)
+}
+
+func (cfg *Config) GetStrategyJob(w http.ResponseWriter, r *http.Request) {
+	log := logger.WithContextFields(r.Context(), cfg.log).With(
+		logger.Action("get_strategy_job"),
+	)
+
+	userID, ok := r.Context().Value(userIDKey).(string)
+	if !ok || userID == "" {
+		utils.ReturnErrorJSON(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+	if cfg.advisorClient == nil {
+		utils.ReturnErrorJSON(w, "Advisor service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Second)
+	defer cancel()
+
+	job, err := cfg.advisorClient.GetStrategyJob(ctx, &advisorpb.GetStrategyJobRequest{UserId: userID})
+	if err != nil {
+		log.Error("get_strategy_job_error", logger.Stage("rpc"), zap.Error(err))
+		utils.ReturnErrorJSON(w, "Unable to read strategy job", http.StatusInternalServerError)
+		return
+	}
+
+	writeStrategyJob(w, job)
+}
+
+func writeStrategyJob(w http.ResponseWriter, job *advisorpb.StrategyJob) {
+	out := map[string]any{
+		"state":      job.State,
+		"name":       job.Name,
+		"rationale":  job.Rationale,
+		"error":      job.Error,
+		"started_at": job.StartedAt,
+		"updated_at": job.UpdatedAt,
+	}
+	if job.ConfigJson != "" {
+		out["config"] = json.RawMessage(job.ConfigJson)
+	}
+	if job.Backtest != nil {
+		out["backtest"] = map[string]any{
+			"total_return_pct": job.Backtest.TotalReturnPct,
+			"max_drawdown_pct": job.Backtest.MaxDrawdownPct,
+			"sharpe":           job.Backtest.Sharpe,
+			"win_rate":         job.Backtest.WinRate,
+			"profit_factor":    job.Backtest.ProfitFactor,
+			"num_trades":       job.Backtest.NumTrades,
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
-		"name":      res.Name,
-		"rationale": res.Rationale,
-		"template":  res.Template,
-		"config":    json.RawMessage(res.ConfigJson),
-	})
+	json.NewEncoder(w).Encode(out)
 }
 
 func (cfg *Config) AnalyzePortfolio(w http.ResponseWriter, r *http.Request) {

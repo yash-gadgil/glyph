@@ -14,6 +14,7 @@ import (
 	"github.com/yash-gadgil/glyph/services/advisor/types"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
 	inferpb "github.com/yash-gadgil/glyph/services/gen/golang/inference"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	userpb "github.com/yash-gadgil/glyph/services/gen/golang/user"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -96,9 +97,22 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 		}
 	}
 
+	var strategyClient strategypb.StrategyServiceClient
+	if addr := os.Getenv("STRATEGY_SVC_PORT"); addr != "" {
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			s.log.Warn("strategy_service_unavailable", zap.Error(err))
+		} else {
+			defer conn.Close()
+			strategyClient = strategypb.NewStrategyServiceClient(conn)
+		}
+	} else {
+		s.log.Warn("strategy_svc_port_unset")
+	}
+
 	analysisCache := cache.Init(ctx, s.log)
 
-	advisorpb.RegisterAdvisorServiceServer(grpcServer, handlers.NewAdvisorHandler(portfolio, model, analysisCache, s.log))
+	advisorpb.RegisterAdvisorServiceServer(grpcServer, handlers.NewAdvisorHandler(portfolio, strategyClient, model, analysisCache, s.log))
 
 	grpc_prometheus.Register(grpcServer)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)

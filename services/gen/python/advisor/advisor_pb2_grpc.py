@@ -19,10 +19,15 @@ class AdvisorServiceStub(object):
                 request_serializer=advisor_dot_advisor__pb2.AnalyzeRequest.SerializeToString,
                 response_deserializer=advisor_dot_advisor__pb2.AnalysisChunk.FromString,
                 _registered_method=True)
-        self.GenerateStrategy = channel.unary_unary(
-                '/advisor.AdvisorService/GenerateStrategy',
-                request_serializer=advisor_dot_advisor__pb2.GenerateStrategyRequest.SerializeToString,
-                response_deserializer=advisor_dot_advisor__pb2.StrategySuggestion.FromString,
+        self.StartStrategyGeneration = channel.unary_unary(
+                '/advisor.AdvisorService/StartStrategyGeneration',
+                request_serializer=advisor_dot_advisor__pb2.StartStrategyGenerationRequest.SerializeToString,
+                response_deserializer=advisor_dot_advisor__pb2.StrategyJob.FromString,
+                _registered_method=True)
+        self.GetStrategyJob = channel.unary_unary(
+                '/advisor.AdvisorService/GetStrategyJob',
+                request_serializer=advisor_dot_advisor__pb2.GetStrategyJobRequest.SerializeToString,
+                response_deserializer=advisor_dot_advisor__pb2.StrategyJob.FromString,
                 _registered_method=True)
 
 
@@ -35,7 +40,13 @@ class AdvisorServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GenerateStrategy(self, request, context):
+    def StartStrategyGeneration(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetStrategyJob(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -49,10 +60,15 @@ def add_AdvisorServiceServicer_to_server(servicer, server):
                     request_deserializer=advisor_dot_advisor__pb2.AnalyzeRequest.FromString,
                     response_serializer=advisor_dot_advisor__pb2.AnalysisChunk.SerializeToString,
             ),
-            'GenerateStrategy': grpc.unary_unary_rpc_method_handler(
-                    servicer.GenerateStrategy,
-                    request_deserializer=advisor_dot_advisor__pb2.GenerateStrategyRequest.FromString,
-                    response_serializer=advisor_dot_advisor__pb2.StrategySuggestion.SerializeToString,
+            'StartStrategyGeneration': grpc.unary_unary_rpc_method_handler(
+                    servicer.StartStrategyGeneration,
+                    request_deserializer=advisor_dot_advisor__pb2.StartStrategyGenerationRequest.FromString,
+                    response_serializer=advisor_dot_advisor__pb2.StrategyJob.SerializeToString,
+            ),
+            'GetStrategyJob': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStrategyJob,
+                    request_deserializer=advisor_dot_advisor__pb2.GetStrategyJobRequest.FromString,
+                    response_serializer=advisor_dot_advisor__pb2.StrategyJob.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -93,7 +109,7 @@ class AdvisorService(object):
             _registered_method=True)
 
     @staticmethod
-    def GenerateStrategy(request,
+    def StartStrategyGeneration(request,
             target,
             options=(),
             channel_credentials=None,
@@ -106,9 +122,36 @@ class AdvisorService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/advisor.AdvisorService/GenerateStrategy',
-            advisor_dot_advisor__pb2.GenerateStrategyRequest.SerializeToString,
-            advisor_dot_advisor__pb2.StrategySuggestion.FromString,
+            '/advisor.AdvisorService/StartStrategyGeneration',
+            advisor_dot_advisor__pb2.StartStrategyGenerationRequest.SerializeToString,
+            advisor_dot_advisor__pb2.StrategyJob.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetStrategyJob(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/advisor.AdvisorService/GetStrategyJob',
+            advisor_dot_advisor__pb2.GetStrategyJobRequest.SerializeToString,
+            advisor_dot_advisor__pb2.StrategyJob.FromString,
             options,
             channel_credentials,
             insecure,

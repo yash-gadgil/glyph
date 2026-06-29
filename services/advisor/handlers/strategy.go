@@ -5,14 +5,28 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/yash-gadgil/glyph/pkg/logger"
+	"github.com/yash-gadgil/glyph/services/advisor/cache"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
+	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	jobRunning   = "running"
+	jobSucceeded = "succeeded"
+	jobFailed    = "failed"
+
+	maxGenAttempts    = 2
+	generationTimeout = 90 * time.Second
+	backtestSymbol    = "AAPL"
 )
 
 type indicatorRef struct {
@@ -54,6 +68,20 @@ type strategyTemplate struct {
 	Blurb string
 	build func() genStrategy
 }
+
+var validIndicators = map[string]bool{
+	"price": true, "sma": true, "ema": true, "rsi": true,
+	"macd_line": true, "macd_signal": true, "macd_histogram": true,
+	"bbands_upper": true, "bbands_middle": true, "bbands_lower": true,
+	"atr": true, "volume": true, "vwap": true, "stoch_k": true, "stoch_d": true,
+}
+
+var validOps = map[string]bool{
+	">": true, "<": true, ">=": true, "<=": true,
+	"crosses_above": true, "crosses_below": true,
+}
+
+var validCombinators = map[string]bool{"AND": true, "OR": true}
 
 func ind(kind string, params map[string]float64) indicatorRef {
 	return indicatorRef{Kind: kind, Params: params}
@@ -122,106 +150,316 @@ func strategyTemplates() []strategyTemplate {
 	}
 }
 
-func (h *AdvisorHandler) GenerateStrategy(ctx context.Context, req *advisorpb.GenerateStrategyRequest) (*advisorpb.StrategySuggestion, error) {
-	log := logger.WithContextFields(ctx, h.log).With(logger.Action("generate_strategy"))
+func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advisorpb.StartStrategyGenerationRequest) (*advisorpb.StrategyJob, error) {
+	log := logger.WithContextFields(ctx, h.log).With(logger.Action("start_strategy_generation"))
 
 	if req.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "user id is required")
 	}
 
-	templates := strategyTemplates()
+	if h.cache != nil && h.cache.Enabled() {
+		if job, err := h.cache.GetJob(ctx, req.UserId); err == nil && job != nil && job.State == jobRunning {
+			return jobToProto(job), nil
+		}
 
-	snapshot, _, err := buildSnapshot(ctx, h.portfolio, req.UserId)
+		ok, err := h.cache.AcquireJobLock(ctx, req.UserId, generationTimeout)
+		if err != nil {
+			log.Warn("job_lock_error", zap.Error(err))
+		}
+		if !ok {
+			if job, _ := h.cache.GetJob(ctx, req.UserId); job != nil {
+				return jobToProto(job), nil
+			}
+			return &advisorpb.StrategyJob{State: jobRunning}, nil
+		}
+
+		job := &cache.StratJob{State: jobRunning, StartedAt: time.Now().UTC()}
+		if err := h.cache.SetJob(ctx, req.UserId, job); err != nil {
+			log.Warn("job_persist_error", zap.Error(err))
+		}
+
+		genCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), generationTimeout)
+		go func() {
+			defer cancel()
+			defer h.cache.ReleaseJobLock(context.Background(), req.UserId)
+			result := h.generateOnce(genCtx, req.UserId, log)
+			if err := h.cache.SetJob(context.Background(), req.UserId, result); err != nil {
+				log.Error("job_result_persist_error", zap.Error(err))
+			}
+		}()
+
+		return jobToProto(job), nil
+	}
+
+	return jobToProto(h.generateOnce(ctx, req.UserId, log)), nil
+}
+
+func (h *AdvisorHandler) GetStrategyJob(ctx context.Context, req *advisorpb.GetStrategyJobRequest) (*advisorpb.StrategyJob, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user id is required")
+	}
+	if h.cache == nil {
+		return &advisorpb.StrategyJob{}, nil
+	}
+	job, err := h.cache.GetJob(ctx, req.UserId)
 	if err != nil {
-		log.Warn("snapshot_unavailable_using_generic_selection", zap.Error(err))
+		return nil, status.Error(codes.Internal, "could not read strategy job")
+	}
+	if job == nil {
+		return &advisorpb.StrategyJob{}, nil
+	}
+	return jobToProto(job), nil
+}
+
+func (h *AdvisorHandler) generateOnce(ctx context.Context, userID string, log *zap.Logger) *cache.StratJob {
+	started := time.Now().UTC()
+
+	snapshot, _, err := buildSnapshot(ctx, h.portfolio, userID)
+	if err != nil {
+		log.Warn("snapshot_unavailable_using_generic_context", zap.Error(err))
 		snapshot = "No portfolio snapshot available."
 	}
 
-	key, rationale := h.selectTemplate(ctx, snapshot, templates)
-	tmpl := templates[0]
-	for _, t := range templates {
-		if t.Key == key {
-			tmpl = t
-			break
-		}
-	}
-	if rationale == "" {
-		rationale = tmpl.Blurb
-	}
-
-	gs := tmpl.build()
-	gs.Name = fmt.Sprintf("%s %s", tmpl.Name, shortID())
-	gs.Description = rationale
-
-	if len(gs.Entry.Rules) == 0 {
-		log.Error("generated_strategy_invalid", zap.String("template", tmpl.Key))
-		return nil, status.Error(codes.Internal, "generated strategy failed validation")
+	gs, summary, err := h.authorStrategy(ctx, userID, snapshot, log)
+	if err != nil {
+		log.Warn("strategy_generation_failed", zap.Error(err))
+		return &cache.StratJob{State: jobFailed, Error: err.Error(), StartedAt: started, UpdatedAt: time.Now().UTC()}
 	}
 
 	configJSON, err := json.Marshal(gs)
 	if err != nil {
-		log.Error("marshal_strategy_failed", zap.Error(err))
-		return nil, status.Error(codes.Internal, "could not build strategy")
+		return &cache.StratJob{State: jobFailed, Error: "could not encode strategy", StartedAt: started, UpdatedAt: time.Now().UTC()}
 	}
 
-	return &advisorpb.StrategySuggestion{
+	log.Info("strategy_generation_succeeded", logger.KV("name", gs.Name))
+	return &cache.StratJob{
+		State:      jobSucceeded,
 		Name:       gs.Name,
-		ConfigJson: string(configJSON),
-		Rationale:  rationale,
-		Template:   tmpl.Key,
-	}, nil
+		ConfigJSON: string(configJSON),
+		Rationale:  gs.Description,
+		Backtest:   summary,
+		StartedAt:  started,
+		UpdatedAt:  time.Now().UTC(),
+	}
 }
 
-func (h *AdvisorHandler) selectTemplate(ctx context.Context, snapshot string, templates []strategyTemplate) (string, string) {
-	fallback := templates[0].Key
+func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, snapshot string, log *zap.Logger) (genStrategy, *cache.BacktestSummary, error) {
 	if h.llm == nil {
-		return fallback, ""
+		return h.fallbackStrategy(), nil, nil
 	}
 
-	var menu strings.Builder
-	for _, t := range templates {
-		fmt.Fprintf(&menu, "- %s: %s\n", t.Key, t.Blurb)
+	var lastErr error
+	feedback := ""
+	for attempt := 0; attempt < maxGenAttempts; attempt++ {
+		out, err := h.llm.CompleteShort(ctx, authorSystem, buildAuthorPrompt(snapshot, feedback), 1024)
+		if err != nil {
+			return genStrategy{}, nil, fmt.Errorf("model error: %w", err)
+		}
+
+		gs, perr := parseGenStrategy(out)
+		if perr != nil {
+			lastErr, feedback = perr, perr.Error()
+			log.Warn("strategy_parse_rejected", zap.Int("attempt", attempt), zap.Error(perr))
+			continue
+		}
+		if verr := validate(gs); verr != nil {
+			lastErr, feedback = verr, verr.Error()
+			log.Warn("strategy_validation_rejected", zap.Int("attempt", attempt), zap.Error(verr))
+			continue
+		}
+
+		gs.Name = fmt.Sprintf("%s %s", strings.TrimSpace(gs.Name), shortID())
+
+		summary, retryReason, infraErr := h.backtestGuard(ctx, userID, gs)
+		if retryReason != "" {
+			lastErr, feedback = errors.New(retryReason), retryReason
+			log.Warn("strategy_backtest_rejected", zap.Int("attempt", attempt), zap.String("reason", retryReason))
+			continue
+		}
+		if infraErr != nil {
+			log.Warn("strategy_backtest_unavailable", zap.Error(infraErr))
+		}
+		return gs, summary, nil
 	}
 
-	system := "You pick one trading strategy template for a user's portfolio and explain why. " +
-		"Reply with ONLY a JSON object and nothing else, in the form " +
-		`{"template": "<one of the listed keys>", "rationale": "<one or two sentences referencing the portfolio>"}.`
-	prompt := snapshot + "\nAvailable templates:\n" + menu.String() +
-		"\nChoose the single best template key for this portfolio and give a short rationale. Respond with only the JSON object."
-
-	out, err := h.llm.CompleteShort(ctx, system, prompt, 160)
-	if err != nil {
-		return fallback, ""
-	}
-
-	key, rationale, ok := parseSelection(out, templates)
-	if !ok {
-		return fallback, ""
-	}
-	return key, rationale
+	return genStrategy{}, nil, fmt.Errorf("strategy failed validation after %d attempts: %w", maxGenAttempts, lastErr)
 }
 
-func parseSelection(out string, templates []strategyTemplate) (string, string, bool) {
+func (h *AdvisorHandler) backtestGuard(ctx context.Context, userID string, gs genStrategy) (*cache.BacktestSummary, string, error) {
+	if h.strategy == nil {
+		return nil, "", nil
+	}
+
+	configJSON, err := json.Marshal(gs)
+	if err != nil {
+		return nil, "", err
+	}
+
+	end := time.Now().UTC()
+	start := end.AddDate(-1, 0, 0)
+	resp, err := h.strategy.RunBacktest(ctx, &strategypb.BacktestRequest{
+		UserId:              userID,
+		ConfigJson:          string(configJSON),
+		Symbol:              backtestSymbol,
+		Timeframe:           "DAY",
+		Start:               start.Format("2006-01-02"),
+		End:                 end.Format("2006-01-02"),
+		InitialCapitalCents: 10_000_000,
+		PositionSizeCents:   1_000_000,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	if resp.NumTrades == 0 {
+		return nil, "the strategy produced zero trades over a one year backtest; loosen the entry conditions so it actually triggers", nil
+	}
+
+	return &cache.BacktestSummary{
+		TotalReturnPct: resp.TotalReturnPct,
+		MaxDrawdownPct: resp.MaxDrawdownPct,
+		Sharpe:         resp.Sharpe,
+		WinRate:        resp.WinRate,
+		ProfitFactor:   resp.ProfitFactor,
+		NumTrades:      resp.NumTrades,
+	}, "", nil
+}
+
+func (h *AdvisorHandler) fallbackStrategy() genStrategy {
+	tmpl := strategyTemplates()[0]
+	gs := tmpl.build()
+	gs.Name = fmt.Sprintf("%s %s", tmpl.Name, shortID())
+	gs.Description = tmpl.Blurb
+	return gs
+}
+
+func parseGenStrategy(out string) (genStrategy, error) {
 	start := strings.Index(out, "{")
 	end := strings.LastIndex(out, "}")
 	if start < 0 || end <= start {
-		return "", "", false
+		return genStrategy{}, errors.New("model did not return a JSON object")
 	}
+	var gs genStrategy
+	if err := json.Unmarshal([]byte(out[start:end+1]), &gs); err != nil {
+		return genStrategy{}, fmt.Errorf("model output was not valid strategy JSON: %v", err)
+	}
+	return gs, nil
+}
 
-	var sel struct {
-		Template  string `json:"template"`
-		Rationale string `json:"rationale"`
+func validate(gs genStrategy) error {
+	if strings.TrimSpace(gs.Name) == "" {
+		return errors.New("name is required")
 	}
-	if err := json.Unmarshal([]byte(out[start:end+1]), &sel); err != nil {
-		return "", "", false
+	if err := validateGroup("entry", gs.Entry, true); err != nil {
+		return err
 	}
+	if err := validateGroup("exit", gs.Exit, false); err != nil {
+		return err
+	}
+	if gs.StopLossPct < 0 || gs.StopLossPct > 50 {
+		return fmt.Errorf("stopLossPct must be between 0 and 50, got %v", gs.StopLossPct)
+	}
+	if gs.TakeProfitPct < 0 || gs.TakeProfitPct > 100 {
+		return fmt.Errorf("takeProfitPct must be between 0 and 100, got %v", gs.TakeProfitPct)
+	}
+	if len(gs.Exit.Rules) == 0 && gs.StopLossPct == 0 && gs.TakeProfitPct == 0 {
+		return errors.New("strategy needs an exit: provide exit rules or a non-zero stopLossPct/takeProfitPct")
+	}
+	return nil
+}
 
-	for _, t := range templates {
-		if t.Key == sel.Template {
-			return sel.Template, strings.TrimSpace(sel.Rationale), true
+func validateGroup(label string, g ruleGroup, requireRules bool) error {
+	if len(g.Rules) == 0 {
+		if requireRules {
+			return fmt.Errorf("%s must contain at least one rule", label)
+		}
+		return nil
+	}
+	if !validCombinators[strings.ToUpper(g.Combinator)] {
+		return fmt.Errorf("%s combinator %q must be AND or OR", label, g.Combinator)
+	}
+	for i, r := range g.Rules {
+		if !validIndicators[r.LHS.Kind] {
+			return fmt.Errorf("%s rule %d uses unknown indicator %q", label, i, r.LHS.Kind)
+		}
+		if !validOps[r.Op] {
+			return fmt.Errorf("%s rule %d uses unknown operator %q", label, i, r.Op)
+		}
+		switch r.RHS.Kind {
+		case "value", "":
+		case "indicator":
+			if r.RHS.Indicator == nil {
+				return fmt.Errorf("%s rule %d declares an indicator rhs but provides none", label, i)
+			}
+			if !validIndicators[r.RHS.Indicator.Kind] {
+				return fmt.Errorf("%s rule %d rhs uses unknown indicator %q", label, i, r.RHS.Indicator.Kind)
+			}
+		default:
+			return fmt.Errorf("%s rule %d rhs kind %q must be value or indicator", label, i, r.RHS.Kind)
 		}
 	}
-	return "", "", false
+	return nil
+}
+
+func jobToProto(j *cache.StratJob) *advisorpb.StrategyJob {
+	out := &advisorpb.StrategyJob{
+		State:      j.State,
+		Name:       j.Name,
+		ConfigJson: j.ConfigJSON,
+		Rationale:  j.Rationale,
+		Error:      j.Error,
+	}
+	if !j.StartedAt.IsZero() {
+		out.StartedAt = j.StartedAt.UTC().Format(time.RFC3339)
+	}
+	if !j.UpdatedAt.IsZero() {
+		out.UpdatedAt = j.UpdatedAt.UTC().Format(time.RFC3339)
+	}
+	if j.Backtest != nil {
+		out.Backtest = &advisorpb.BacktestSummary{
+			TotalReturnPct: j.Backtest.TotalReturnPct,
+			MaxDrawdownPct: j.Backtest.MaxDrawdownPct,
+			Sharpe:         j.Backtest.Sharpe,
+			WinRate:        j.Backtest.WinRate,
+			ProfitFactor:   j.Backtest.ProfitFactor,
+			NumTrades:      j.Backtest.NumTrades,
+		}
+	}
+	return out
+}
+
+const authorSystem = `You are a quantitative strategy author. You design one rule-based trading strategy and return it as JSON only, no markdown.
+
+Return ONLY a JSON object in exactly this shape:
+{
+  "name": "<short strategy name>",
+  "description": "<one or two sentences on the idea and why it suits the portfolio>",
+  "risk": "low | medium | high",
+  "tags": ["<tag>"],
+  "entry": { "combinator": "AND | OR", "rules": [ <rule> ] },
+  "exit": { "combinator": "AND | OR", "rules": [ <rule> ] },
+  "stopLossPct": <number 0-50>,
+  "takeProfitPct": <number 0-100>
+}
+
+A <rule> is { "lhs": <indicator>, "op": "<operator>", "rhs": <rhs> }.
+An <indicator> is { "kind": "<indicator kind>", "params": { "<param>": <number> } }.
+A <rhs> is either { "kind": "value", "value": <number> } or { "kind": "indicator", "indicator": <indicator> }.
+
+Allowed indicator kinds: price, sma, ema, rsi, macd_line, macd_signal, macd_histogram, bbands_upper, bbands_middle, bbands_lower, atr, volume, vwap, stoch_k, stoch_d.
+Params: sma/ema/rsi/atr/stoch_k/stoch_d use {"period": N}; macd_* use {"fast":12,"slow":26,"signal":9}; bbands_* use {"period":20,"stddev":2}; price/volume/vwap take no params.
+Allowed operators: >, <, >=, <=, crosses_above, crosses_below.
+
+Constraints: entry has 1 to 3 rules; always provide an exit via exit rules or a non-zero stopLossPct/takeProfitPct; keep it simple and tradeable.`
+
+func buildAuthorPrompt(snapshot, feedback string) string {
+	var b strings.Builder
+	b.WriteString(snapshot)
+	b.WriteString("\n\nAuthor one strategy tailored to this portfolio. Respond with only the JSON object.")
+	if feedback != "" {
+		b.WriteString("\n\nYour previous attempt was rejected for this reason, fix it: ")
+		b.WriteString(feedback)
+	}
+	return b.String()
 }
 
 func shortID() string {

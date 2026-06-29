@@ -6,7 +6,8 @@ option go_package = "github.com/yash-gadgil/glyph/services/gen/golang/advisor";
 
 service AdvisorService {
     rpc AnalyzePortfolio(AnalyzeRequest) returns (stream AnalysisChunk) {}
-    rpc GenerateStrategy(GenerateStrategyRequest) returns (StrategySuggestion) {}
+    rpc StartStrategyGeneration(StartStrategyGenerationRequest) returns (StrategyJob) {}
+    rpc GetStrategyJob(GetStrategyJobRequest) returns (StrategyJob) {}
 }
 
 message AnalyzeRequest {
@@ -18,13 +19,30 @@ message AnalysisChunk {
     bool done = 2;
 }
 
-message GenerateStrategyRequest {
+message StartStrategyGenerationRequest {
     string user_id = 1;
 }
 
-message StrategySuggestion {
-    string name = 1;
-    string config_json = 2;
-    string rationale = 3;
-    string template = 4;
+message GetStrategyJobRequest {
+    string user_id = 1;
+}
+
+message BacktestSummary {
+    double total_return_pct = 1;
+    double max_drawdown_pct = 2;
+    double sharpe = 3;
+    double win_rate = 4;
+    double profit_factor = 5;
+    int32 num_trades = 6;
+}
+
+message StrategyJob {
+    string state = 1;
+    string name = 2;
+    string config_json = 3;
+    string rationale = 4;
+    BacktestSummary backtest = 5;
+    string error = 6;
+    string started_at = 7;
+    string updated_at = 8;
 }

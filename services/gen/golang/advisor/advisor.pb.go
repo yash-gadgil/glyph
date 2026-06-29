@@ -117,27 +117,27 @@ func (x *AnalysisChunk) GetDone() bool {
 	return false
 }
 
-type GenerateStrategyRequest struct {
+type StartStrategyGenerationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GenerateStrategyRequest) Reset() {
-	*x = GenerateStrategyRequest{}
+func (x *StartStrategyGenerationRequest) Reset() {
+	*x = StartStrategyGenerationRequest{}
 	mi := &file_advisor_advisor_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GenerateStrategyRequest) String() string {
+func (x *StartStrategyGenerationRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GenerateStrategyRequest) ProtoMessage() {}
+func (*StartStrategyGenerationRequest) ProtoMessage() {}
 
-func (x *GenerateStrategyRequest) ProtoReflect() protoreflect.Message {
+func (x *StartStrategyGenerationRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_advisor_advisor_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -149,42 +149,39 @@ func (x *GenerateStrategyRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GenerateStrategyRequest.ProtoReflect.Descriptor instead.
-func (*GenerateStrategyRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use StartStrategyGenerationRequest.ProtoReflect.Descriptor instead.
+func (*StartStrategyGenerationRequest) Descriptor() ([]byte, []int) {
 	return file_advisor_advisor_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GenerateStrategyRequest) GetUserId() string {
+func (x *StartStrategyGenerationRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
 	}
 	return ""
 }
 
-type StrategySuggestion struct {
+type GetStrategyJobRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ConfigJson    string                 `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	Rationale     string                 `protobuf:"bytes,3,opt,name=rationale,proto3" json:"rationale,omitempty"`
-	Template      string                 `protobuf:"bytes,4,opt,name=template,proto3" json:"template,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StrategySuggestion) Reset() {
-	*x = StrategySuggestion{}
+func (x *GetStrategyJobRequest) Reset() {
+	*x = GetStrategyJobRequest{}
 	mi := &file_advisor_advisor_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StrategySuggestion) String() string {
+func (x *GetStrategyJobRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StrategySuggestion) ProtoMessage() {}
+func (*GetStrategyJobRequest) ProtoMessage() {}
 
-func (x *StrategySuggestion) ProtoReflect() protoreflect.Message {
+func (x *GetStrategyJobRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_advisor_advisor_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -196,35 +193,198 @@ func (x *StrategySuggestion) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StrategySuggestion.ProtoReflect.Descriptor instead.
-func (*StrategySuggestion) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetStrategyJobRequest.ProtoReflect.Descriptor instead.
+func (*GetStrategyJobRequest) Descriptor() ([]byte, []int) {
 	return file_advisor_advisor_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *StrategySuggestion) GetName() string {
+func (x *GetStrategyJobRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type BacktestSummary struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TotalReturnPct float64                `protobuf:"fixed64,1,opt,name=total_return_pct,json=totalReturnPct,proto3" json:"total_return_pct,omitempty"`
+	MaxDrawdownPct float64                `protobuf:"fixed64,2,opt,name=max_drawdown_pct,json=maxDrawdownPct,proto3" json:"max_drawdown_pct,omitempty"`
+	Sharpe         float64                `protobuf:"fixed64,3,opt,name=sharpe,proto3" json:"sharpe,omitempty"`
+	WinRate        float64                `protobuf:"fixed64,4,opt,name=win_rate,json=winRate,proto3" json:"win_rate,omitempty"`
+	ProfitFactor   float64                `protobuf:"fixed64,5,opt,name=profit_factor,json=profitFactor,proto3" json:"profit_factor,omitempty"`
+	NumTrades      int32                  `protobuf:"varint,6,opt,name=num_trades,json=numTrades,proto3" json:"num_trades,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *BacktestSummary) Reset() {
+	*x = BacktestSummary{}
+	mi := &file_advisor_advisor_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BacktestSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BacktestSummary) ProtoMessage() {}
+
+func (x *BacktestSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_advisor_advisor_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BacktestSummary.ProtoReflect.Descriptor instead.
+func (*BacktestSummary) Descriptor() ([]byte, []int) {
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *BacktestSummary) GetTotalReturnPct() float64 {
+	if x != nil {
+		return x.TotalReturnPct
+	}
+	return 0
+}
+
+func (x *BacktestSummary) GetMaxDrawdownPct() float64 {
+	if x != nil {
+		return x.MaxDrawdownPct
+	}
+	return 0
+}
+
+func (x *BacktestSummary) GetSharpe() float64 {
+	if x != nil {
+		return x.Sharpe
+	}
+	return 0
+}
+
+func (x *BacktestSummary) GetWinRate() float64 {
+	if x != nil {
+		return x.WinRate
+	}
+	return 0
+}
+
+func (x *BacktestSummary) GetProfitFactor() float64 {
+	if x != nil {
+		return x.ProfitFactor
+	}
+	return 0
+}
+
+func (x *BacktestSummary) GetNumTrades() int32 {
+	if x != nil {
+		return x.NumTrades
+	}
+	return 0
+}
+
+type StrategyJob struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	State         string                 `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ConfigJson    string                 `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	Rationale     string                 `protobuf:"bytes,4,opt,name=rationale,proto3" json:"rationale,omitempty"`
+	Backtest      *BacktestSummary       `protobuf:"bytes,5,opt,name=backtest,proto3" json:"backtest,omitempty"`
+	Error         string                 `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	StartedAt     string                 `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StrategyJob) Reset() {
+	*x = StrategyJob{}
+	mi := &file_advisor_advisor_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StrategyJob) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StrategyJob) ProtoMessage() {}
+
+func (x *StrategyJob) ProtoReflect() protoreflect.Message {
+	mi := &file_advisor_advisor_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StrategyJob.ProtoReflect.Descriptor instead.
+func (*StrategyJob) Descriptor() ([]byte, []int) {
+	return file_advisor_advisor_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *StrategyJob) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *StrategyJob) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *StrategySuggestion) GetConfigJson() string {
+func (x *StrategyJob) GetConfigJson() string {
 	if x != nil {
 		return x.ConfigJson
 	}
 	return ""
 }
 
-func (x *StrategySuggestion) GetRationale() string {
+func (x *StrategyJob) GetRationale() string {
 	if x != nil {
 		return x.Rationale
 	}
 	return ""
 }
 
-func (x *StrategySuggestion) GetTemplate() string {
+func (x *StrategyJob) GetBacktest() *BacktestSummary {
 	if x != nil {
-		return x.Template
+		return x.Backtest
+	}
+	return nil
+}
+
+func (x *StrategyJob) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *StrategyJob) GetStartedAt() string {
+	if x != nil {
+		return x.StartedAt
+	}
+	return ""
+}
+
+func (x *StrategyJob) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
 	}
 	return ""
 }
@@ -238,18 +398,35 @@ const file_advisor_advisor_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"7\n" +
 	"\rAnalysisChunk\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x12\n" +
-	"\x04done\x18\x02 \x01(\bR\x04done\"2\n" +
-	"\x17GenerateStrategyRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x83\x01\n" +
-	"\x12StrategySuggestion\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
-	"\vconfig_json\x18\x02 \x01(\tR\n" +
+	"\x04done\x18\x02 \x01(\bR\x04done\"9\n" +
+	"\x1eStartStrategyGenerationRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"0\n" +
+	"\x15GetStrategyJobRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xdc\x01\n" +
+	"\x0fBacktestSummary\x12(\n" +
+	"\x10total_return_pct\x18\x01 \x01(\x01R\x0etotalReturnPct\x12(\n" +
+	"\x10max_drawdown_pct\x18\x02 \x01(\x01R\x0emaxDrawdownPct\x12\x16\n" +
+	"\x06sharpe\x18\x03 \x01(\x01R\x06sharpe\x12\x19\n" +
+	"\bwin_rate\x18\x04 \x01(\x01R\awinRate\x12#\n" +
+	"\rprofit_factor\x18\x05 \x01(\x01R\fprofitFactor\x12\x1d\n" +
+	"\n" +
+	"num_trades\x18\x06 \x01(\x05R\tnumTrades\"\x80\x02\n" +
+	"\vStrategyJob\x12\x14\n" +
+	"\x05state\x18\x01 \x01(\tR\x05state\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
+	"\vconfig_json\x18\x03 \x01(\tR\n" +
 	"configJson\x12\x1c\n" +
-	"\trationale\x18\x03 \x01(\tR\trationale\x12\x1a\n" +
-	"\btemplate\x18\x04 \x01(\tR\btemplate2\xae\x01\n" +
+	"\trationale\x18\x04 \x01(\tR\trationale\x124\n" +
+	"\bbacktest\x18\x05 \x01(\v2\x18.advisor.BacktestSummaryR\bbacktest\x12\x14\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\a \x01(\tR\tstartedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt2\xff\x01\n" +
 	"\x0eAdvisorService\x12G\n" +
-	"\x10AnalyzePortfolio\x12\x17.advisor.AnalyzeRequest\x1a\x16.advisor.AnalysisChunk\"\x000\x01\x12S\n" +
-	"\x10GenerateStrategy\x12 .advisor.GenerateStrategyRequest\x1a\x1b.advisor.StrategySuggestion\"\x00B:Z8github.com/yash-gadgil/glyph/services/gen/golang/advisorb\x06proto3"
+	"\x10AnalyzePortfolio\x12\x17.advisor.AnalyzeRequest\x1a\x16.advisor.AnalysisChunk\"\x000\x01\x12Z\n" +
+	"\x17StartStrategyGeneration\x12'.advisor.StartStrategyGenerationRequest\x1a\x14.advisor.StrategyJob\"\x00\x12H\n" +
+	"\x0eGetStrategyJob\x12\x1e.advisor.GetStrategyJobRequest\x1a\x14.advisor.StrategyJob\"\x00B:Z8github.com/yash-gadgil/glyph/services/gen/golang/advisorb\x06proto3"
 
 var (
 	file_advisor_advisor_proto_rawDescOnce sync.Once
@@ -263,23 +440,28 @@ func file_advisor_advisor_proto_rawDescGZIP() []byte {
 	return file_advisor_advisor_proto_rawDescData
 }
 
-var file_advisor_advisor_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_advisor_advisor_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_advisor_advisor_proto_goTypes = []any{
-	(*AnalyzeRequest)(nil),          // 0: advisor.AnalyzeRequest
-	(*AnalysisChunk)(nil),           // 1: advisor.AnalysisChunk
-	(*GenerateStrategyRequest)(nil), // 2: advisor.GenerateStrategyRequest
-	(*StrategySuggestion)(nil),      // 3: advisor.StrategySuggestion
+	(*AnalyzeRequest)(nil),                 // 0: advisor.AnalyzeRequest
+	(*AnalysisChunk)(nil),                  // 1: advisor.AnalysisChunk
+	(*StartStrategyGenerationRequest)(nil), // 2: advisor.StartStrategyGenerationRequest
+	(*GetStrategyJobRequest)(nil),          // 3: advisor.GetStrategyJobRequest
+	(*BacktestSummary)(nil),                // 4: advisor.BacktestSummary
+	(*StrategyJob)(nil),                    // 5: advisor.StrategyJob
 }
 var file_advisor_advisor_proto_depIdxs = []int32{
-	0, // 0: advisor.AdvisorService.AnalyzePortfolio:input_type -> advisor.AnalyzeRequest
-	2, // 1: advisor.AdvisorService.GenerateStrategy:input_type -> advisor.GenerateStrategyRequest
-	1, // 2: advisor.AdvisorService.AnalyzePortfolio:output_type -> advisor.AnalysisChunk
-	3, // 3: advisor.AdvisorService.GenerateStrategy:output_type -> advisor.StrategySuggestion
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	4, // 0: advisor.StrategyJob.backtest:type_name -> advisor.BacktestSummary
+	0, // 1: advisor.AdvisorService.AnalyzePortfolio:input_type -> advisor.AnalyzeRequest
+	2, // 2: advisor.AdvisorService.StartStrategyGeneration:input_type -> advisor.StartStrategyGenerationRequest
+	3, // 3: advisor.AdvisorService.GetStrategyJob:input_type -> advisor.GetStrategyJobRequest
+	1, // 4: advisor.AdvisorService.AnalyzePortfolio:output_type -> advisor.AnalysisChunk
+	5, // 5: advisor.AdvisorService.StartStrategyGeneration:output_type -> advisor.StrategyJob
+	5, // 6: advisor.AdvisorService.GetStrategyJob:output_type -> advisor.StrategyJob
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_advisor_advisor_proto_init() }
@@ -293,7 +475,7 @@ func file_advisor_advisor_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_advisor_advisor_proto_rawDesc), len(file_advisor_advisor_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AdvisorService_AnalyzePortfolio_FullMethodName = "/advisor.AdvisorService/AnalyzePortfolio"
-	AdvisorService_GenerateStrategy_FullMethodName = "/advisor.AdvisorService/GenerateStrategy"
+	AdvisorService_AnalyzePortfolio_FullMethodName        = "/advisor.AdvisorService/AnalyzePortfolio"
+	AdvisorService_StartStrategyGeneration_FullMethodName = "/advisor.AdvisorService/StartStrategyGeneration"
+	AdvisorService_GetStrategyJob_FullMethodName          = "/advisor.AdvisorService/GetStrategyJob"
 )
 
 // AdvisorServiceClient is the client API for AdvisorService service.
@@ -28,7 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdvisorServiceClient interface {
 	AnalyzePortfolio(ctx context.Context, in *AnalyzeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnalysisChunk], error)
-	GenerateStrategy(ctx context.Context, in *GenerateStrategyRequest, opts ...grpc.CallOption) (*StrategySuggestion, error)
+	StartStrategyGeneration(ctx context.Context, in *StartStrategyGenerationRequest, opts ...grpc.CallOption) (*StrategyJob, error)
+	GetStrategyJob(ctx context.Context, in *GetStrategyJobRequest, opts ...grpc.CallOption) (*StrategyJob, error)
 }
 
 type advisorServiceClient struct {
@@ -58,10 +60,20 @@ func (c *advisorServiceClient) AnalyzePortfolio(ctx context.Context, in *Analyze
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AdvisorService_AnalyzePortfolioClient = grpc.ServerStreamingClient[AnalysisChunk]
 
-func (c *advisorServiceClient) GenerateStrategy(ctx context.Context, in *GenerateStrategyRequest, opts ...grpc.CallOption) (*StrategySuggestion, error) {
+func (c *advisorServiceClient) StartStrategyGeneration(ctx context.Context, in *StartStrategyGenerationRequest, opts ...grpc.CallOption) (*StrategyJob, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StrategySuggestion)
-	err := c.cc.Invoke(ctx, AdvisorService_GenerateStrategy_FullMethodName, in, out, cOpts...)
+	out := new(StrategyJob)
+	err := c.cc.Invoke(ctx, AdvisorService_StartStrategyGeneration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *advisorServiceClient) GetStrategyJob(ctx context.Context, in *GetStrategyJobRequest, opts ...grpc.CallOption) (*StrategyJob, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StrategyJob)
+	err := c.cc.Invoke(ctx, AdvisorService_GetStrategyJob_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +85,8 @@ func (c *advisorServiceClient) GenerateStrategy(ctx context.Context, in *Generat
 // for forward compatibility.
 type AdvisorServiceServer interface {
 	AnalyzePortfolio(*AnalyzeRequest, grpc.ServerStreamingServer[AnalysisChunk]) error
-	GenerateStrategy(context.Context, *GenerateStrategyRequest) (*StrategySuggestion, error)
+	StartStrategyGeneration(context.Context, *StartStrategyGenerationRequest) (*StrategyJob, error)
+	GetStrategyJob(context.Context, *GetStrategyJobRequest) (*StrategyJob, error)
 	mustEmbedUnimplementedAdvisorServiceServer()
 }
 
@@ -87,8 +100,11 @@ type UnimplementedAdvisorServiceServer struct{}
 func (UnimplementedAdvisorServiceServer) AnalyzePortfolio(*AnalyzeRequest, grpc.ServerStreamingServer[AnalysisChunk]) error {
 	return status.Error(codes.Unimplemented, "method AnalyzePortfolio not implemented")
 }
-func (UnimplementedAdvisorServiceServer) GenerateStrategy(context.Context, *GenerateStrategyRequest) (*StrategySuggestion, error) {
-	return nil, status.Error(codes.Unimplemented, "method GenerateStrategy not implemented")
+func (UnimplementedAdvisorServiceServer) StartStrategyGeneration(context.Context, *StartStrategyGenerationRequest) (*StrategyJob, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartStrategyGeneration not implemented")
+}
+func (UnimplementedAdvisorServiceServer) GetStrategyJob(context.Context, *GetStrategyJobRequest) (*StrategyJob, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetStrategyJob not implemented")
 }
 func (UnimplementedAdvisorServiceServer) mustEmbedUnimplementedAdvisorServiceServer() {}
 func (UnimplementedAdvisorServiceServer) testEmbeddedByValue()                        {}
@@ -122,20 +138,38 @@ func _AdvisorService_AnalyzePortfolio_Handler(srv interface{}, stream grpc.Serve
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AdvisorService_AnalyzePortfolioServer = grpc.ServerStreamingServer[AnalysisChunk]
 
-func _AdvisorService_GenerateStrategy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GenerateStrategyRequest)
+func _AdvisorService_StartStrategyGeneration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartStrategyGenerationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AdvisorServiceServer).GenerateStrategy(ctx, in)
+		return srv.(AdvisorServiceServer).StartStrategyGeneration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AdvisorService_GenerateStrategy_FullMethodName,
+		FullMethod: AdvisorService_StartStrategyGeneration_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdvisorServiceServer).GenerateStrategy(ctx, req.(*GenerateStrategyRequest))
+		return srv.(AdvisorServiceServer).StartStrategyGeneration(ctx, req.(*StartStrategyGenerationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AdvisorService_GetStrategyJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStrategyJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdvisorServiceServer).GetStrategyJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdvisorService_GetStrategyJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdvisorServiceServer).GetStrategyJob(ctx, req.(*GetStrategyJobRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -148,8 +182,12 @@ var AdvisorService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AdvisorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GenerateStrategy",
-			Handler:    _AdvisorService_GenerateStrategy_Handler,
+			MethodName: "StartStrategyGeneration",
+			Handler:    _AdvisorService_StartStrategyGeneration_Handler,
+		},
+		{
+			MethodName: "GetStrategyJob",
+			Handler:    _AdvisorService_GetStrategyJob_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

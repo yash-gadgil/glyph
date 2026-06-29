@@ -12,6 +12,21 @@ import (
 	"go.uber.org/zap"
 )
 
+type scriptedProvider struct {
+	replies []string
+	calls   int
+}
+
+func (p *scriptedProvider) Stream(ctx context.Context, system, prompt string, emit func(string) error) error {
+	return nil
+}
+
+func (p *scriptedProvider) CompleteShort(ctx context.Context, system, prompt string, maxTokens int32) (string, error) {
+	reply := p.replies[p.calls%len(p.replies)]
+	p.calls++
+	return reply, nil
+}
+
 func TestStrategyTemplatesParse(t *testing.T) {
 	for _, tmpl := range strategyTemplates() {
 		gs := tmpl.build()
@@ -24,24 +39,76 @@ func TestStrategyTemplatesParse(t *testing.T) {
 	}
 }
 
-func TestGenerateStrategyFallbackIsDeployable(t *testing.T) {
-	h := NewAdvisorHandler(nil, nil, nil, zap.NewNop())
+func TestValidateRejectsBadStrategies(t *testing.T) {
+	valid := strategyTemplates()[0].build()
+	valid.Name = "Valid"
+	require.NoError(t, validate(valid))
 
-	res, err := h.GenerateStrategy(context.Background(), &advisorpb.GenerateStrategyRequest{UserId: "user-1"})
+	cases := map[string]func(genStrategy) genStrategy{
+		"missing name": func(g genStrategy) genStrategy { g.Name = ""; return g },
+		"empty entry":  func(g genStrategy) genStrategy { g.Entry = ruleGroup{Combinator: "AND"}; return g },
+		"unknown indicator": func(g genStrategy) genStrategy {
+			g.Entry = grp("AND", ruleVal(ind("supertrend", nil), "<", 30))
+			return g
+		},
+		"unknown operator": func(g genStrategy) genStrategy {
+			g.Entry = grp("AND", rule{LHS: ind("rsi", map[string]float64{"period": 14}), Op: "approaches", RHS: ruleRHS{Kind: "value", Value: 30}})
+			return g
+		},
+		"insane stop loss": func(g genStrategy) genStrategy { g.StopLossPct = 999; return g },
+		"no exit": func(g genStrategy) genStrategy {
+			g.Exit = ruleGroup{}
+			g.StopLossPct = 0
+			g.TakeProfitPct = 0
+			return g
+		},
+	}
+
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			base := strategyTemplates()[0].build()
+			base.Name = "Base"
+			assert.Error(t, validate(mutate(base)), "expected %s to be rejected", name)
+		})
+	}
+}
+
+func TestAuthorStrategyRetriesOnInvalidThenSucceeds(t *testing.T) {
+	broken := `here you go: {"name":"Bad","entry":{"combinator":"AND","rules":[{"lhs":{"kind":"unicorn"},"op":"<","rhs":{"kind":"value","value":30}}]}}`
+	good := `{"name":"RSI Reversion","description":"Buys oversold dips.","risk":"medium","entry":{"combinator":"AND","rules":[{"lhs":{"kind":"rsi","params":{"period":14}},"op":"<","rhs":{"kind":"value","value":35}}]},"exit":{"combinator":"OR","rules":[{"lhs":{"kind":"rsi","params":{"period":14}},"op":">","rhs":{"kind":"value","value":65}}]},"stopLossPct":2,"takeProfitPct":4}`
+
+	provider := &scriptedProvider{replies: []string{broken, good}}
+	h := NewAdvisorHandler(nil, nil, provider, nil, zap.NewNop())
+
+	gs, summary, err := h.authorStrategy(context.Background(), "user-1", "No portfolio snapshot.", zap.NewNop())
 	require.NoError(t, err)
-	assert.NotEmpty(t, res.Name)
-	assert.NotEmpty(t, res.Rationale)
+	assert.Equal(t, 2, provider.calls, "should retry once after the broken attempt")
+	assert.Nil(t, summary)
+	assert.Contains(t, gs.Name, "RSI Reversion")
 
-	_, err = se.ParseConfig([]byte(res.ConfigJson))
+	raw, err := json.Marshal(gs)
+	require.NoError(t, err)
+	_, err = se.ParseConfig(raw)
 	require.NoError(t, err)
 }
 
-func TestParseSelectionExtractsJSON(t *testing.T) {
-	templates := strategyTemplates()
-	out := "Sure! Here is my pick:\n{\"template\": \"sma_crossover\", \"rationale\": \"Reduces single-name timing risk.\"}\nThanks."
+func TestAuthorStrategyFailsWhenAlwaysInvalid(t *testing.T) {
+	provider := &scriptedProvider{replies: []string{"not json at all"}}
+	h := NewAdvisorHandler(nil, nil, provider, nil, zap.NewNop())
 
-	key, rationale, ok := parseSelection(out, templates)
-	require.True(t, ok)
-	assert.Equal(t, "sma_crossover", key)
-	assert.Equal(t, "Reduces single-name timing risk.", rationale)
+	_, _, err := h.authorStrategy(context.Background(), "user-1", "snapshot", zap.NewNop())
+	require.Error(t, err)
+	assert.Equal(t, maxGenAttempts, provider.calls)
+}
+
+func TestStartStrategyGenerationFallbackIsDeployable(t *testing.T) {
+	h := NewAdvisorHandler(nil, nil, nil, nil, zap.NewNop())
+
+	job, err := h.StartStrategyGeneration(context.Background(), &advisorpb.StartStrategyGenerationRequest{UserId: "user-1"})
+	require.NoError(t, err)
+	assert.Equal(t, jobSucceeded, job.State)
+	assert.NotEmpty(t, job.Name)
+
+	_, err = se.ParseConfig([]byte(job.ConfigJson))
+	require.NoError(t, err)
 }
