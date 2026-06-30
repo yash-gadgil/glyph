@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/lib/api";
+import { clearChatSession } from "@/services/advisor/chat";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
@@ -26,6 +27,10 @@ export function useSignout() {
   return useMutation({
     mutationFn: async () => {
       try {
+        await clearChatSession();
+      } catch {
+      }
+      try {
         await api("auth/signout", { method: "POST" });
       } catch {
       }
@@ -36,6 +41,7 @@ export function useSignout() {
     },
 
     onSettled: () => {
+      window.dispatchEvent(new Event("kenaz:clear"));
       queryClient.clear();
       window.location.assign("/");
     },

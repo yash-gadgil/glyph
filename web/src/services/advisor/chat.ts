@@ -4,6 +4,7 @@ import { isMockMode } from "@/lib/mock";
 export type ChatRole = "user" | "assistant";
 export type ChatTurn = { role: ChatRole; content: string };
 export type ChatSession = { turns: ChatTurn[]; in_flight: boolean; partial_text: string };
+export type ChatProvider = "gemini" | "inference";
 
 export type StreamEvent = "error" | "busy" | "network";
 
@@ -64,7 +65,15 @@ export async function pollChatSession(signal?: AbortSignal): Promise<ChatSession
   return EMPTY_SESSION;
 }
 
-export async function streamChat(message: string, handlers: StreamHandlers): Promise<void> {
+export async function clearChatSession(): Promise<void> {
+  if (isMockMode()) return;
+  try {
+    await fetch(`${API_BASE_URL}/advisor/chat/session`, { method: "DELETE", credentials: "include" });
+  } catch {
+  }
+}
+
+export async function streamChat(message: string, provider: ChatProvider, handlers: StreamHandlers): Promise<void> {
   if (isMockMode()) {
     for (const word of MOCK_REPLY.split(" ")) {
       if (handlers.signal?.aborted) break;
@@ -81,7 +90,7 @@ export async function streamChat(message: string, handlers: StreamHandlers): Pro
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, provider }),
       signal: handlers.signal,
     });
   } catch (err) {
