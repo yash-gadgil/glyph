@@ -43,6 +43,10 @@ func (f *fakeAdvisorClient) GetChatSession(ctx context.Context, in *advisorpb.Ge
 	return &advisorpb.ChatSession{}, nil
 }
 
+func (f *fakeAdvisorClient) ClearChatSession(ctx context.Context, in *advisorpb.GetChatSessionRequest, opts ...grpc.CallOption) (*advisorpb.ChatSession, error) {
+	return &advisorpb.ChatSession{}, nil
+}
+
 func (f *fakeAdvisorClient) StartStrategyGeneration(ctx context.Context, in *advisorpb.StartStrategyGenerationRequest, opts ...grpc.CallOption) (*advisorpb.StrategyJob, error) {
 	return &advisorpb.StrategyJob{State: "running"}, nil
 }

@@ -77,6 +77,7 @@ type ChatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Provider      string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -121,6 +122,13 @@ func (x *ChatRequest) GetUserId() string {
 func (x *ChatRequest) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *ChatRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
 	}
 	return ""
 }
@@ -568,10 +576,11 @@ const file_advisor_advisor_proto_rawDesc = "" +
 	"\x15advisor/advisor.proto\x12\aadvisor\"7\n" +
 	"\rAnalysisChunk\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x12\n" +
-	"\x04done\x18\x02 \x01(\bR\x04done\"@\n" +
+	"\x04done\x18\x02 \x01(\bR\x04done\"\\\n" +
 	"\vChatRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"0\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1a\n" +
+	"\bprovider\x18\x03 \x01(\tR\bprovider\"0\n" +
 	"\x15GetChatSessionRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"8\n" +
 	"\bChatTurn\x12\x12\n" +
@@ -605,10 +614,11 @@ const file_advisor_advisor_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\a \x01(\tR\tstartedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\tR\tupdatedAt2\xc5\x02\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt2\x91\x03\n" +
 	"\x0eAdvisorService\x12C\n" +
 	"\x0fChatWithAdvisor\x12\x14.advisor.ChatRequest\x1a\x16.advisor.AnalysisChunk\"\x000\x01\x12H\n" +
-	"\x0eGetChatSession\x12\x1e.advisor.GetChatSessionRequest\x1a\x14.advisor.ChatSession\"\x00\x12Z\n" +
+	"\x0eGetChatSession\x12\x1e.advisor.GetChatSessionRequest\x1a\x14.advisor.ChatSession\"\x00\x12J\n" +
+	"\x10ClearChatSession\x12\x1e.advisor.GetChatSessionRequest\x1a\x14.advisor.ChatSession\"\x00\x12Z\n" +
 	"\x17StartStrategyGeneration\x12'.advisor.StartStrategyGenerationRequest\x1a\x14.advisor.StrategyJob\"\x00\x12H\n" +
 	"\x0eGetStrategyJob\x12\x1e.advisor.GetStrategyJobRequest\x1a\x14.advisor.StrategyJob\"\x00B:Z8github.com/yash-gadgil/glyph/services/gen/golang/advisorb\x06proto3"
 
@@ -641,14 +651,16 @@ var file_advisor_advisor_proto_depIdxs = []int32{
 	7, // 1: advisor.StrategyJob.backtest:type_name -> advisor.BacktestSummary
 	1, // 2: advisor.AdvisorService.ChatWithAdvisor:input_type -> advisor.ChatRequest
 	2, // 3: advisor.AdvisorService.GetChatSession:input_type -> advisor.GetChatSessionRequest
-	5, // 4: advisor.AdvisorService.StartStrategyGeneration:input_type -> advisor.StartStrategyGenerationRequest
-	6, // 5: advisor.AdvisorService.GetStrategyJob:input_type -> advisor.GetStrategyJobRequest
-	0, // 6: advisor.AdvisorService.ChatWithAdvisor:output_type -> advisor.AnalysisChunk
-	4, // 7: advisor.AdvisorService.GetChatSession:output_type -> advisor.ChatSession
-	8, // 8: advisor.AdvisorService.StartStrategyGeneration:output_type -> advisor.StrategyJob
-	8, // 9: advisor.AdvisorService.GetStrategyJob:output_type -> advisor.StrategyJob
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
+	2, // 4: advisor.AdvisorService.ClearChatSession:input_type -> advisor.GetChatSessionRequest
+	5, // 5: advisor.AdvisorService.StartStrategyGeneration:input_type -> advisor.StartStrategyGenerationRequest
+	6, // 6: advisor.AdvisorService.GetStrategyJob:input_type -> advisor.GetStrategyJobRequest
+	0, // 7: advisor.AdvisorService.ChatWithAdvisor:output_type -> advisor.AnalysisChunk
+	4, // 8: advisor.AdvisorService.GetChatSession:output_type -> advisor.ChatSession
+	4, // 9: advisor.AdvisorService.ClearChatSession:output_type -> advisor.ChatSession
+	8, // 10: advisor.AdvisorService.StartStrategyGeneration:output_type -> advisor.StrategyJob
+	8, // 11: advisor.AdvisorService.GetStrategyJob:output_type -> advisor.StrategyJob
+	7, // [7:12] is the sub-list for method output_type
+	2, // [2:7] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name

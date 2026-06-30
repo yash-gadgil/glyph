@@ -175,5 +175,12 @@ func (c *Cache) SetChatSession(ctx context.Context, userID string, session *Chat
 	if err != nil {
 		return err
 	}
-	return c.rdb.Set(ctx, chatKey(userID), payload, 12*time.Hour).Err()
+	return c.rdb.Set(ctx, chatKey(userID), payload, 45*time.Minute).Err()
+}
+
+func (c *Cache) DeleteChatSession(ctx context.Context, userID string) {
+	if c.rdb == nil {
+		return
+	}
+	c.rdb.Del(ctx, chatKey(userID))
 }

@@ -24,6 +24,7 @@ func (cfg *Config) LoadAdvisorRoutes(r chi.Router) {
 
 	r.Post("/chat", cfg.ChatWithAdvisor)
 	r.Get("/chat/session", cfg.GetChatSession)
+	r.Delete("/chat/session", cfg.ClearChatSession)
 	r.Post("/strategy", cfg.StartStrategyGeneration)
 	r.Get("/strategy/status", cfg.GetStrategyJob)
 }
@@ -132,7 +133,8 @@ func (cfg *Config) ChatWithAdvisor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Message string `json:"message"`
+		Message  string `json:"message"`
+		Provider string `json:"provider"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Message) == "" {
 		utils.ReturnErrorJSON(w, "A message is required", http.StatusBadRequest)
@@ -145,12 +147,13 @@ func (cfg *Config) ChatWithAdvisor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	streamCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 2*time.Minute)
+	streamCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 6*time.Minute)
 	defer cancel()
 
 	stream, err := cfg.advisorClient.ChatWithAdvisor(streamCtx, &advisorpb.ChatRequest{
-		UserId:  userID,
-		Message: body.Message,
+		UserId:   userID,
+		Message:  body.Message,
+		Provider: body.Provider,
 	})
 	if err != nil {
 		log.Error("chat_start_error", logger.Stage("open_stream"), zap.Error(err))
@@ -233,6 +236,33 @@ func (cfg *Config) GetChatSession(w http.ResponseWriter, r *http.Request) {
 		"in_flight":    session.InFlight,
 		"partial_text": session.PartialText,
 	})
+}
+
+func (cfg *Config) ClearChatSession(w http.ResponseWriter, r *http.Request) {
+	log := logger.WithContextFields(r.Context(), cfg.log).With(
+		logger.Action("clear_chat_session"),
+	)
+
+	userID, ok := r.Context().Value(userIDKey).(string)
+	if !ok || userID == "" {
+		utils.ReturnErrorJSON(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+	if cfg.advisorClient == nil {
+		utils.ReturnErrorJSON(w, "Advisor service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Second)
+	defer cancel()
+
+	if _, err := cfg.advisorClient.ClearChatSession(ctx, &advisorpb.GetChatSessionRequest{UserId: userID}); err != nil {
+		log.Error("clear_chat_session_error", logger.Stage("rpc"), zap.Error(err))
+		utils.ReturnErrorJSON(w, "Unable to clear chat", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func sseEscape(s string) string {

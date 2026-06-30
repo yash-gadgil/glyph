@@ -71,31 +71,38 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 		s.log.Warn("user_svc_port_unset")
 	}
 
-	var model types.Provider
-	switch os.Getenv("LLM_PROVIDER") {
-	case "inference":
-		if addr := os.Getenv("INFERENCE_SVC_PORT"); addr != "" {
-			conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				s.log.Warn("inference_service_unavailable", zap.Error(err))
-			} else {
-				defer conn.Close()
-				model = llm.NewInference(inferpb.NewInferenceServiceClient(conn))
-			}
+	providers := map[string]types.Provider{}
+	if addr := os.Getenv("INFERENCE_SVC_PORT"); addr != "" {
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			s.log.Warn("inference_service_unavailable", zap.Error(err))
 		} else {
-			s.log.Warn("inference_svc_port_unset")
+			defer conn.Close()
+			providers["inference"] = llm.NewInference(inferpb.NewInferenceServiceClient(conn))
 		}
-	default:
-		if key := os.Getenv("GEMINI_API_KEY"); key != "" {
-			provider, err := llm.NewGemini(ctx, key, geminiModel())
-			if err != nil {
-				s.log.Warn("gemini_unavailable", zap.Error(err))
-			} else {
-				model = provider
-			}
+	}
+	if key := os.Getenv("GEMINI_API_KEY"); key != "" {
+		provider, err := llm.NewGemini(ctx, key, geminiModel())
+		if err != nil {
+			s.log.Warn("gemini_unavailable", zap.Error(err))
 		} else {
-			s.log.Warn("gemini_api_key_unset")
+			providers["gemini"] = provider
 		}
+	}
+
+	defaultName := os.Getenv("LLM_PROVIDER")
+	if defaultName == "" {
+		defaultName = "gemini"
+	}
+	model := providers[defaultName]
+	if model == nil {
+		for _, p := range providers {
+			model = p
+			break
+		}
+	}
+	if model == nil {
+		s.log.Warn("no_llm_provider_configured")
 	}
 
 	var strategyClient strategypb.StrategyServiceClient
@@ -126,7 +133,7 @@ func (s *gRPCServer) Run(ctx context.Context) error {
 
 	analysisCache := cache.Init(ctx, s.log)
 
-	advisorpb.RegisterAdvisorServiceServer(grpcServer, handlers.NewAdvisorHandler(portfolio, strategyClient, mrktClient, model, analysisCache, s.log))
+	advisorpb.RegisterAdvisorServiceServer(grpcServer, handlers.NewAdvisorHandler(portfolio, strategyClient, mrktClient, model, providers, analysisCache, s.log))
 
 	grpc_prometheus.Register(grpcServer)
 	go telemetry.ServeMetrics(ctx, telemetry.MetricsAddr(), s.log)

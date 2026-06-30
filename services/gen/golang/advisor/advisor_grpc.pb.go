@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AdvisorService_ChatWithAdvisor_FullMethodName         = "/advisor.AdvisorService/ChatWithAdvisor"
 	AdvisorService_GetChatSession_FullMethodName          = "/advisor.AdvisorService/GetChatSession"
+	AdvisorService_ClearChatSession_FullMethodName        = "/advisor.AdvisorService/ClearChatSession"
 	AdvisorService_StartStrategyGeneration_FullMethodName = "/advisor.AdvisorService/StartStrategyGeneration"
 	AdvisorService_GetStrategyJob_FullMethodName          = "/advisor.AdvisorService/GetStrategyJob"
 )
@@ -31,6 +32,7 @@ const (
 type AdvisorServiceClient interface {
 	ChatWithAdvisor(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnalysisChunk], error)
 	GetChatSession(ctx context.Context, in *GetChatSessionRequest, opts ...grpc.CallOption) (*ChatSession, error)
+	ClearChatSession(ctx context.Context, in *GetChatSessionRequest, opts ...grpc.CallOption) (*ChatSession, error)
 	StartStrategyGeneration(ctx context.Context, in *StartStrategyGenerationRequest, opts ...grpc.CallOption) (*StrategyJob, error)
 	GetStrategyJob(ctx context.Context, in *GetStrategyJobRequest, opts ...grpc.CallOption) (*StrategyJob, error)
 }
@@ -72,6 +74,16 @@ func (c *advisorServiceClient) GetChatSession(ctx context.Context, in *GetChatSe
 	return out, nil
 }
 
+func (c *advisorServiceClient) ClearChatSession(ctx context.Context, in *GetChatSessionRequest, opts ...grpc.CallOption) (*ChatSession, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatSession)
+	err := c.cc.Invoke(ctx, AdvisorService_ClearChatSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *advisorServiceClient) StartStrategyGeneration(ctx context.Context, in *StartStrategyGenerationRequest, opts ...grpc.CallOption) (*StrategyJob, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StrategyJob)
@@ -98,6 +110,7 @@ func (c *advisorServiceClient) GetStrategyJob(ctx context.Context, in *GetStrate
 type AdvisorServiceServer interface {
 	ChatWithAdvisor(*ChatRequest, grpc.ServerStreamingServer[AnalysisChunk]) error
 	GetChatSession(context.Context, *GetChatSessionRequest) (*ChatSession, error)
+	ClearChatSession(context.Context, *GetChatSessionRequest) (*ChatSession, error)
 	StartStrategyGeneration(context.Context, *StartStrategyGenerationRequest) (*StrategyJob, error)
 	GetStrategyJob(context.Context, *GetStrategyJobRequest) (*StrategyJob, error)
 	mustEmbedUnimplementedAdvisorServiceServer()
@@ -115,6 +128,9 @@ func (UnimplementedAdvisorServiceServer) ChatWithAdvisor(*ChatRequest, grpc.Serv
 }
 func (UnimplementedAdvisorServiceServer) GetChatSession(context.Context, *GetChatSessionRequest) (*ChatSession, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetChatSession not implemented")
+}
+func (UnimplementedAdvisorServiceServer) ClearChatSession(context.Context, *GetChatSessionRequest) (*ChatSession, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClearChatSession not implemented")
 }
 func (UnimplementedAdvisorServiceServer) StartStrategyGeneration(context.Context, *StartStrategyGenerationRequest) (*StrategyJob, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartStrategyGeneration not implemented")
@@ -172,6 +188,24 @@ func _AdvisorService_GetChatSession_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AdvisorService_ClearChatSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChatSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdvisorServiceServer).ClearChatSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdvisorService_ClearChatSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdvisorServiceServer).ClearChatSession(ctx, req.(*GetChatSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AdvisorService_StartStrategyGeneration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StartStrategyGenerationRequest)
 	if err := dec(in); err != nil {
@@ -218,6 +252,10 @@ var AdvisorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetChatSession",
 			Handler:    _AdvisorService_GetChatSession_Handler,
+		},
+		{
+			MethodName: "ClearChatSession",
+			Handler:    _AdvisorService_ClearChatSession_Handler,
 		},
 		{
 			MethodName: "StartStrategyGeneration",

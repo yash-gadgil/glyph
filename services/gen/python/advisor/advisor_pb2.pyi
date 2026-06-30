@@ -14,12 +14,14 @@ class AnalysisChunk(_message.Message):
     def __init__(self, text: _Optional[str] = ..., done: bool = ...) -> None: ...
 
 class ChatRequest(_message.Message):
-    __slots__ = ("user_id", "message")
+    __slots__ = ("user_id", "message", "provider")
     USER_ID_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
     user_id: str
     message: str
-    def __init__(self, user_id: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+    provider: str
+    def __init__(self, user_id: _Optional[str] = ..., message: _Optional[str] = ..., provider: _Optional[str] = ...) -> None: ...
 
 class GetChatSessionRequest(_message.Message):
     __slots__ = ("user_id",)

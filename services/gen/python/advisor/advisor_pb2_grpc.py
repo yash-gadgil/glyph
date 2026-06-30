@@ -24,6 +24,11 @@ class AdvisorServiceStub(object):
                 request_serializer=advisor_dot_advisor__pb2.GetChatSessionRequest.SerializeToString,
                 response_deserializer=advisor_dot_advisor__pb2.ChatSession.FromString,
                 _registered_method=True)
+        self.ClearChatSession = channel.unary_unary(
+                '/advisor.AdvisorService/ClearChatSession',
+                request_serializer=advisor_dot_advisor__pb2.GetChatSessionRequest.SerializeToString,
+                response_deserializer=advisor_dot_advisor__pb2.ChatSession.FromString,
+                _registered_method=True)
         self.StartStrategyGeneration = channel.unary_unary(
                 '/advisor.AdvisorService/StartStrategyGeneration',
                 request_serializer=advisor_dot_advisor__pb2.StartStrategyGenerationRequest.SerializeToString,
@@ -51,6 +56,12 @@ class AdvisorServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ClearChatSession(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def StartStrategyGeneration(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -73,6 +84,11 @@ def add_AdvisorServiceServicer_to_server(servicer, server):
             ),
             'GetChatSession': grpc.unary_unary_rpc_method_handler(
                     servicer.GetChatSession,
+                    request_deserializer=advisor_dot_advisor__pb2.GetChatSessionRequest.FromString,
+                    response_serializer=advisor_dot_advisor__pb2.ChatSession.SerializeToString,
+            ),
+            'ClearChatSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.ClearChatSession,
                     request_deserializer=advisor_dot_advisor__pb2.GetChatSessionRequest.FromString,
                     response_serializer=advisor_dot_advisor__pb2.ChatSession.SerializeToString,
             ),
@@ -139,6 +155,33 @@ class AdvisorService(object):
             request,
             target,
             '/advisor.AdvisorService/GetChatSession',
+            advisor_dot_advisor__pb2.GetChatSessionRequest.SerializeToString,
+            advisor_dot_advisor__pb2.ChatSession.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ClearChatSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/advisor.AdvisorService/ClearChatSession',
             advisor_dot_advisor__pb2.GetChatSessionRequest.SerializeToString,
             advisor_dot_advisor__pb2.ChatSession.FromString,
             options,
