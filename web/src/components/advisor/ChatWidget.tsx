@@ -266,8 +266,21 @@ export default function ChatWidget() {
   );
 }
 
+function stripMarkdown(s: string): string {
+  return s
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/`+/g, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "• ")
+    .replace(/^\s*>\s?/gm, "");
+}
+
 function Bubble({ role, content, pending }: { role: "user" | "assistant"; content: string; pending?: boolean }) {
   const isUser = role === "user";
+  const text = isUser ? content : stripMarkdown(content);
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
@@ -277,7 +290,7 @@ function Bubble({ role, content, pending }: { role: "user" | "assistant"; conten
             : "bg-[#5600a2]/10 text-neutral-200 border border-[#5600a2]/20"
         }`}
       >
-        {content ? content : pending ? <TextShimmer as="span" className="text-sm">Thinking…</TextShimmer> : null}
+        {text ? text : pending ? <TextShimmer as="span" className="text-sm">Thinking…</TextShimmer> : null}
         {pending && content && (
           <motion.span
             className="inline-block w-1.5 h-3.5 ml-0.5 -mb-0.5 align-middle"

@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/lib/api";
 import { isMockMode } from "@/lib/mock";
 import type { CustomStrategy, RuleGroup } from "@/lib/strategies";
+import type { ChatProvider } from "@/services/advisor/chat";
 
 export type BacktestSummary = {
   total_return_pct: number;
@@ -80,12 +81,12 @@ function toGenerated(job: StrategyJob): GeneratedStrategy {
   };
 }
 
-async function startJob(symbol: string): Promise<StrategyJob> {
+async function startJob(symbol: string, provider: ChatProvider): Promise<StrategyJob> {
   const res = await fetch(`${API_BASE_URL}/advisor/strategy`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ symbol }),
+    body: JSON.stringify({ symbol, provider }),
   });
   if (!res.ok) {
     throw new Error("Unable to start strategy generation");
@@ -125,13 +126,13 @@ async function pollUntilDone(): Promise<GeneratedStrategy> {
   throw new Error("Strategy generation timed out");
 }
 
-export async function generateStrategy(symbol: string): Promise<GeneratedStrategy> {
+export async function generateStrategy(symbol: string, provider: ChatProvider): Promise<GeneratedStrategy> {
   if (isMockMode()) {
     await new Promise((r) => setTimeout(r, 600));
     return { ...MOCK_STRATEGY, name: `${symbol} ${MOCK_STRATEGY.name}` };
   }
 
-  const done = terminal(await startJob(symbol));
+  const done = terminal(await startJob(symbol, provider));
   if (done) {
     return done;
   }

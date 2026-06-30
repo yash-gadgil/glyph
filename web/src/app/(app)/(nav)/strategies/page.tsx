@@ -45,6 +45,8 @@ import {
   type GeneratedStrategy,
   type BacktestSummary,
 } from "@/services/advisor/strategy";
+import type { ChatProvider } from "@/services/advisor/chat";
+import { isMockMode } from "@/lib/mock";
 import { useDeployments, type Deployment } from "@/services/strategies/queries";
 import { useDeployStrategy, useStopDeployment, useDeleteDeployment } from "@/services/strategies/mutations";
 import { formatCents } from "@/lib/utils";
@@ -319,15 +321,16 @@ function GenerateModal({
 }: {
   busy: boolean;
   onClose: () => void;
-  onGenerate: (symbol: string) => void;
+  onGenerate: (symbol: string, provider: ChatProvider) => void;
 }) {
   const [symbol, setSymbol] = useState("AAPL");
+  const [provider, setProvider] = useState<ChatProvider>("gemini");
   const [error, setError] = useState("");
 
   function handleGenerate() {
     if (!symbol.trim()) { setError("Symbol is required"); return; }
     setError("");
-    onGenerate(symbol.toUpperCase().trim());
+    onGenerate(symbol.toUpperCase().trim(), provider);
   }
 
   return (
@@ -357,6 +360,25 @@ function GenerateModal({
                 placeholder="AAPL"
                 inputClassName="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#5600a2]/60 focus:ring-1 focus:ring-[#5600a2]/40 transition-all"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">Model</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["gemini", "inference"] as ChatProvider[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setProvider(p)}
+                    className={`py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
+                      provider === p
+                        ? "text-white border-[#5600a2]/60 bg-[#5600a2]/15"
+                        : "text-white/50 border-white/10 bg-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {error && (
@@ -460,20 +482,21 @@ export default function Strategies() {
   }, []);
 
   async function applyGenerated(generated: GeneratedStrategy) {
-    const cs: CustomStrategy = {
-      ...generated.config,
-      name: generated.name,
-      description: generated.rationale,
-      createdAt: new Date().toISOString(),
-    };
-    await createCustomStrategy(cs);
+    if (isMockMode()) {
+      await createCustomStrategy({
+        ...generated.config,
+        name: generated.name,
+        description: generated.rationale,
+        createdAt: new Date().toISOString(),
+      });
+    }
     const list = await loadCustomStrategies();
     setCustomStrategies(list);
     setGenRationale(generated.rationale);
     setGenBacktest(generated.backtest ?? null);
   }
 
-  async function handleGenerate(symbol: string) {
+  async function handleGenerate(symbol: string, provider: ChatProvider) {
     if (genBusy) return;
     setGenModalOpen(false);
     setGenBusy(true);
@@ -481,7 +504,7 @@ export default function Strategies() {
     setGenRationale("");
     setGenBacktest(null);
     try {
-      const generated = await generateStrategy(symbol);
+      const generated = await generateStrategy(symbol, provider);
       await applyGenerated(generated);
     } catch {
       setGenError("Could not generate a strategy right now. Try again in a moment.");
