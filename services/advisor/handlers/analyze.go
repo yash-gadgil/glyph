@@ -30,6 +30,7 @@ func (h *AdvisorHandler) provider(name string) types.Provider {
 		if p, ok := h.providers[name]; ok && p != nil {
 			return p
 		}
+		h.log.Warn("requested_provider_unavailable_using_default", zap.String("requested", name))
 	}
 	return h.llm
 }

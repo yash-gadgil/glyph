@@ -41,6 +41,7 @@ message ChatSession {
 message StartStrategyGenerationRequest {
     string user_id = 1;
     string symbol = 2;
+    string provider = 3;
 }
 
 message GetStrategyJobRequest {

@@ -293,6 +293,7 @@ type StartStrategyGenerationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Symbol        string                 `protobuf:"bytes,2,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	Provider      string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -337,6 +338,13 @@ func (x *StartStrategyGenerationRequest) GetUserId() string {
 func (x *StartStrategyGenerationRequest) GetSymbol() string {
 	if x != nil {
 		return x.Symbol
+	}
+	return ""
+}
+
+func (x *StartStrategyGenerationRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
 	}
 	return ""
 }
@@ -589,10 +597,11 @@ const file_advisor_advisor_proto_rawDesc = "" +
 	"\vChatSession\x12'\n" +
 	"\x05turns\x18\x01 \x03(\v2\x11.advisor.ChatTurnR\x05turns\x12\x1b\n" +
 	"\tin_flight\x18\x02 \x01(\bR\binFlight\x12!\n" +
-	"\fpartial_text\x18\x03 \x01(\tR\vpartialText\"Q\n" +
+	"\fpartial_text\x18\x03 \x01(\tR\vpartialText\"m\n" +
 	"\x1eStartStrategyGenerationRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06symbol\x18\x02 \x01(\tR\x06symbol\"0\n" +
+	"\x06symbol\x18\x02 \x01(\tR\x06symbol\x12\x1a\n" +
+	"\bprovider\x18\x03 \x01(\tR\bprovider\"0\n" +
 	"\x15GetStrategyJobRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xdc\x01\n" +
 	"\x0fBacktestSummary\x12(\n" +

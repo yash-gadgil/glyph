@@ -69,17 +69,25 @@ func (h *AdvisorHandler) ChatWithAdvisor(req *advisorpb.ChatRequest, stream advi
 	defer cancel()
 
 	var answer string
+	persist := true
 	if !isOnTopic(message, hadHistory) {
 		log.Info("chat_off_topic_skipped")
 		answer = offTopicReply
 		_ = stream.Send(&advisorpb.AnalysisChunk{Text: answer})
 	} else {
 		prov := h.provider(req.Provider)
-		observations := h.gatherObservations(genCtx, prov, req.UserId, session, log)
-		answer = h.streamAnswer(genCtx, prov, req.UserId, session, observations, stream, log)
+		observations := h.gatherObservations(genCtx, prov, req.Provider, req.UserId, session, log)
+		if sym, ok := strategyStarted(observations); ok {
+			answer = fmt.Sprintf("I've started generating a strategy for %s. It'll show up on the Strategies page in a moment.", sym)
+			_ = stream.Send(&advisorpb.AnalysisChunk{Text: answer})
+		} else {
+			answer, persist = h.streamAnswer(genCtx, prov, req.UserId, session, observations, stream, log)
+		}
 	}
 
-	session.Turns = append(session.Turns, cache.ChatTurn{Role: "assistant", Content: answer})
+	if persist {
+		session.Turns = append(session.Turns, cache.ChatTurn{Role: "assistant", Content: answer})
+	}
 	session.Turns = trimTurns(session.Turns)
 	session.InFlight = false
 	session.Partial = ""
@@ -133,7 +141,7 @@ func (h *AdvisorHandler) saveSession(ctx context.Context, userID string, session
 	}
 }
 
-func (h *AdvisorHandler) gatherObservations(ctx context.Context, prov types.Provider, userID string, session *cache.ChatSession, log *zap.Logger) []string {
+func (h *AdvisorHandler) gatherObservations(ctx context.Context, prov types.Provider, providerName, userID string, session *cache.ChatSession, log *zap.Logger) []string {
 	var observations []string
 	seen := make(map[string]bool)
 
@@ -152,14 +160,14 @@ func (h *AdvisorHandler) gatherObservations(ctx context.Context, prov types.Prov
 			break
 		}
 		seen[key] = true
-		obs := h.runTool(ctx, userID, act.Tool, act.Input, log)
+		obs := h.runTool(ctx, providerName, userID, act.Tool, act.Input, log)
 		log.Info("chat_tool_used", logger.KV("tool", act.Tool), logger.KV("input", act.Input))
 		observations = append(observations, fmt.Sprintf("%s(%s) -> %s", act.Tool, act.Input, obs))
 	}
 	return observations
 }
 
-func (h *AdvisorHandler) runTool(ctx context.Context, userID, tool, input string, log *zap.Logger) string {
+func (h *AdvisorHandler) runTool(ctx context.Context, providerName, userID, tool, input string, log *zap.Logger) string {
 	switch tool {
 	case "get_portfolio":
 		snapshot, err := buildSnapshot(ctx, h.portfolio, userID)
@@ -182,7 +190,7 @@ func (h *AdvisorHandler) runTool(ctx context.Context, userID, tool, input string
 		if symbol == "" {
 			symbol = defaultSymbol
 		}
-		_, err := h.StartStrategyGeneration(ctx, &advisorpb.StartStrategyGenerationRequest{UserId: userID, Symbol: symbol})
+		_, err := h.StartStrategyGeneration(ctx, &advisorpb.StartStrategyGenerationRequest{UserId: userID, Symbol: symbol, Provider: providerName})
 		if err != nil {
 			return fmt.Sprintf("could not start strategy generation for %s", symbol)
 		}
@@ -271,7 +279,7 @@ func parseSymbols(input string) []string {
 	return out
 }
 
-func (h *AdvisorHandler) streamAnswer(ctx context.Context, prov types.Provider, userID string, session *cache.ChatSession, observations []string, stream advisorpb.AdvisorService_ChatWithAdvisorServer, log *zap.Logger) string {
+func (h *AdvisorHandler) streamAnswer(ctx context.Context, prov types.Provider, userID string, session *cache.ChatSession, observations []string, stream advisorpb.AdvisorService_ChatWithAdvisorServer, log *zap.Logger) (string, bool) {
 	var b strings.Builder
 	clientAlive := true
 	lastPersist := time.Now()
@@ -294,18 +302,38 @@ func (h *AdvisorHandler) streamAnswer(ctx context.Context, prov types.Provider, 
 	if err != nil {
 		log.Warn("chat_answer_error", zap.Error(err))
 		if b.Len() == 0 {
-			fallback := "Sorry, I ran into a problem answering that. Please try again."
+			fallback := "I couldn't finish that just now. Please try again in a moment."
 			if isRateLimited(err) {
-				fallback = "The assistant is rate limited right now (the free tier quota was reached). Please wait a minute and try again."
+				fallback = "The model is rate limited right now. Please wait a minute and try again."
 			}
 			if clientAlive {
 				_ = stream.Send(&advisorpb.AnalysisChunk{Text: fallback})
 			}
-			return fallback
+			return fallback, false
 		}
 	}
 
-	return b.String()
+	return b.String(), true
+}
+
+func strategyStarted(observations []string) (string, bool) {
+	if len(observations) != 1 {
+		return "", false
+	}
+	o := observations[0]
+	if !strings.HasPrefix(o, "generate_strategy(") {
+		return "", false
+	}
+	start := strings.Index(o, "(")
+	end := strings.Index(o, ")")
+	if start < 0 || end <= start {
+		return "", false
+	}
+	sym := strings.TrimSpace(o[start+1 : end])
+	if sym == "" {
+		return "", false
+	}
+	return sym, true
 }
 
 func isRateLimited(err error) bool {

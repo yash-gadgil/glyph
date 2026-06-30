@@ -48,12 +48,14 @@ class ChatSession(_message.Message):
     def __init__(self, turns: _Optional[_Iterable[_Union[ChatTurn, _Mapping]]] = ..., in_flight: bool = ..., partial_text: _Optional[str] = ...) -> None: ...
 
 class StartStrategyGenerationRequest(_message.Message):
-    __slots__ = ("user_id", "symbol")
+    __slots__ = ("user_id", "symbol", "provider")
     USER_ID_FIELD_NUMBER: _ClassVar[int]
     SYMBOL_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
     user_id: str
     symbol: str
-    def __init__(self, user_id: _Optional[str] = ..., symbol: _Optional[str] = ...) -> None: ...
+    provider: str
+    def __init__(self, user_id: _Optional[str] = ..., symbol: _Optional[str] = ..., provider: _Optional[str] = ...) -> None: ...
 
 class GetStrategyJobRequest(_message.Message):
     __slots__ = ("user_id",)

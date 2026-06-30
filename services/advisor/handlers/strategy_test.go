@@ -102,7 +102,7 @@ func TestAuthorStrategyRetriesOnInvalidThenSucceeds(t *testing.T) {
 	provider := &scriptedProvider{replies: []string{broken, good}}
 	h := NewAdvisorHandler(nil, nil, nil, provider, nil, nil, zap.NewNop())
 
-	gs, summary, err := h.authorStrategy(context.Background(), "user-1", "AAPL", "No portfolio snapshot.", "", zap.NewNop())
+	gs, summary, err := h.authorStrategy(context.Background(), provider, "user-1", "AAPL", "No portfolio snapshot.", "", zap.NewNop())
 	require.NoError(t, err)
 	assert.Equal(t, 2, provider.calls, "should retry once after the broken attempt")
 	assert.Nil(t, summary)
@@ -118,7 +118,7 @@ func TestAuthorStrategyFailsWhenAlwaysInvalid(t *testing.T) {
 	provider := &scriptedProvider{replies: []string{"not json at all"}}
 	h := NewAdvisorHandler(nil, nil, nil, provider, nil, nil, zap.NewNop())
 
-	_, _, err := h.authorStrategy(context.Background(), "user-1", "AAPL", "snapshot", "", zap.NewNop())
+	_, _, err := h.authorStrategy(context.Background(), provider, "user-1", "AAPL", "snapshot", "", zap.NewNop())
 	require.Error(t, err)
 	assert.Equal(t, maxGenAttempts, provider.calls)
 }

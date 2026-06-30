@@ -13,6 +13,7 @@ import (
 
 	"github.com/yash-gadgil/glyph/pkg/logger"
 	"github.com/yash-gadgil/glyph/services/advisor/cache"
+	"github.com/yash-gadgil/glyph/services/advisor/types"
 	advisorpb "github.com/yash-gadgil/glyph/services/gen/golang/advisor"
 	mrktpb "github.com/yash-gadgil/glyph/services/gen/golang/mrktdata"
 	strategypb "github.com/yash-gadgil/glyph/services/gen/golang/strategy"
@@ -28,6 +29,7 @@ const (
 
 	maxGenAttempts    = 2
 	generationTimeout = 90 * time.Second
+	slowGenTimeout    = 6 * time.Minute
 	defaultSymbol     = "AAPL"
 )
 
@@ -63,6 +65,7 @@ type genStrategy struct {
 	Exit          ruleGroup `json:"exit"`
 	StopLossPct   float64   `json:"stopLossPct"`
 	TakeProfitPct float64   `json:"takeProfitPct"`
+	CreatedAt     string    `json:"createdAt,omitempty"`
 }
 
 type strategyTemplate struct {
@@ -153,6 +156,13 @@ func strategyTemplates() []strategyTemplate {
 	}
 }
 
+func providerTimeout(name string) time.Duration {
+	if name == "inference" {
+		return slowGenTimeout
+	}
+	return generationTimeout
+}
+
 func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advisorpb.StartStrategyGenerationRequest) (*advisorpb.StrategyJob, error) {
 	log := logger.WithContextFields(ctx, h.log).With(logger.Action("start_strategy_generation"))
 
@@ -165,12 +175,14 @@ func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advis
 		symbol = defaultSymbol
 	}
 
+	timeout := providerTimeout(req.Provider)
+
 	if h.cache != nil && h.cache.Enabled() {
 		if job, err := h.cache.GetJob(ctx, req.UserId); err == nil && job != nil && job.State == jobRunning {
 			return jobToProto(job), nil
 		}
 
-		ok, err := h.cache.AcquireJobLock(ctx, req.UserId, generationTimeout)
+		ok, err := h.cache.AcquireJobLock(ctx, req.UserId, timeout)
 		if err != nil {
 			log.Warn("job_lock_error", zap.Error(err))
 		}
@@ -186,11 +198,11 @@ func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advis
 			log.Warn("job_persist_error", zap.Error(err))
 		}
 
-		genCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), generationTimeout)
+		genCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
 		go func() {
 			defer cancel()
 			defer h.cache.ReleaseJobLock(context.Background(), req.UserId)
-			result := h.generateOnce(genCtx, req.UserId, symbol, log)
+			result := h.generateOnce(genCtx, req.UserId, symbol, req.Provider, log)
 			if err := h.cache.SetJob(context.Background(), req.UserId, result); err != nil {
 				log.Error("job_result_persist_error", zap.Error(err))
 			}
@@ -199,7 +211,7 @@ func (h *AdvisorHandler) StartStrategyGeneration(ctx context.Context, req *advis
 		return jobToProto(job), nil
 	}
 
-	return jobToProto(h.generateOnce(ctx, req.UserId, symbol, log)), nil
+	return jobToProto(h.generateOnce(ctx, req.UserId, symbol, req.Provider, log)), nil
 }
 
 func (h *AdvisorHandler) GetStrategyJob(ctx context.Context, req *advisorpb.GetStrategyJobRequest) (*advisorpb.StrategyJob, error) {
@@ -219,7 +231,7 @@ func (h *AdvisorHandler) GetStrategyJob(ctx context.Context, req *advisorpb.GetS
 	return jobToProto(job), nil
 }
 
-func (h *AdvisorHandler) generateOnce(ctx context.Context, userID, symbol string, log *zap.Logger) *cache.StratJob {
+func (h *AdvisorHandler) generateOnce(ctx context.Context, userID, symbol, provider string, log *zap.Logger) *cache.StratJob {
 	started := time.Now().UTC()
 
 	snapshot, err := buildSnapshot(ctx, h.portfolio, userID)
@@ -230,16 +242,19 @@ func (h *AdvisorHandler) generateOnce(ctx context.Context, userID, symbol string
 
 	market := h.marketConditions(ctx, symbol, log)
 
-	gs, summary, err := h.authorStrategy(ctx, userID, symbol, snapshot, market, log)
+	gs, summary, err := h.authorStrategy(ctx, h.provider(provider), userID, symbol, snapshot, market, log)
 	if err != nil {
 		log.Warn("strategy_generation_failed", zap.Error(err))
 		return &cache.StratJob{State: jobFailed, Error: err.Error(), StartedAt: started, UpdatedAt: time.Now().UTC()}
 	}
 
+	gs.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	configJSON, err := json.Marshal(gs)
 	if err != nil {
 		return &cache.StratJob{State: jobFailed, Error: "could not encode strategy", StartedAt: started, UpdatedAt: time.Now().UTC()}
 	}
+
+	h.persistStrategy(ctx, userID, gs.Name, string(configJSON), log)
 
 	log.Info("strategy_generation_succeeded", logger.KV("name", gs.Name))
 	return &cache.StratJob{
@@ -253,15 +268,37 @@ func (h *AdvisorHandler) generateOnce(ctx context.Context, userID, symbol string
 	}
 }
 
-func (h *AdvisorHandler) authorStrategy(ctx context.Context, userID, symbol, snapshot, market string, log *zap.Logger) (genStrategy, *cache.BacktestSummary, error) {
-	if h.llm == nil {
+func (h *AdvisorHandler) persistStrategy(ctx context.Context, userID, name, configJSON string, log *zap.Logger) {
+	if h.strategy == nil {
+		return
+	}
+	if _, err := h.strategy.CreateStrategy(ctx, &strategypb.CreateStrategyRequest{
+		UserId:     userID,
+		Name:       name,
+		ConfigJson: configJSON,
+	}); err != nil {
+		log.Warn("strategy_persist_failed", zap.Error(err))
+	}
+}
+
+func (h *AdvisorHandler) authorStrategy(ctx context.Context, prov types.Provider, userID, symbol, snapshot, market string, log *zap.Logger) (genStrategy, *cache.BacktestSummary, error) {
+	if prov == nil {
 		return h.fallbackStrategy(), nil, nil
 	}
 
+	gs, summary, err := h.tryAuthor(ctx, prov, userID, symbol, snapshot, market, log)
+	if err != nil && h.llm != nil && h.llm != prov {
+		log.Warn("strategy_author_fallback_to_default", zap.Error(err))
+		gs, summary, err = h.tryAuthor(ctx, h.llm, userID, symbol, snapshot, market, log)
+	}
+	return gs, summary, err
+}
+
+func (h *AdvisorHandler) tryAuthor(ctx context.Context, prov types.Provider, userID, symbol, snapshot, market string, log *zap.Logger) (genStrategy, *cache.BacktestSummary, error) {
 	var lastErr error
 	feedback := ""
 	for attempt := 0; attempt < maxGenAttempts; attempt++ {
-		out, err := h.llm.CompleteShort(ctx, authorSystem, buildAuthorPrompt(symbol, snapshot, market, feedback), 1024)
+		out, err := prov.CompleteShort(ctx, authorSystem, buildAuthorPrompt(symbol, snapshot, market, feedback), 1024)
 		if err != nil {
 			return genStrategy{}, nil, fmt.Errorf("model error: %w", err)
 		}
