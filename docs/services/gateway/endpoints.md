@@ -1,11 +1,12 @@
 # Gateway endpoints
 
-The gateway is the public HTTP and WebSocket API. Everything here is what the web app
-calls. Money fields are integer cents.
+The gateway is the public HTTP, WebSocket, and SSE API. Everything here is what the web
+app calls. Money fields are integer cents.
 
 Every group except `/auth` is behind the auth middleware, which checks the JWT cookie and
-injects your user id. The WebSocket routes authenticate from the cookie inside the handler
-instead.
+injects your user id. The WebSocket routes authenticate from the cookie inside the
+handler instead, and `/advisor/chat` authenticates normally but responds as an SSE stream
+instead of a single JSON body.
 
 ## Auth `/auth`
 
@@ -59,6 +60,7 @@ Public, no cookie required.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/account` | the account summary |
+| DELETE | `/account` | delete the account |
 | GET | `/account/me` | the signed in user |
 | GET | `/account/profile` | email and user name |
 | GET | `/account/trades` | your fills |
@@ -85,3 +87,15 @@ Public, no cookie required.
 | POST | `/strategies/deployments/{id}/stop` | stop a running deployment |
 | DELETE | `/strategies/deployments/{id}` | delete a stopped deployment |
 | GET | `/strategies/{id}/trades` | the fills a strategy has made |
+
+## Advisor `/advisor`
+
+Kenaz, the chat agent, and strategy generation.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/advisor/chat` | send a message, SSE stream of response tokens back |
+| GET | `/advisor/chat/session` | current session turns and in-flight status |
+| DELETE | `/advisor/chat/session` | clear the session |
+| POST | `/advisor/strategy` | start strategy generation for a symbol, returns a job |
+| GET | `/advisor/strategy/status` | poll the strategy generation job |

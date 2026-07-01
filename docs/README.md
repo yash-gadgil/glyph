@@ -1,12 +1,12 @@
 # Glyph docs
 
 Glyph is a paper trading platform. You get a cash balance, place orders against live
-market data, run strategies, and watch how your portfolio does over time. Nothing uses
-real money.
+market data, run strategies, and chat with an LLM copilot about your account. Nothing
+uses real money.
 
-The backend is a set of Go microservices with a Rust matching engine. The frontend is a
-Next.js web app. Everything talks to a single Go gateway over HTTP and WebSocket, and the
-gateway fans out to the backend services over gRPC.
+The backend is a set of Go microservices, a Rust matching engine, and a Python model
+host. The frontend is a Next.js web app. Everything talks to a single Go gateway over
+HTTP, WebSocket, and SSE, and the gateway fans out to the backend services over gRPC.
 
 All money is stored as integer cents. There are no floats anywhere in the money path.
 
@@ -20,12 +20,16 @@ All money is stored as integer cents. There are no floats anywhere in the money 
 
 Each service has its own page under [services/](services/):
 
-- [gateway](services/gateway/overview.md) the public HTTP and WebSocket edge
+- [gateway](services/gateway/overview.md) the public HTTP, WebSocket, and SSE edge
 - [auth](services/auth/overview.md) signup, signin, OAuth, JWTs, email
-- [user](services/user/overview.md) accounts, portfolio, watchlists, strategies
+- [user](services/user/overview.md) accounts, portfolio, watchlists
 - [mrktdata](services/mrktdata/overview.md) market data from Alpaca
 - [order](services/order/overview.md) the order lifecycle
 - [orderbook](services/orderbook/overview.md) the Rust matching engine
+- [strategy](services/strategy/overview.md) strategy definitions, backtests, and live
+  deployments
+- [advisor](services/advisor/overview.md) the Kenaz chat agent and strategy generation
+- [inference](services/inference/overview.md) the local model host
 
 ## Frontend
 

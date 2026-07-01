@@ -1,11 +1,11 @@
 # User
 
-The user service owns identities, the trading account and its cash, positions,
-watchlists, and strategies. It is the biggest backend service and it is where money
-actually moves. It is a Go gRPC service backed by Postgres (`userdb`) through sqlc.
+The user service owns identities, the trading account and its cash, positions, and
+watchlists. It is the biggest backend service and it is where money actually moves. It is
+a Go gRPC service backed by Postgres (`userdb`) through sqlc.
 
 Path: `services/user/` · Port: 50053 · Depends on: Postgres, market data (for prices),
-order service (for the strategy engine), RabbitMQ (for settlement).
+RabbitMQ (for settlement and publishing account deletions).
 
 ## Structure
 
@@ -13,8 +13,12 @@ The gRPC handlers hold the business logic directly. Each handler file in `handle
 both the gRPC server and the implementation, holding the database handle, the sqlc query
 layer, and the logger. There is no separate service layer.
 
-Four gRPC services run in the one process: account, watchlist, portfolio, and strategy.
-See [endpoints.md](endpoints.md) for the RPCs each one exposes.
+Three gRPC services run in the one process: account, watchlist, and portfolio. See
+[endpoints.md](endpoints.md) for the RPCs each one exposes. Strategies and backtesting
+used to live here too; they moved out into their own service (`services/strategy`) so the
+strategy evaluation loop doesn't compete with account and order traffic. Deleting an
+account still needs to reach those strategies, so `DeleteAccount` publishes a
+`user.deleted` event that the strategy service consumes to cascade-delete them.
 
 ## Money and settlement
 
@@ -38,15 +42,6 @@ with banker's rounding and realize the difference.
 - the settlement consumer described above
 - a snapshotter that records an account value point per account once a minute, which powers
   the portfolio chart, and works even without live prices by falling back to cost basis
-- the strategy engine that evaluates running deployments on a schedule and places paper
-  orders through the order service
-
-## Strategies and backtesting
-
-A strategy is a JSON config built in the web app. You can deploy it to run live on a symbol
-or backtest it over historical bars. The strategy engine in `strategyengine/` evaluates
-indicators and entry and exit rules, and the same engine drives both live deployments and
-backtests, so a backtest and a live run behave the same way.
 
 ## Holdings
 

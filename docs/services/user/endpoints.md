@@ -1,8 +1,8 @@
 # User endpoints
 
-The user service runs four gRPC services in one process, all defined in `proto/user.proto`.
-They are internal: the gateway calls them, and the auth and order services call a few
-directly. Money fields are integer cents.
+The user service runs three gRPC services in one process, all defined in
+`proto/user/user.proto`. They are internal: the gateway calls them, and the auth and order
+services call a few directly. Money fields are integer cents.
 
 ## AccountService
 
@@ -14,6 +14,7 @@ directly. Money fields are integer cents.
 | `UpdatePasswordByEmail` | `UpdatePasswordRequest` to `Empty` | used by password reset |
 | `GetProfile` | `UserSpecifier` to `Profile` | email and user name |
 | `ResetAccount` | `UserSpecifier` to `Empty` | clear positions, reservations, settlements, and restore the starting balance |
+| `DeleteAccount` | `UserSpecifier` to `Empty` | delete the account and publish a `user.deleted` event so the strategy service can cascade-delete its strategies |
 | `ReserveForOrder` | `ReserveForOrderRequest` to `Empty` | hold buying power for a buy or shares for a sell, called by the order service |
 | `ReleaseForOrder` | `ReleaseForOrderRequest` to `Empty` | free whatever is left of an order's hold |
 | `AddFunds` | `AddFundsRequest` to `AddFundsResponse` | retired, paper accounts have a fixed balance so it returns an error |
@@ -38,16 +39,5 @@ directly. Money fields are integer cents.
 | `GetPositions` | `UserSpecifier` to `PositionsResponse` | raw positions |
 | `GetPortfolioHistory` | `PortfolioHistoryRequest` to `PortfolioHistoryResponse` | account value points for the chart |
 
-## StrategyService
-
-| RPC | Request to response | Description |
-|-----|---------------------|-------------|
-| `GetStrategies` | `UserSpecifier` to `StrategiesResponse` | your strategies |
-| `CreateStrategy` | `CreateStrategyRequest` to `Strategy` | create one |
-| `UpdateStrategy` | `UpdateStrategyRequest` to `Strategy` | update one |
-| `DeleteStrategy` | `StrategySpecifier` to `Empty` | delete one |
-| `DeployStrategy` | `DeployStrategyRequest` to `Deployment` | run a strategy live on a symbol |
-| `StopDeployment` | `DeploymentSpecifier` to `Deployment` | stop a running deployment |
-| `DeleteDeployment` | `DeploymentSpecifier` to `Empty` | delete a stopped deployment |
-| `GetDeployments` | `UserSpecifier` to `DeploymentsResponse` | your deployments |
-| `RunBacktest` | `BacktestRequest` to `BacktestResponse` | replay a config over historical bars |
+Strategies and backtesting moved to their own `StrategyService`; see
+[strategy/endpoints.md](../strategy/endpoints.md).

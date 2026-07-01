@@ -5,8 +5,10 @@ handle proto codegen, the database layer, and migrations.
 
 ## Proto codegen: buf and the Go plugins
 
-The Go gRPC stubs are generated with buf. buf reads `buf.gen.yaml` at the repo root, finds
-every `.proto` under `proto/`, and writes the stubs into `services/gen/golang/`.
+The Go and Python gRPC stubs are generated with buf. buf reads `buf.gen.yaml` at the repo
+root, finds every `.proto` under `proto/`, and writes the Go stubs into
+`services/gen/golang/` and the Python stubs (for the inference service) into
+`services/gen/python/`.
 
 ```
 brew install bufbuild/buf/buf
@@ -66,3 +68,17 @@ The orderbook needs a stable Rust toolchain with clippy and rustfmt:
 rustup toolchain install stable
 rustup component add clippy rustfmt
 ```
+
+## Python: uv
+
+The inference service manages its dependencies with [uv](https://github.com/astral-sh/uv)
+instead of pip, including a CPU-only build of torch on Linux so the built image stays
+small.
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+cd services/inference && uv sync --extra model
+```
+
+The `model` extra pulls in `transformers` and `torch`; without it the service still runs,
+just permanently in its echo fallback mode.
